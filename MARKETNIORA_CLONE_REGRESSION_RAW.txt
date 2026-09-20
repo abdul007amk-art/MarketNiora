@@ -1,0 +1,1964 @@
+TAP version 13
+# (node:928) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Rotation weights sum to 1.0 (40+30+20+10)
+ok 1 - Rotation weights sum to 1.0 (40+30+20+10)
+  ---
+  duration_ms: 0.93037
+  type: 'test'
+  ...
+# Subtest: confidence=29 (<CONF_MIN=30) excludes -> finalScore null
+ok 2 - confidence=29 (<CONF_MIN=30) excludes -> finalScore null
+  ---
+  duration_ms: 0.338536
+  type: 'test'
+  ...
+# Subtest: confidence=30 (=CONF_MIN) includes
+ok 3 - confidence=30 (=CONF_MIN) includes
+  ---
+  duration_ms: 0.124185
+  type: 'test'
+  ...
+# Subtest: 1D cap of 8% clips a 50% return
+ok 4 - 1D cap of 8% clips a 50% return
+  ---
+  duration_ms: 0.111175
+  type: 'test'
+  ...
+# Subtest: 1W cap of 12% enforced
+ok 5 - 1W cap of 12% enforced
+  ---
+  duration_ms: 0.156632
+  type: 'test'
+  ...
+# Subtest: empty observation array does not throw
+ok 6 - empty observation array does not throw
+  ---
+  duration_ms: 0.155936
+  type: 'test'
+  ...
+# Subtest: Stock Score weights sum to 1.0 (22+18+16+10+10+8+8+8)
+ok 7 - Stock Score weights sum to 1.0 (22+18+16+10+10+8+8+8)
+  ---
+  duration_ms: 0.111924
+  type: 'test'
+  ...
+# Subtest: full-component score clamped within 0-100
+ok 8 - full-component score clamped within 0-100
+  ---
+  duration_ms: 0.241698
+  type: 'test'
+  ...
+# Subtest: suspended/delisted -> finalScore is N/A (null)
+ok 9 - suspended/delisted -> finalScore is N/A (null)
+  ---
+  duration_ms: 0.238733
+  type: 'test'
+  ...
+# Subtest: missing component gets zero weight after redistribution, total <= 1.0
+ok 10 - missing component gets zero weight after redistribution, total <= 1.0
+  ---
+  duration_ms: 0.396079
+  type: 'test'
+  ...
+# Subtest: riskPenalty=-35 (out of [-30,0] bound) throws
+ok 11 - riskPenalty=-35 (out of [-30,0] bound) throws
+  ---
+  duration_ms: 0.222086
+  type: 'test'
+  ...
+# Subtest: extreme low score clamps at 0 floor
+ok 12 - extreme low score clamps at 0 floor
+  ---
+  duration_ms: 0.089366
+  type: 'test'
+  ...
+# Subtest: max score + catalyst clamps at 100 ceiling
+ok 13 - max score + catalyst clamps at 100 ceiling
+  ---
+  duration_ms: 0.071712
+  type: 'test'
+  ...
+# (node:929) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:929) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/marketniora_repo_audit/marketniora/backend/src/providers/sourceHealth.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /tmp/marketniora_repo_audit/marketniora/package.json.
+# Subtest: validateProvenance: valid RAW provenance accepted
+ok 14 - validateProvenance: valid RAW provenance accepted
+  ---
+  duration_ms: 0.971871
+  type: 'test'
+  ...
+# Subtest: validateProvenance: invalid verificationStatus rejected
+ok 15 - validateProvenance: invalid verificationStatus rejected
+  ---
+  duration_ms: 0.106635
+  type: 'test'
+  ...
+# Subtest: validateProvenance: invalid dataNature rejected
+ok 16 - validateProvenance: invalid dataNature rejected
+  ---
+  duration_ms: 0.076842
+  type: 'test'
+  ...
+# Subtest: validateProvenance: DERIVED without formulaVersion rejected; DERIVED with formulaVersion accepted
+ok 17 - validateProvenance: DERIVED without formulaVersion rejected; DERIVED with formulaVersion accepted
+  ---
+  duration_ms: 0.184399
+  type: 'test'
+  ...
+# Subtest: validateProvenance: non-DERIVED with a non-null formulaVersion rejected
+ok 18 - validateProvenance: non-DERIVED with a non-null formulaVersion rejected
+  ---
+  duration_ms: 0.089651
+  type: 'test'
+  ...
+# Subtest: validateProvenance: non-finite sourceTimestamp rejected; null sourceTimestamp accepted
+ok 19 - validateProvenance: non-finite sourceTimestamp rejected; null sourceTimestamp accepted
+  ---
+  duration_ms: 0.080976
+  type: 'test'
+  ...
+# Subtest: getSpecialPeers: same-group stocks returned, self excluded
+ok 20 - getSpecialPeers: same-group stocks returned, self excluded
+  ---
+  duration_ms: 0.816144
+  type: 'test'
+  ...
+# Subtest: getSpecialPeers: stock in multiple groups gets peers from ANY shared group
+ok 21 - getSpecialPeers: stock in multiple groups gets peers from ANY shared group
+  ---
+  duration_ms: 0.112076
+  type: 'test'
+  ...
+# Subtest: getSpecialPeers: stock in no group returns empty list, does not throw
+ok 22 - getSpecialPeers: stock in no group returns empty list, does not throw
+  ---
+  duration_ms: 0.363969
+  type: 'test'
+  ...
+# Subtest: validateUniversePeerLink (post-10-B): self-reference rejected
+ok 23 - validateUniversePeerLink (post-10-B): self-reference rejected
+  ---
+  duration_ms: 0.385599
+  type: 'test'
+  ...
+# Subtest: validateUniversePeerLink (post-10-B): valid distinct pair with valid provenance accepted
+ok 24 - validateUniversePeerLink (post-10-B): valid distinct pair with valid provenance accepted
+  ---
+  duration_ms: 0.135771
+  type: 'test'
+  ...
+# Subtest: validateUniversePeerLink (post-10-B): invalid provenance propagates as an error
+ok 25 - validateUniversePeerLink (post-10-B): invalid provenance propagates as an error
+  ---
+  duration_ms: 0.139834
+  type: 'test'
+  ...
+# Subtest: getUniversePeers: returns configured competitors, excludes any accidental self-link
+ok 26 - getUniversePeers: returns configured competitors, excludes any accidental self-link
+  ---
+  duration_ms: 0.108323
+  type: 'test'
+  ...
+# Subtest: validateSubTheme: rejects unknown themeId
+ok 27 - validateSubTheme: rejects unknown themeId
+  ---
+  duration_ms: 0.078619
+  type: 'test'
+  ...
+# Subtest: validateIndustry: rejects unknown subThemeId
+ok 28 - validateIndustry: rejects unknown subThemeId
+  ---
+  duration_ms: 0.065293
+  type: 'test'
+  ...
+# Subtest: validateStockThemeMembership (post-10-B, new): valid membership with provenance accepted
+ok 29 - validateStockThemeMembership (post-10-B, new): valid membership with provenance accepted
+  ---
+  duration_ms: 0.065395
+  type: 'test'
+  ...
+# Subtest: validateStockThemeMembership: missing stockId/industryId rejected
+ok 30 - validateStockThemeMembership: missing stockId/industryId rejected
+  ---
+  duration_ms: 0.043509
+  type: 'test'
+  ...
+# Subtest: validateStockThemeMembership: invalid provenance propagates as an error
+ok 31 - validateStockThemeMembership: invalid provenance propagates as an error
+  ---
+  duration_ms: 0.057846
+  type: 'test'
+  ...
+# Subtest: getThemesForStock: resolves many-to-many through industry -> sub-theme -> theme
+ok 32 - getThemesForStock: resolves many-to-many through industry -> sub-theme -> theme
+  ---
+  duration_ms: 0.255672
+  type: 'test'
+  ...
+# Subtest: getStocksForIndustry: reverse query, deduplicated
+ok 33 - getStocksForIndustry: reverse query, deduplicated
+  ---
+  duration_ms: 0.124075
+  type: 'test'
+  ...
+# Subtest: theme.ts exports only the expected functions — no Theme Score function has been added (scope lock)
+ok 34 - theme.ts exports only the expected functions — no Theme Score function has been added (scope lock)
+  ---
+  duration_ms: 0.278071
+  type: 'test'
+  ...
+# Subtest: classifyFundamentalStatus (10-C): null value, no source -> MISSING
+ok 35 - classifyFundamentalStatus (10-C): null value, no source -> MISSING
+  ---
+  duration_ms: 0.122587
+  type: 'test'
+  ...
+# Subtest: classifyFundamentalStatus (10-C): null value, has source -> SOURCE_REQUIRED
+ok 36 - classifyFundamentalStatus (10-C): null value, has source -> SOURCE_REQUIRED
+  ---
+  duration_ms: 0.869522
+  type: 'test'
+  ...
+# Subtest: classifyFundamentalStatus (10-C): non-finite value -> UNKNOWN
+ok 37 - classifyFundamentalStatus (10-C): non-finite value -> UNKNOWN
+  ---
+  duration_ms: 0.122513
+  type: 'test'
+  ...
+# Subtest: classifyFundamentalStatus (10-C): finite value but no sourceTimestamp -> UNKNOWN (cannot assess currency)
+ok 38 - classifyFundamentalStatus (10-C): finite value but no sourceTimestamp -> UNKNOWN (cannot assess currency)
+  ---
+  duration_ms: 0.106409
+  type: 'test'
+  ...
+# Subtest: classifyFundamentalStatus (10-C): finite value with recent sourceTimestamp -> LIVE (delegates to classifyFreshness)
+ok 39 - classifyFundamentalStatus (10-C): finite value with recent sourceTimestamp -> LIVE (delegates to classifyFreshness)
+  ---
+  duration_ms: 0.151809
+  type: 'test'
+  ...
+# Subtest: classifyFundamentalStatus (10-C): finite value with old sourceTimestamp beyond threshold -> STALE
+ok 40 - classifyFundamentalStatus (10-C): finite value with old sourceTimestamp beyond threshold -> STALE
+  ---
+  duration_ms: 0.122342
+  type: 'test'
+  ...
+# Subtest: classifyFundamentalStatus (10-C): only returns values from the canonical 7-state vocabulary, never an invented term
+ok 41 - classifyFundamentalStatus (10-C): only returns values from the canonical 7-state vocabulary, never an invented term
+  ---
+  duration_ms: 0.149758
+  type: 'test'
+  ...
+# Subtest: validateFundamentalMetricRecord: unknown metric name rejected
+ok 42 - validateFundamentalMetricRecord: unknown metric name rejected
+  ---
+  duration_ms: 0.236906
+  type: 'test'
+  ...
+# Subtest: validateFundamentalMetricRecord: status inconsistent with value/source/timestamp rejected
+ok 43 - validateFundamentalMetricRecord: status inconsistent with value/source/timestamp rejected
+  ---
+  duration_ms: 0.171654
+  type: 'test'
+  ...
+# Subtest: validateFundamentalMetricRecord: consistent record accepted
+ok 44 - validateFundamentalMetricRecord: consistent record accepted
+  ---
+  duration_ms: 0.104501
+  type: 'test'
+  ...
+# Subtest: validateFundamentalMetricRecord (10-A): relatedMetrics containing an unknown metric name rejected
+ok 45 - validateFundamentalMetricRecord (10-A): relatedMetrics containing an unknown metric name rejected
+  ---
+  duration_ms: 0.083954
+  type: 'test'
+  ...
+# Subtest: validateFundamentalMetricRecord (10-A): relatedMetrics with only valid metric names accepted
+ok 46 - validateFundamentalMetricRecord (10-A): relatedMetrics with only valid metric names accepted
+  ---
+  duration_ms: 0.069089
+  type: 'test'
+  ...
+# Subtest: validateFundamentalMetricRecord (10-A): verdict present without context is rejected — no conclusion without stated evidence
+ok 47 - validateFundamentalMetricRecord (10-A): verdict present without context is rejected — no conclusion without stated evidence
+  ---
+  duration_ms: 0.074651
+  type: 'test'
+  ...
+# Subtest: validateFundamentalMetricRecord (10-A): verdict present WITH context is accepted
+ok 48 - validateFundamentalMetricRecord (10-A): verdict present WITH context is accepted
+  ---
+  duration_ms: 0.286187
+  type: 'test'
+  ...
+# Subtest: validateFundamentalMetricRecord: invalid provenance propagates as a prefixed error
+ok 49 - validateFundamentalMetricRecord: invalid provenance propagates as a prefixed error
+  ---
+  duration_ms: 0.194893
+  type: 'test'
+  ...
+# Subtest: FUNDAMENTAL_METRICS: contains all 19 metrics named in the Master Guide
+ok 50 - FUNDAMENTAL_METRICS: contains all 19 metrics named in the Master Guide
+  ---
+  duration_ms: 0.145183
+  type: 'test'
+  ...
+# Subtest: fundamental.ts exports only the expected functions — no scoring/verdict-COMPUTATION function has been added (scope lock)
+ok 51 - fundamental.ts exports only the expected functions — no scoring/verdict-COMPUTATION function has been added (scope lock)
+  ---
+  duration_ms: 0.187868
+  type: 'test'
+  ...
+# Subtest: fundamental.ts: no function ever WRITES a hardcoded verdict string — verdict can only arrive as externally-supplied data
+ok 52 - fundamental.ts: no function ever WRITES a hardcoded verdict string — verdict can only arrive as externally-supplied data
+  ---
+  duration_ms: 0.170711
+  type: 'test'
+  ...
+# Subtest: VALUE_CHAIN_STAGES: exactly 10 stages, matches schema.sql order
+ok 53 - VALUE_CHAIN_STAGES: exactly 10 stages, matches schema.sql order
+  ---
+  duration_ms: 0.075066
+  type: 'test'
+  ...
+# Subtest: VALUE_CHAIN_STAGES matches database/schema.sql check constraint exactly
+ok 54 - VALUE_CHAIN_STAGES matches database/schema.sql check constraint exactly
+  ---
+  duration_ms: 0.159365
+  type: 'test'
+  ...
+# Subtest: validateValueChainEntry (post-10-B): unknown stage rejected
+ok 55 - validateValueChainEntry (post-10-B): unknown stage rejected
+  ---
+  duration_ms: 0.138348
+  type: 'test'
+  ...
+# Subtest: validateValueChainEntry (post-10-B): valid entry with valid provenance accepted
+ok 56 - validateValueChainEntry (post-10-B): valid entry with valid provenance accepted
+  ---
+  duration_ms: 0.138471
+  type: 'test'
+  ...
+# Subtest: validateValueChainEntry (post-10-B): invalid provenance propagates as an error
+ok 57 - validateValueChainEntry (post-10-B): invalid provenance propagates as an error
+  ---
+  duration_ms: 0.119471
+  type: 'test'
+  ...
+# Subtest: orderByStage: reorders entries into canonical sequence regardless of input order
+ok 58 - orderByStage: reorders entries into canonical sequence regardless of input order
+  ---
+  duration_ms: 0.366669
+  type: 'test'
+  ...
+# Subtest: validateCausalLink: missing evidenceSource rejected — no evidence, no causal claim
+ok 59 - validateCausalLink: missing evidenceSource rejected — no evidence, no causal claim
+  ---
+  duration_ms: 0.161798
+  type: 'test'
+  ...
+# Subtest: validateCausalLink: complete, evidenced link accepted
+ok 60 - validateCausalLink: complete, evidenced link accepted
+  ---
+  duration_ms: 0.088215
+  type: 'test'
+  ...
+# Subtest: Module 10 isolation: no contract file imports rotationEngine.ts or stockScoreEngine.ts
+ok 61 - Module 10 isolation: no contract file imports rotationEngine.ts or stockScoreEngine.ts
+  ---
+  duration_ms: 0.479839
+  type: 'test'
+  ...
+# (node:930) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:930) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/marketniora_repo_audit/marketniora/backend/src/contracts/provenance.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /tmp/marketniora_repo_audit/marketniora/package.json.
+# Subtest: InMemorySourceRegistry: isPermitted true for active registered source
+ok 62 - InMemorySourceRegistry: isPermitted true for active registered source
+  ---
+  duration_ms: 0.970871
+  type: 'test'
+  ...
+# Subtest: InMemorySourceRegistry: isPermitted false for unknown source (fail closed)
+ok 63 - InMemorySourceRegistry: isPermitted false for unknown source (fail closed)
+  ---
+  duration_ms: 0.117504
+  type: 'test'
+  ...
+# Subtest: InMemorySourceRegistry: isPermitted false for a deactivated (revoked) source
+ok 64 - InMemorySourceRegistry: isPermitted false for a deactivated (revoked) source
+  ---
+  duration_ms: 0.082768
+  type: 'test'
+  ...
+# Subtest: InMemorySourceRegistry: register rejects duplicate sourceId
+ok 65 - InMemorySourceRegistry: register rejects duplicate sourceId
+  ---
+  duration_ms: 0.348337
+  type: 'test'
+  ...
+# Subtest: InMemorySourceRegistry: deactivate turns an active source unpermitted
+ok 66 - InMemorySourceRegistry: deactivate turns an active source unpermitted
+  ---
+  duration_ms: 0.150043
+  type: 'test'
+  ...
+# Subtest: processDiscovery: discovery from a permitted source is accepted as UNVERIFIED/PENDING
+ok 67 - processDiscovery: discovery from a permitted source is accepted as UNVERIFIED/PENDING
+  ---
+  duration_ms: 0.386731
+  type: 'test'
+  ...
+# Subtest: processDiscovery: discovery from an UNKNOWN source is rejected outright, never becomes an event
+ok 68 - processDiscovery: discovery from an UNKNOWN source is rejected outright, never becomes an event
+  ---
+  duration_ms: 0.160272
+  type: 'test'
+  ...
+# Subtest: processDiscovery: discovery from a DEACTIVATED source is rejected
+ok 69 - processDiscovery: discovery from a DEACTIVATED source is rejected
+  ---
+  duration_ms: 0.081231
+  type: 'test'
+  ...
+# Subtest: processDiscovery: missing headline/summary rejected
+ok 70 - processDiscovery: missing headline/summary rejected
+  ---
+  duration_ms: 0.256069
+  type: 'test'
+  ...
+# Subtest: processDiscovery: future discoveredAt rejected
+ok 71 - processDiscovery: future discoveredAt rejected
+  ---
+  duration_ms: 0.331705
+  type: 'test'
+  ...
+# Subtest: validateResearchEvent: well-formed event valid; missing headline invalid
+ok 72 - validateResearchEvent: well-formed event valid; missing headline invalid
+  ---
+  duration_ms: 0.240836
+  type: 'test'
+  ...
+# Subtest: Finding 11-A CLOSED: promoteToVerified is NOT exported from researchEvent.ts — no import path exists for any caller to reach it directly
+ok 73 - Finding 11-A CLOSED: promoteToVerified is NOT exported from researchEvent.ts — no import path exists for any caller to reach it directly
+  ---
+  duration_ms: 0.246466
+  type: 'test'
+  ...
+# Subtest: Finding 11-A CLOSED: the ONLY way to reach VERIFIED is through reviewResearchEvent() with a permitted role
+ok 74 - Finding 11-A CLOSED: the ONLY way to reach VERIFIED is through reviewResearchEvent() with a permitted role
+  ---
+  duration_ms: 0.172395
+  type: 'test'
+  ...
+# Subtest: reviewResearchEvent: OWNER can approve
+ok 75 - reviewResearchEvent: OWNER can approve
+  ---
+  duration_ms: 0.127373
+  type: 'test'
+  ...
+# Subtest: reviewResearchEvent: ADMIN can approve too (Master Guide: "Owner/Admin Review")
+ok 76 - reviewResearchEvent: ADMIN can approve too (Master Guide: "Owner/Admin Review")
+  ---
+  duration_ms: 0.078728
+  type: 'test'
+  ...
+# Subtest: reviewResearchEvent: AI_AGENT can NEVER approve or reject — DENY under any decision
+ok 77 - reviewResearchEvent: AI_AGENT can NEVER approve or reject — DENY under any decision
+  ---
+  duration_ms: 0.182466
+  type: 'test'
+  ...
+# Subtest: reviewResearchEvent: USER lacks REVIEW_AI_RESEARCH, denied
+ok 78 - reviewResearchEvent: USER lacks REVIEW_AI_RESEARCH, denied
+  ---
+  duration_ms: 0.120733
+  type: 'test'
+  ...
+# Subtest: reviewResearchEvent: null/undefined role denied, never throws
+ok 79 - reviewResearchEvent: null/undefined role denied, never throws
+  ---
+  duration_ms: 0.069752
+  type: 'test'
+  ...
+# Subtest: Finding 11-B CLOSED: an unrecognized decision value is DENIED, not silently treated as REJECT
+ok 80 - Finding 11-B CLOSED: an unrecognized decision value is DENIED, not silently treated as REJECT
+  ---
+  duration_ms: 0.190028
+  type: 'test'
+  ...
+# Subtest: Finding 11-B: empty string / null decision also denied
+ok 81 - Finding 11-B: empty string / null decision also denied
+  ---
+  duration_ms: 1.130718
+  type: 'test'
+  ...
+# Subtest: reviewResearchEvent: REJECT leaves provenance untouched, only flips reviewStatus
+ok 82 - reviewResearchEvent: REJECT leaves provenance untouched, only flips reviewStatus
+  ---
+  duration_ms: 0.155273
+  type: 'test'
+  ...
+# Subtest: RBAC: AI_AGENT has zero permissions including the new REVIEW_AI_RESEARCH (regression check tying Module 3 + Module 11 together)
+ok 83 - RBAC: AI_AGENT has zero permissions including the new REVIEW_AI_RESEARCH (regression check tying Module 3 + Module 11 together)
+  ---
+  duration_ms: 0.067394
+  type: 'test'
+  ...
+# Subtest: dispatchApprovedEventAlert: PENDING event is refused, notification provider never called
+ok 84 - dispatchApprovedEventAlert: PENDING event is refused, notification provider never called
+  ---
+  duration_ms: 0.165427
+  type: 'test'
+  ...
+# Subtest: dispatchApprovedEventAlert: REJECTED event is refused
+ok 85 - dispatchApprovedEventAlert: REJECTED event is refused
+  ---
+  duration_ms: 0.082911
+  type: 'test'
+  ...
+# Subtest: dispatchApprovedEventAlert: APPROVED event dispatches through the provider and reports success
+ok 86 - dispatchApprovedEventAlert: APPROVED event dispatches through the provider and reports success
+  ---
+  duration_ms: 0.155081
+  type: 'test'
+  ...
+# Subtest: dispatchApprovedEventAlert: provider failure propagates as dispatched=false with reason
+ok 87 - dispatchApprovedEventAlert: provider failure propagates as dispatched=false with reason
+  ---
+  duration_ms: 0.10691
+  type: 'test'
+  ...
+# Subtest: Finding 11-C CLOSED: a forged event (reviewStatus=APPROVED but verificationStatus still UNVERIFIED) is refused, provider never called
+ok 88 - Finding 11-C CLOSED: a forged event (reviewStatus=APPROVED but verificationStatus still UNVERIFIED) is refused, provider never called
+  ---
+  duration_ms: 0.08475
+  type: 'test'
+  ...
+# Subtest: Finding 11-C: a structurally invalid event (even if APPROVED+VERIFIED) is refused by validation
+ok 89 - Finding 11-C: a structurally invalid event (even if APPROVED+VERIFIED) is refused by validation
+  ---
+  duration_ms: 0.196076
+  type: 'test'
+  ...
+# Subtest: Module 11 isolation: no research file imports rotationEngine.ts or stockScoreEngine.ts
+ok 90 - Module 11 isolation: no research file imports rotationEngine.ts or stockScoreEngine.ts
+  ---
+  duration_ms: 0.24516
+  type: 'test'
+  ...
+# Subtest: Module 11 isolation: no research file calls security/secretsLoader.ts (AI cannot access secrets)
+ok 91 - Module 11 isolation: no research file calls security/secretsLoader.ts (AI cannot access secrets)
+  ---
+  duration_ms: 0.124663
+  type: 'test'
+  ...
+# (node:949) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:949) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/marketniora_repo_audit/marketniora/backend/src/security/failClosedAuthz.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /tmp/marketniora_repo_audit/marketniora/package.json.
+# Subtest: OAuthTokenStore: set + get roundtrip
+ok 92 - OAuthTokenStore: set + get roundtrip
+  ---
+  duration_ms: 2.271445
+  type: 'test'
+  ...
+# Subtest: OAuthTokenStore (immutability): mutating a returned token does not corrupt the store
+ok 93 - OAuthTokenStore (immutability): mutating a returned token does not corrupt the store
+  ---
+  duration_ms: 0.215283
+  type: 'test'
+  ...
+# Subtest: isTokenUsable: missing token false; expired false; valid true
+ok 94 - isTokenUsable: missing token false; expired false; valid true
+  ---
+  duration_ms: 0.334475
+  type: 'test'
+  ...
+# Subtest: OAuthTokenStore: revoke removes the token
+ok 95 - OAuthTokenStore: revoke removes the token
+  ---
+  duration_ms: 0.135946
+  type: 'test'
+  ...
+# Subtest: initiateOAuth: generates a state and stores it pending
+ok 96 - initiateOAuth: generates a state and stores it pending
+  ---
+  duration_ms: 0.311167
+  type: 'test'
+  ...
+# Subtest: initiateOAuth: throws without userId
+ok 97 - initiateOAuth: throws without userId
+  ---
+  duration_ms: 0.199305
+  type: 'test'
+  ...
+# Subtest: completeOAuth: valid state + successful exchange stores the token
+ok 98 - completeOAuth: valid state + successful exchange stores the token
+  ---
+  duration_ms: 0.500971
+  type: 'test'
+  ...
+# Subtest: completeOAuth: unknown state denied, exchanger never called
+ok 99 - completeOAuth: unknown state denied, exchanger never called
+  ---
+  duration_ms: 0.169585
+  type: 'test'
+  ...
+# Subtest: completeOAuth: replayed (already-consumed) state denied on second attempt
+ok 100 - completeOAuth: replayed (already-consumed) state denied on second attempt
+  ---
+  duration_ms: 0.453738
+  type: 'test'
+  ...
+# Subtest: completeOAuth: expired state denied
+ok 101 - completeOAuth: expired state denied
+  ---
+  duration_ms: 0.33591
+  type: 'test'
+  ...
+# Subtest: completeOAuth: exchanger throwing is caught, reported as failure, does not throw out
+ok 102 - completeOAuth: exchanger throwing is caught, reported as failure, does not throw out
+  ---
+  duration_ms: 0.301235
+  type: 'test'
+  ...
+# Subtest: Finding 12-B CLOSED: raw exchanger error message never leaks to the caller
+ok 103 - Finding 12-B CLOSED: raw exchanger error message never leaks to the caller
+  ---
+  duration_ms: 0.191181
+  type: 'test'
+  ...
+# Subtest: Finding 12-A CLOSED: TWO CONCURRENT completeOAuth calls with the SAME state -> exactly one SUCCESS, exchanger called only once
+ok 104 - Finding 12-A CLOSED: TWO CONCURRENT completeOAuth calls with the SAME state -> exactly one SUCCESS, exchanger called only once
+  ---
+  duration_ms: 0.494077
+  type: 'test'
+  ...
+# Subtest: Finding 12-A: TEN concurrent completeOAuth calls with the SAME state -> exactly one success
+ok 105 - Finding 12-A: TEN concurrent completeOAuth calls with the SAME state -> exactly one success
+  ---
+  duration_ms: 1.260358
+  type: 'test'
+  ...
+# Subtest: Finding 12-C CLOSED: exchanger returning an empty accessToken is rejected, not stored
+ok 106 - Finding 12-C CLOSED: exchanger returning an empty accessToken is rejected, not stored
+  ---
+  duration_ms: 0.215632
+  type: 'test'
+  ...
+# Subtest: Finding 12-C: exchanger returning a negative expiresInMs is rejected, not stored
+ok 107 - Finding 12-C: exchanger returning a negative expiresInMs is rejected, not stored
+  ---
+  duration_ms: 0.125126
+  type: 'test'
+  ...
+# Subtest: Finding 12-C: exchanger returning NaN/zero expiresInMs is rejected
+ok 108 - Finding 12-C: exchanger returning NaN/zero expiresInMs is rejected
+  ---
+  duration_ms: 0.211263
+  type: 'test'
+  ...
+# Subtest: normalizeHolding: maps broker fields to canonical shape
+ok 109 - normalizeHolding: maps broker fields to canonical shape
+  ---
+  duration_ms: 0.150845
+  type: 'test'
+  ...
+# Subtest: syncHoldings: no token at all -> refuses to sync
+ok 110 - syncHoldings: no token at all -> refuses to sync
+  ---
+  duration_ms: 0.16888
+  type: 'test'
+  ...
+# Subtest: syncHoldings: expired token -> refuses to sync, never falls back to stale data
+ok 111 - syncHoldings: expired token -> refuses to sync, never falls back to stale data
+  ---
+  duration_ms: 0.084151
+  type: 'test'
+  ...
+# Subtest: syncHoldings: valid token -> fetches, normalizes, and stores holdings
+ok 112 - syncHoldings: valid token -> fetches, normalizes, and stores holdings
+  ---
+  duration_ms: 0.150016
+  type: 'test'
+  ...
+# Subtest: syncHoldings: fetcher failure does not corrupt existing stored holdings
+ok 113 - syncHoldings: fetcher failure does not corrupt existing stored holdings
+  ---
+  duration_ms: 0.121004
+  type: 'test'
+  ...
+# Subtest: Finding 12-B CLOSED: raw fetcher error message never leaks to the caller
+ok 114 - Finding 12-B CLOSED: raw fetcher error message never leaks to the caller
+  ---
+  duration_ms: 0.08752
+  type: 'test'
+  ...
+# Subtest: Finding 12-D CLOSED: invalid holdings (bad symbol/quantity/price) are rejected, valid ones still sync
+ok 115 - Finding 12-D CLOSED: invalid holdings (bad symbol/quantity/price) are rejected, valid ones still sync
+  ---
+  duration_ms: 0.129225
+  type: 'test'
+  ...
+# Subtest: validateNormalizedHolding: valid holding passes, each specific defect rejected individually
+ok 116 - validateNormalizedHolding: valid holding passes, each specific defect rejected individually
+  ---
+  duration_ms: 0.154173
+  type: 'test'
+  ...
+# Subtest: checkPortfolioAccess: USER viewing own portfolio -> ALLOW
+ok 117 - checkPortfolioAccess: USER viewing own portfolio -> ALLOW
+  ---
+  duration_ms: 0.125293
+  type: 'test'
+  ...
+# Subtest: checkPortfolioAccess: USER A viewing USER B portfolio -> DENY (core privacy rule)
+ok 118 - checkPortfolioAccess: USER A viewing USER B portfolio -> DENY (core privacy rule)
+  ---
+  duration_ms: 0.042489
+  type: 'test'
+  ...
+# Subtest: checkPortfolioAccess: AI_AGENT can NEVER view any portfolio, even its own "userId"
+ok 119 - checkPortfolioAccess: AI_AGENT can NEVER view any portfolio, even its own "userId"
+  ---
+  duration_ms: 0.051226
+  type: 'test'
+  ...
+# Subtest: checkPortfolioAccess: OWNER cross-user access WITHOUT a reason -> DENY (no automatic access)
+ok 120 - checkPortfolioAccess: OWNER cross-user access WITHOUT a reason -> DENY (no automatic access)
+  ---
+  duration_ms: 0.046865
+  type: 'test'
+  ...
+# Subtest: checkPortfolioAccess: OWNER cross-user access WITH an explicit reason -> ALLOW
+ok 121 - checkPortfolioAccess: OWNER cross-user access WITH an explicit reason -> ALLOW
+  ---
+  duration_ms: 0.154501
+  type: 'test'
+  ...
+# Subtest: checkPortfolioAccess: ADMIN cross-user access is denied even WITH a reason (ADMIN has no VIEW_ANY_PORTFOLIO permission)
+ok 122 - checkPortfolioAccess: ADMIN cross-user access is denied even WITH a reason (ADMIN has no VIEW_ANY_PORTFOLIO permission)
+  ---
+  duration_ms: 0.054498
+  type: 'test'
+  ...
+# Subtest: checkPortfolioAccess: null/undefined role denied, never throws
+ok 123 - checkPortfolioAccess: null/undefined role denied, never throws
+  ---
+  duration_ms: 0.0437
+  type: 'test'
+  ...
+# Subtest: getPortfolio: denied access returns null holdings, never partial data
+ok 124 - getPortfolio: denied access returns null holdings, never partial data
+  ---
+  duration_ms: 0.215254
+  type: 'test'
+  ...
+# Subtest: getPortfolio: allowed access returns the actual holdings
+ok 125 - getPortfolio: allowed access returns the actual holdings
+  ---
+  duration_ms: 0.066468
+  type: 'test'
+  ...
+# Subtest: Module 12 isolation: no portfolio file imports rotationEngine.ts or stockScoreEngine.ts
+ok 126 - Module 12 isolation: no portfolio file imports rotationEngine.ts or stockScoreEngine.ts
+  ---
+  duration_ms: 0.437312
+  type: 'test'
+  ...
+# (node:956) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:956) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/marketniora_repo_audit/marketniora/backend/src/middleware/securityHeaders.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /tmp/marketniora_repo_audit/marketniora/package.json.
+# Subtest: GET /health returns 200 ok — real HTTP round trip
+ok 127 - GET /health returns 200 ok — real HTTP round trip
+  ---
+  duration_ms: 38.809673
+  type: 'test'
+  ...
+# Subtest: unknown route returns 404
+ok 128 - unknown route returns 404
+  ---
+  duration_ms: 7.063473
+  type: 'test'
+  ...
+# Subtest: response includes security headers (Module 3 reused, not reinvented)
+ok 129 - response includes security headers (Module 3 reused, not reinvented)
+  ---
+  duration_ms: 5.211632
+  type: 'test'
+  ...
+# Subtest: signup -> login -> real session cookie issued
+ok 130 - signup -> login -> real session cookie issued
+  ---
+  duration_ms: 125.350022
+  type: 'test'
+  ...
+# Subtest: login with wrong password returns 401 with generic message
+ok 131 - login with wrong password returns 401 with generic message
+  ---
+  duration_ms: 98.51268
+  type: 'test'
+  ...
+# Subtest: login rate limiting: 6th rapid attempt for the same email gets real HTTP 429
+ok 132 - login rate limiting: 6th rapid attempt for the same email gets real HTTP 429
+  ---
+  duration_ms: 17.614889
+  type: 'test'
+  ...
+# Subtest: logout without CSRF header is refused with real 403
+ok 133 - logout without CSRF header is refused with real 403
+  ---
+  duration_ms: 99.034131
+  type: 'test'
+  ...
+# Subtest: logout WITH correct CSRF header succeeds, and the session is genuinely revoked (subsequent request fails)
+ok 134 - logout WITH correct CSRF header succeeds, and the session is genuinely revoked (subsequent request fails)
+  ---
+  duration_ms: 99.339793
+  type: 'test'
+  ...
+# Subtest: portfolio: unauthenticated request -> real 401
+ok 135 - portfolio: unauthenticated request -> real 401
+  ---
+  duration_ms: 3.78639
+  type: 'test'
+  ...
+# Subtest: portfolio: USER A requesting USER B holdings over real HTTP -> 403 (core privacy rule)
+ok 136 - portfolio: USER A requesting USER B holdings over real HTTP -> 403 (core privacy rule)
+  ---
+  duration_ms: 187.256785
+  type: 'test'
+  ...
+# Subtest: portfolio: USER viewing own holdings -> real 200
+ok 137 - portfolio: USER viewing own holdings -> real 200
+  ---
+  duration_ms: 105.835469
+  type: 'test'
+  ...
+# Subtest: portfolio: OWNER cross-user WITHOUT ?reason= -> 403 (no automatic access, even over real HTTP)
+ok 138 - portfolio: OWNER cross-user WITHOUT ?reason= -> 403 (no automatic access, even over real HTTP)
+  ---
+  duration_ms: 241.784373
+  type: 'test'
+  ...
+# Subtest: portfolio: OWNER cross-user WITH ?reason= -> real 200
+ok 139 - portfolio: OWNER cross-user WITH ?reason= -> real 200
+  ---
+  duration_ms: 233.396268
+  type: 'test'
+  ...
+# Subtest: research review: USER role (not Owner/Admin) -> real 403
+ok 140 - research review: USER role (not Owner/Admin) -> real 403
+  ---
+  duration_ms: 96.361107
+  type: 'test'
+  ...
+# Subtest: research review: OWNER role -> real 200, event approved
+ok 141 - research review: OWNER role -> real 200, event approved
+  ---
+  duration_ms: 140.601545
+  type: 'test'
+  ...
+# Subtest: research review: missing CSRF header -> real 403 even for OWNER
+ok 142 - research review: missing CSRF header -> real 403 even for OWNER
+  ---
+  duration_ms: 142.498258
+  type: 'test'
+  ...
+# Subtest: POST /rotation/calculate: real HTTP round trip through the LOCKED engine
+ok 143 - POST /rotation/calculate: real HTTP round trip through the LOCKED engine
+  ---
+  duration_ms: 3.903468
+  type: 'test'
+  ...
+# Subtest: POST /rotation/calculate: malformed input -> sanitized 400, not a raw stack trace
+ok 144 - POST /rotation/calculate: malformed input -> sanitized 400, not a raw stack trace
+  ---
+  duration_ms: 3.206491
+  type: 'test'
+  ...
+# Subtest: POST /stock-score/calculate: real HTTP round trip, catalyst guard still enforced over HTTP
+ok 145 - POST /stock-score/calculate: real HTTP round trip, catalyst guard still enforced over HTTP
+  ---
+  duration_ms: 4.895224
+  type: 'test'
+  ...
+# Subtest: POST /theme/resolve: real HTTP, many-to-many resolution
+ok 146 - POST /theme/resolve: real HTTP, many-to-many resolution
+  ---
+  duration_ms: 4.395961
+  type: 'test'
+  ...
+# Subtest: POST /fundamental/validate: real HTTP, inconsistent status rejected with 422
+ok 147 - POST /fundamental/validate: real HTTP, inconsistent status rejected with 422
+  ---
+  duration_ms: 3.328479
+  type: 'test'
+  ...
+# Subtest: POST /value-chain/validate: real HTTP, unknown stage rejected with 422
+ok 148 - POST /value-chain/validate: real HTTP, unknown stage rejected with 422
+  ---
+  duration_ms: 2.995718
+  type: 'test'
+  ...
+# Subtest: malformed JSON body -> real 400, never a raw parse error
+ok 149 - malformed JSON body -> real 400, never a raw parse error
+  ---
+  duration_ms: 3.074836
+  type: 'test'
+  ...
+# Subtest: oversized request body -> real 413, not a crash
+ok 150 - oversized request body -> real 413, not a crash
+  ---
+  duration_ms: 17.904653
+  type: 'test'
+  ...
+# Subtest: unexpected internal error is sanitized to a generic 500, never leaks detail
+ok 151 - unexpected internal error is sanitized to a generic 500, never leaks detail
+  ---
+  duration_ms: 2.914768
+  type: 'test'
+  ...
+# (node:963) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: RBAC: OWNER has EDIT_LOCKED_FORMULA
+ok 152 - RBAC: OWNER has EDIT_LOCKED_FORMULA
+  ---
+  duration_ms: 1.324192
+  type: 'test'
+  ...
+# Subtest: RBAC: ADMIN does NOT have EDIT_LOCKED_FORMULA / READ_PLAINTEXT_SECRETS
+ok 153 - RBAC: ADMIN does NOT have EDIT_LOCKED_FORMULA / READ_PLAINTEXT_SECRETS
+  ---
+  duration_ms: 0.189329
+  type: 'test'
+  ...
+# Subtest: RBAC: AI_AGENT has zero standing permissions
+ok 154 - RBAC: AI_AGENT has zero standing permissions
+  ---
+  duration_ms: 0.362875
+  type: 'test'
+  ...
+# Subtest: RBAC hardening (post-audit): BYPASS_MFA/DELETE_AUDIT_LOG/MODIFY_AUDIT_LOG do not exist as permissions for ANY role, including OWNER
+ok 155 - RBAC hardening (post-audit): BYPASS_MFA/DELETE_AUDIT_LOG/MODIFY_AUDIT_LOG do not exist as permissions for ANY role, including OWNER
+  ---
+  duration_ms: 0.288594
+  type: 'test'
+  ...
+# Subtest: fail-closed authorization: null/undefined role -> DENY
+ok 156 - fail-closed authorization: null/undefined role -> DENY
+  ---
+  duration_ms: 0.310922
+  type: 'test'
+  ...
+# Subtest: fail-closed authorization: User A cannot view User B portfolio
+ok 157 - fail-closed authorization: User A cannot view User B portfolio
+  ---
+  duration_ms: 0.154945
+  type: 'test'
+  ...
+# Subtest: fail-closed authorization: unresolved ownership denies, does not default-allow
+ok 158 - fail-closed authorization: unresolved ownership denies, does not default-allow
+  ---
+  duration_ms: 0.19996
+  type: 'test'
+  ...
+# Subtest: audit logger: empty action throws
+ok 159 - audit logger: empty action throws
+  ---
+  duration_ms: 0.308506
+  type: 'test'
+  ...
+# Subtest: audit logger hardening (post-audit): sensitive keys in detail are auto-redacted regardless of caller
+ok 160 - audit logger hardening (post-audit): sensitive keys in detail are auto-redacted regardless of caller
+  ---
+  duration_ms: 1.042186
+  type: 'test'
+  ...
+# Subtest: audit logger: writeAuditLog stub still throws (not silently wired)
+ok 161 - audit logger: writeAuditLog stub still throws (not silently wired)
+  ---
+  duration_ms: 0.893781
+  type: 'test'
+  ...
+# Subtest: secrets loader: missing secret throws with key name only, never the value
+ok 162 - secrets loader: missing secret throws with key name only, never the value
+  ---
+  duration_ms: 0.324293
+  type: 'test'
+  ...
+# Subtest: secrets loader: batch error never contains actual secret values
+ok 163 - secrets loader: batch error never contains actual secret values
+  ---
+  duration_ms: 0.28151
+  type: 'test'
+  ...
+# Subtest: security headers: X-Frame-Options DENY and HSTS present
+ok 164 - security headers: X-Frame-Options DENY and HSTS present
+  ---
+  duration_ms: 0.189353
+  type: 'test'
+  ...
+# Subtest: rate limiter: enforces fixed window per key, isolated across keys
+ok 165 - rate limiter: enforces fixed window per key, isolated across keys
+  ---
+  duration_ms: 0.259744
+  type: 'test'
+  ...
+# Subtest: rate limiter hardening (post-audit): productionReady flag is explicitly false
+ok 166 - rate limiter hardening (post-audit): productionReady flag is explicitly false
+  ---
+  duration_ms: 0.100505
+  type: 'test'
+  ...
+# Subtest: CSRF: matching tokens verify, mismatched/null/undefined fail closed
+ok 167 - CSRF: matching tokens verify, mismatched/null/undefined fail closed
+  ---
+  duration_ms: 0.420611
+  type: 'test'
+  ...
+# (node:970) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: hashPassword: stored hash never contains the plaintext password
+ok 168 - hashPassword: stored hash never contains the plaintext password
+  ---
+  duration_ms: 65.465865
+  type: 'test'
+  ...
+# Subtest: hashPassword: same password hashed twice produces different hashes (random salt)
+ok 169 - hashPassword: same password hashed twice produces different hashes (random salt)
+  ---
+  duration_ms: 70.357935
+  type: 'test'
+  ...
+# Subtest: verifyPassword: correct password verifies true, wrong verifies false
+ok 170 - verifyPassword: correct password verifies true, wrong verifies false
+  ---
+  duration_ms: 96.702741
+  type: 'test'
+  ...
+# Subtest: verifyPassword: malformed stored hash fails closed
+ok 171 - verifyPassword: malformed stored hash fails closed
+  ---
+  duration_ms: 0.279374
+  type: 'test'
+  ...
+# Subtest: SESSION: valid token issued through the store validates true, resolved from server-side record
+ok 172 - SESSION: valid token issued through the store validates true, resolved from server-side record
+  ---
+  duration_ms: 0.322621
+  type: 'test'
+  ...
+# Subtest: SESSION: unknown token (never issued) is DENIED
+ok 173 - SESSION: unknown token (never issued) is DENIED
+  ---
+  duration_ms: 0.087358
+  type: 'test'
+  ...
+# Subtest: SESSION: caller-supplied userId/role are NOT trusted — only the token is used; server resolves identity from its own store
+ok 174 - SESSION: caller-supplied userId/role are NOT trusted — only the token is used; server resolves identity from its own store
+  ---
+  duration_ms: 0.178781
+  type: 'test'
+  ...
+# Subtest: SESSION: expired stored session is DENIED (server-held expiresAt, not client-supplied)
+ok 175 - SESSION: expired stored session is DENIED (server-held expiresAt, not client-supplied)
+  ---
+  duration_ms: 0.14493
+  type: 'test'
+  ...
+# Subtest: SESSION: revoked session is DENIED even though it has not expired yet
+ok 176 - SESSION: revoked session is DENIED even though it has not expired yet
+  ---
+  duration_ms: 0.25874
+  type: 'test'
+  ...
+# Subtest: SESSION: malformed token input (null/undefined/empty) is DENIED, never throws
+ok 177 - SESSION: malformed token input (null/undefined/empty) is DENIED, never throws
+  ---
+  duration_ms: 0.292935
+  type: 'test'
+  ...
+# Subtest: SESSION: store error/unavailability fails closed, does not throw uncaught or default to valid
+ok 178 - SESSION: store error/unavailability fails closed, does not throw uncaught or default to valid
+  ---
+  duration_ms: 0.288223
+  type: 'test'
+  ...
+# Subtest: SESSION: generateSessionToken produces distinct, fixed-length tokens
+ok 179 - SESSION: generateSessionToken produces distinct, fixed-length tokens
+  ---
+  duration_ms: 0.111921
+  type: 'test'
+  ...
+# Subtest: SESSION: issueSession throws without userId
+ok 180 - SESSION: issueSession throws without userId
+  ---
+  duration_ms: 0.071393
+  type: 'test'
+  ...
+# Subtest: SESSION TTL: positive finite TTL is accepted
+ok 181 - SESSION TTL: positive finite TTL is accepted
+  ---
+  duration_ms: 0.065068
+  type: 'test'
+  ...
+# Subtest: SESSION TTL: zero is rejected
+ok 182 - SESSION TTL: zero is rejected
+  ---
+  duration_ms: 0.053584
+  type: 'test'
+  ...
+# Subtest: SESSION TTL: negative is rejected
+ok 183 - SESSION TTL: negative is rejected
+  ---
+  duration_ms: 0.058004
+  type: 'test'
+  ...
+# Subtest: SESSION TTL: NaN is rejected
+ok 184 - SESSION TTL: NaN is rejected
+  ---
+  duration_ms: 0.04884
+  type: 'test'
+  ...
+# Subtest: SESSION TTL: Infinity is rejected
+ok 185 - SESSION TTL: Infinity is rejected
+  ---
+  duration_ms: 0.053313
+  type: 'test'
+  ...
+# Subtest: SESSION TTL: non-number ("abc") is rejected
+ok 186 - SESSION TTL: non-number ("abc") is rejected
+  ---
+  duration_ms: 0.054187
+  type: 'test'
+  ...
+# Subtest: SESSION TTL: exceeding the 30-day maximum is rejected
+ok 187 - SESSION TTL: exceeding the 30-day maximum is rejected
+  ---
+  duration_ms: 0.060891
+  type: 'test'
+  ...
+# Subtest: SESSION TTL: exactly at the 30-day maximum is accepted (boundary)
+ok 188 - SESSION TTL: exactly at the 30-day maximum is accepted (boundary)
+  ---
+  duration_ms: 0.070433
+  type: 'test'
+  ...
+# Subtest: VERIFICATION TOKEN TTL: positive finite TTL accepted
+ok 189 - VERIFICATION TOKEN TTL: positive finite TTL accepted
+  ---
+  duration_ms: 0.145103
+  type: 'test'
+  ...
+# Subtest: VERIFICATION TOKEN TTL: zero, negative, NaN, Infinity, non-number all rejected
+ok 190 - VERIFICATION TOKEN TTL: zero, negative, NaN, Infinity, non-number all rejected
+  ---
+  duration_ms: 0.179233
+  type: 'test'
+  ...
+# Subtest: VERIFICATION TOKEN TTL: exceeding the 24-hour maximum is rejected, exactly-at-max is accepted
+ok 191 - VERIFICATION TOKEN TTL: exceeding the 24-hour maximum is rejected, exactly-at-max is accepted
+  ---
+  duration_ms: 0.08166
+  type: 'test'
+  ...
+# Subtest: verifyToken: correct token within TTL verifies true; expired/wrong/null fail
+ok 192 - verifyToken: correct token within TTL verifies true; expired/wrong/null fail
+  ---
+  duration_ms: 0.231123
+  type: 'test'
+  ...
+# Subtest: validateEmail / validatePasswordStrength: basic rules
+ok 193 - validateEmail / validatePasswordStrength: basic rules
+  ---
+  duration_ms: 0.237105
+  type: 'test'
+  ...
+# Subtest: buildNewUserRecord: valid input produces hashed password, unverified, USER role
+ok 194 - buildNewUserRecord: valid input produces hashed password, unverified, USER role
+  ---
+  duration_ms: 31.599216
+  type: 'test'
+  ...
+# Subtest: buildNewUserRecord: invalid input collects errors, no record
+ok 195 - buildNewUserRecord: invalid input collects errors, no record
+  ---
+  duration_ms: 0.172005
+  type: 'test'
+  ...
+# Subtest: attemptLogin: correct credentials on verified user succeeds AND session is genuinely retrievable from the store
+ok 196 - attemptLogin: correct credentials on verified user succeeds AND session is genuinely retrievable from the store
+  ---
+  duration_ms: 62.252991
+  type: 'test'
+  ...
+# Subtest: attemptLogin: nonexistent user vs wrong password vs unverified user — identical client message, different internal reason, no session issued
+ok 197 - attemptLogin: nonexistent user vs wrong password vs unverified user — identical client message, different internal reason, no session issued
+  ---
+  duration_ms: 95.113383
+  type: 'test'
+  ...
+# (node:977) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:977) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/marketniora_repo_audit/marketniora/backend/src/auth/passwordHashing.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /tmp/marketniora_repo_audit/marketniora/package.json.
+# Subtest: TOTP: secret is a non-trivial base32 string
+ok 198 - TOTP: secret is a non-trivial base32 string
+  ---
+  duration_ms: 1.579167
+  type: 'test'
+  ...
+# Subtest: TOTP: correct code for the current time window verifies true
+ok 199 - TOTP: correct code for the current time window verifies true
+  ---
+  duration_ms: 1.470508
+  type: 'test'
+  ...
+# Subtest: TOTP: wrong code fails; ±1 step drift accepted; ±3 steps rejected
+ok 200 - TOTP: wrong code fails; ±1 step drift accepted; ±3 steps rejected
+  ---
+  duration_ms: 1.004987
+  type: 'test'
+  ...
+# Subtest: TOTP: malformed code/secret inputs fail closed, never throw
+ok 201 - TOTP: malformed code/secret inputs fail closed, never throw
+  ---
+  duration_ms: 0.462511
+  type: 'test'
+  ...
+# Subtest: TOTP generation: throws on invalid stepSeconds (0, negative, NaN, Infinity, non-integer)
+ok 202 - TOTP generation: throws on invalid stepSeconds (0, negative, NaN, Infinity, non-integer)
+  ---
+  duration_ms: 0.484023
+  type: 'test'
+  ...
+# Subtest: TOTP generation: throws on invalid digits (0, negative, out of 6-8 range)
+ok 203 - TOTP generation: throws on invalid digits (0, negative, out of 6-8 range)
+  ---
+  duration_ms: 0.32689
+  type: 'test'
+  ...
+# Subtest: TOTP generation: throws on invalid now (NaN, Infinity, non-number)
+ok 204 - TOTP generation: throws on invalid now (NaN, Infinity, non-number)
+  ---
+  duration_ms: 0.279667
+  type: 'test'
+  ...
+# Subtest: TOTP verification: fails closed (not throws) on invalid stepSeconds/digits/window/now
+ok 205 - TOTP verification: fails closed (not throws) on invalid stepSeconds/digits/window/now
+  ---
+  duration_ms: 0.442231
+  type: 'test'
+  ...
+# Subtest: TOTP: valid non-default parameters (8 digits, 60s step, window 2) still work correctly
+ok 206 - TOTP: valid non-default parameters (8 digits, 60s step, window 2) still work correctly
+  ---
+  duration_ms: 0.482752
+  type: 'test'
+  ...
+# Subtest: recovery codes: generates requested count, hashed differs from plaintext
+ok 207 - recovery codes: generates requested count, hashed differs from plaintext
+  ---
+  duration_ms: 455.20172
+  type: 'test'
+  ...
+# Subtest: recovery codes (non-atomic helper): sequential single-use works as documented
+ok 208 - recovery codes (non-atomic helper): sequential single-use works as documented
+  ---
+  duration_ms: 267.180134
+  type: 'test'
+  ...
+# Subtest: atomic recovery: valid code consumed successfully through the store
+ok 209 - atomic recovery: valid code consumed successfully through the store
+  ---
+  duration_ms: 179.17982
+  type: 'test'
+  ...
+# Subtest: atomic recovery: CONCURRENT consumption of the SAME code succeeds exactly once (the core fix)
+ok 210 - atomic recovery: CONCURRENT consumption of the SAME code succeeds exactly once (the core fix)
+  ---
+  duration_ms: 265.828122
+  type: 'test'
+  ...
+# Subtest: atomic recovery: FIVE concurrent attempts at the same code -> exactly one success
+ok 211 - atomic recovery: FIVE concurrent attempts at the same code -> exactly one success
+  ---
+  duration_ms: 796.790225
+  type: 'test'
+  ...
+# Subtest: atomic recovery: different owners consuming concurrently do not interfere with each other
+ok 212 - atomic recovery: different owners consuming concurrently do not interfere with each other
+  ---
+  duration_ms: 189.776354
+  type: 'test'
+  ...
+# Subtest: atomic recovery: wrong code / empty store / missing ownerId fail closed
+ok 213 - atomic recovery: wrong code / empty store / missing ownerId fail closed
+  ---
+  duration_ms: 123.789654
+  type: 'test'
+  ...
+# Subtest: BLOCKER FIX: a caller can no longer just assert MFA verified — there is no boolean parameter to inject "true" into
+ok 214 - BLOCKER FIX: a caller can no longer just assert MFA verified — there is no boolean parameter to inject "true" into
+  ---
+  duration_ms: 0.499245
+  type: 'test'
+  ...
+# Subtest: authorizeOwnerAction: real TOTP verification issues a proof that authorizes exactly once (sequential replay)
+ok 215 - authorizeOwnerAction: real TOTP verification issues a proof that authorizes exactly once (sequential replay)
+  ---
+  duration_ms: 0.363574
+  type: 'test'
+  ...
+# Subtest: BLOCKER FIX (round 2): CONCURRENT replay of the SAME valid proof -> exactly one ALLOW, one DENY
+ok 216 - BLOCKER FIX (round 2): CONCURRENT replay of the SAME valid proof -> exactly one ALLOW, one DENY
+  ---
+  duration_ms: 0.309088
+  type: 'test'
+  ...
+# Subtest: BLOCKER FIX (round 2): TEN concurrent attempts at the same proof -> exactly one ALLOW
+ok 217 - BLOCKER FIX (round 2): TEN concurrent attempts at the same proof -> exactly one ALLOW
+  ---
+  duration_ms: 0.486032
+  type: 'test'
+  ...
+# Subtest: concurrent authorization on TWO DIFFERENT valid proofs (different verificationIds) -> both succeed independently
+ok 218 - concurrent authorization on TWO DIFFERENT valid proofs (different verificationIds) -> both succeed independently
+  ---
+  duration_ms: 0.269799
+  type: 'test'
+  ...
+# Subtest: authorizeOwnerAction: wrong TOTP code never produces a usable proof
+ok 219 - authorizeOwnerAction: wrong TOTP code never produces a usable proof
+  ---
+  duration_ms: 0.174029
+  type: 'test'
+  ...
+# Subtest: authorizeOwnerAction: proof issued for a different action is rejected
+ok 220 - authorizeOwnerAction: proof issued for a different action is rejected
+  ---
+  duration_ms: 0.214146
+  type: 'test'
+  ...
+# Subtest: authorizeOwnerAction: proof issued for a different owner is rejected
+ok 221 - authorizeOwnerAction: proof issued for a different owner is rejected
+  ---
+  duration_ms: 0.212858
+  type: 'test'
+  ...
+# Subtest: authorizeOwnerAction: stale proof (older than 5 minutes) is rejected even if otherwise valid
+ok 222 - authorizeOwnerAction: stale proof (older than 5 minutes) is rejected even if otherwise valid
+  ---
+  duration_ms: 0.167001
+  type: 'test'
+  ...
+# Subtest: authorizeOwnerAction: ADMIN role denied regardless of a valid proof
+ok 223 - authorizeOwnerAction: ADMIN role denied regardless of a valid proof
+  ---
+  duration_ms: 0.145384
+  type: 'test'
+  ...
+# Subtest: authorizeOwnerAction: AI_AGENT can never obtain Owner authority, even with a valid proof
+ok 224 - authorizeOwnerAction: AI_AGENT can never obtain Owner authority, even with a valid proof
+  ---
+  duration_ms: 0.18698
+  type: 'test'
+  ...
+# Subtest: authorizeOwnerAction: missing role/ownerId/verificationId all deny, never throw
+ok 225 - authorizeOwnerAction: missing role/ownerId/verificationId all deny, never throw
+  ---
+  duration_ms: 0.098617
+  type: 'test'
+  ...
+# Subtest: verifyOwnerRecoveryCodeAndIssueProof: valid recovery code issues a usable proof
+ok 226 - verifyOwnerRecoveryCodeAndIssueProof: valid recovery code issues a usable proof
+  ---
+  duration_ms: 124.002439
+  type: 'test'
+  ...
+# Subtest: verifyOwnerRecoveryCodeAndIssueProof: two concurrent recovery-code authorization attempts with the same code -> exactly one proof issued
+ok 227 - verifyOwnerRecoveryCodeAndIssueProof: two concurrent recovery-code authorization attempts with the same code -> exactly one proof issued
+  ---
+  duration_ms: 185.059187
+  type: 'test'
+  ...
+# Subtest: canActOnUserAccount: ADMIN on USER -> ALLOW; ADMIN on OWNER -> DENY; OWNER on OWNER -> ALLOW
+ok 228 - canActOnUserAccount: ADMIN on USER -> ALLOW; ADMIN on OWNER -> DENY; OWNER on OWNER -> ALLOW
+  ---
+  duration_ms: 0.330716
+  type: 'test'
+  ...
+# Subtest: audit redaction: recoveryCode and totpSecret keys are redacted
+ok 229 - audit redaction: recoveryCode and totpSecret keys are redacted
+  ---
+  duration_ms: 0.515227
+  type: 'test'
+  ...
+# (node:988) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# (node:988) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///tmp/marketniora_repo_audit/marketniora/backend/src/security/secretsLoader.ts is not specified and it doesn't parse as CommonJS.
+# Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+# To eliminate this warning, add "type": "module" to /tmp/marketniora_repo_audit/marketniora/package.json.
+# Subtest: classifyFreshness: null asOf -> MISSING (never fabricated)
+ok 230 - classifyFreshness: null asOf -> MISSING (never fabricated)
+  ---
+  duration_ms: 1.331838
+  type: 'test'
+  ...
+# Subtest: classifyFreshness: recent data within threshold -> LIVE
+ok 231 - classifyFreshness: recent data within threshold -> LIVE
+  ---
+  duration_ms: 0.170012
+  type: 'test'
+  ...
+# Subtest: classifyFreshness: data older than threshold -> STALE
+ok 232 - classifyFreshness: data older than threshold -> STALE
+  ---
+  duration_ms: 0.132356
+  type: 'test'
+  ...
+# Subtest: classifyFreshness: NaN/Infinity inputs -> UNKNOWN, never guessed as LIVE
+ok 233 - classifyFreshness: NaN/Infinity inputs -> UNKNOWN, never guessed as LIVE
+  ---
+  duration_ms: 0.219208
+  type: 'test'
+  ...
+# Subtest: classifyFreshness (post-audit): negative/non-integer/Infinity staleThresholdMs -> UNKNOWN, not silently misclassified as STALE
+ok 234 - classifyFreshness (post-audit): negative/non-integer/Infinity staleThresholdMs -> UNKNOWN, not silently misclassified as STALE
+  ---
+  duration_ms: 0.159508
+  type: 'test'
+  ...
+# Subtest: classifyFreshness: staleThresholdMs = 0 is valid (means "must match now exactly to be LIVE")
+ok 235 - classifyFreshness: staleThresholdMs = 0 is valid (means "must match now exactly to be LIVE")
+  ---
+  duration_ms: 0.207449
+  type: 'test'
+  ...
+# Subtest: classifyFreshness: data claiming to be from the future -> UNKNOWN, not trusted as LIVE
+ok 236 - classifyFreshness: data claiming to be from the future -> UNKNOWN, not trusted as LIVE
+  ---
+  duration_ms: 0.122998
+  type: 'test'
+  ...
+# Subtest: NullMarketDataProvider: never fabricates a price, always SOURCE_REQUIRED
+ok 237 - NullMarketDataProvider: never fabricates a price, always SOURCE_REQUIRED
+  ---
+  duration_ms: 0.197424
+  type: 'test'
+  ...
+# Subtest: NullMarketDataProvider: healthCheck reports DOWN
+ok 238 - NullMarketDataProvider: healthCheck reports DOWN
+  ---
+  duration_ms: 0.428825
+  type: 'test'
+  ...
+# Subtest: parseBhavcopyCsv: valid CSV parses correctly with LIVE status for recent date
+ok 239 - parseBhavcopyCsv: valid CSV parses correctly with LIVE status for recent date
+  ---
+  duration_ms: 0.568235
+  type: 'test'
+  ...
+# Subtest: parseBhavcopyCsv: old date -> STALE, not silently treated as current
+ok 240 - parseBhavcopyCsv: old date -> STALE, not silently treated as current
+  ---
+  duration_ms: 0.206728
+  type: 'test'
+  ...
+# Subtest: parseBhavcopyCsv: unparseable price -> MISSING, never a fabricated 0
+ok 241 - parseBhavcopyCsv: unparseable price -> MISSING, never a fabricated 0
+  ---
+  duration_ms: 0.086408
+  type: 'test'
+  ...
+# Subtest: parseBhavcopyCsv: malformed short row is skipped, does not crash the whole parse
+ok 242 - parseBhavcopyCsv: malformed short row is skipped, does not crash the whole parse
+  ---
+  duration_ms: 0.065333
+  type: 'test'
+  ...
+# Subtest: parseBhavcopyCsv: missing required columns throws
+ok 243 - parseBhavcopyCsv: missing required columns throws
+  ---
+  duration_ms: 0.268765
+  type: 'test'
+  ...
+# Subtest: parseBhavcopyCsv: empty/header-only CSV returns empty array, does not throw
+ok 244 - parseBhavcopyCsv: empty/header-only CSV returns empty array, does not throw
+  ---
+  duration_ms: 0.499726
+  type: 'test'
+  ...
+# Subtest: NseBhavcopyProvider: getQuote returns parsed data via injected fetcher (no real network)
+ok 245 - NseBhavcopyProvider: getQuote returns parsed data via injected fetcher (no real network)
+  ---
+  duration_ms: 0.198446
+  type: 'test'
+  ...
+# Subtest: NseBhavcopyProvider: unknown symbol -> SOURCE_REQUIRED, not fabricated
+ok 246 - NseBhavcopyProvider: unknown symbol -> SOURCE_REQUIRED, not fabricated
+  ---
+  duration_ms: 0.113165
+  type: 'test'
+  ...
+# Subtest: NseBhavcopyProvider: healthCheck DOWN when fetcher throws, does not propagate the error
+ok 247 - NseBhavcopyProvider: healthCheck DOWN when fetcher throws, does not propagate the error
+  ---
+  duration_ms: 0.176313
+  type: 'test'
+  ...
+# Subtest: NseBhavcopyProvider (post-audit HIGH fix): cached quote status is recomputed against current `now`, not frozen at parse time
+ok 248 - NseBhavcopyProvider (post-audit HIGH fix): cached quote status is recomputed against current `now`, not frozen at parse time
+  ---
+  duration_ms: 0.105447
+  type: 'test'
+  ...
+# Subtest: NseBhavcopyProvider: constructor rejects invalid staleThresholdMs
+ok 249 - NseBhavcopyProvider: constructor rejects invalid staleThresholdMs
+  ---
+  duration_ms: 0.235123
+  type: 'test'
+  ...
+# Subtest: NullNotificationProvider: always fails closed, never claims success
+ok 250 - NullNotificationProvider: always fails closed, never claims success
+  ---
+  duration_ms: 0.108583
+  type: 'test'
+  ...
+# Subtest: TelegramNotificationProvider: throws on empty/missing botToken (refuses to construct unauthenticated)
+ok 251 - TelegramNotificationProvider: throws on empty/missing botToken (refuses to construct unauthenticated)
+  ---
+  duration_ms: 0.107159
+  type: 'test'
+  ...
+# Subtest: TelegramNotificationProvider: successful send returns success with message id
+ok 252 - TelegramNotificationProvider: successful send returns success with message id
+  ---
+  duration_ms: 0.142228
+  type: 'test'
+  ...
+# Subtest: TelegramNotificationProvider: sends correct URL and payload shape to the injected HTTP client
+ok 253 - TelegramNotificationProvider: sends correct URL and payload shape to the injected HTTP client
+  ---
+  duration_ms: 0.097616
+  type: 'test'
+  ...
+# Subtest: TelegramNotificationProvider: non-ok HTTP status fails closed
+ok 254 - TelegramNotificationProvider: non-ok HTTP status fails closed
+  ---
+  duration_ms: 0.120201
+  type: 'test'
+  ...
+# Subtest: TelegramNotificationProvider: API-level ok:false fails closed
+ok 255 - TelegramNotificationProvider: API-level ok:false fails closed
+  ---
+  duration_ms: 0.079076
+  type: 'test'
+  ...
+# Subtest: TelegramNotificationProvider: httpClient throwing does not propagate — fails closed instead
+ok 256 - TelegramNotificationProvider: httpClient throwing does not propagate — fails closed instead
+  ---
+  duration_ms: 0.167739
+  type: 'test'
+  ...
+# Subtest: ProviderRegistry: register + get works, unregistered name returns undefined via get()
+ok 257 - ProviderRegistry: register + get works, unregistered name returns undefined via get()
+  ---
+  duration_ms: 0.781752
+  type: 'test'
+  ...
+# Subtest: ProviderRegistry: getOrThrow fails closed on unregistered name
+ok 258 - ProviderRegistry: getOrThrow fails closed on unregistered name
+  ---
+  duration_ms: 0.129297
+  type: 'test'
+  ...
+# Subtest: ProviderRegistry (post-audit fix): duplicate registration is rejected, original provider remains intact
+ok 259 - ProviderRegistry (post-audit fix): duplicate registration is rejected, original provider remains intact
+  ---
+  duration_ms: 0.220409
+  type: 'test'
+  ...
+# Subtest: ProviderRegistry: replace() is the explicit, sanctioned way to overwrite a registration
+ok 260 - ProviderRegistry: replace() is the explicit, sanctioned way to overwrite a registration
+  ---
+  duration_ms: 0.069723
+  type: 'test'
+  ...
+# Subtest: ProviderRegistry: list returns registered provider names
+ok 261 - ProviderRegistry: list returns registered provider names
+  ---
+  duration_ms: 0.059233
+  type: 'test'
+  ...
+# Subtest: loadTelegramConfig: throws with key name only when TELEGRAM_BOT_TOKEN is missing, never a fabricated default
+ok 262 - loadTelegramConfig: throws with key name only when TELEGRAM_BOT_TOKEN is missing, never a fabricated default
+  ---
+  duration_ms: 0.312931
+  type: 'test'
+  ...
+# Subtest: loadTelegramConfig: returns the token when present
+ok 263 - loadTelegramConfig: returns the token when present
+  ---
+  duration_ms: 0.082283
+  type: 'test'
+  ...
+# Subtest: loadUpstoxConfig: throws when either credential is missing
+ok 264 - loadUpstoxConfig: throws when either credential is missing
+  ---
+  duration_ms: 0.078685
+  type: 'test'
+  ...
+# (node:995) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: normalizeQuote: maps fields correctly
+ok 265 - normalizeQuote: maps fields correctly
+  ---
+  duration_ms: 1.254467
+  type: 'test'
+  ...
+# Subtest: normalizeQuote: LIVE/DELAYED -> VERIFIED, STALE -> UNVERIFIED, everything else -> SOURCE_REQUIRED
+ok 266 - normalizeQuote: LIVE/DELAYED -> VERIFIED, STALE -> UNVERIFIED, everything else -> SOURCE_REQUIRED
+  ---
+  duration_ms: 0.161011
+  type: 'test'
+  ...
+# Subtest: normalizeQuote: UNKNOWN status never gets silently upgraded to VERIFIED
+ok 267 - normalizeQuote: UNKNOWN status never gets silently upgraded to VERIFIED
+  ---
+  duration_ms: 0.099814
+  type: 'test'
+  ...
+# Subtest: normalizeQuote (post-audit): dataNature is NORMALIZED, formulaVersion is null (no formula applied at this stage)
+ok 268 - normalizeQuote (post-audit): dataNature is NORMALIZED, formulaVersion is null (no formula applied at this stage)
+  ---
+  duration_ms: 0.105697
+  type: 'test'
+  ...
+# Subtest: validateObservation: well-formed observation is valid
+ok 269 - validateObservation: well-formed observation is valid
+  ---
+  duration_ms: 0.283412
+  type: 'test'
+  ...
+# Subtest: validateObservation: missing symbol/metric/source rejected
+ok 270 - validateObservation: missing symbol/metric/source rejected
+  ---
+  duration_ms: 0.115443
+  type: 'test'
+  ...
+# Subtest: validateObservation: null sourceTimestamp rejected (never trusted as current)
+ok 271 - validateObservation: null sourceTimestamp rejected (never trusted as current)
+  ---
+  duration_ms: 0.15881
+  type: 'test'
+  ...
+# Subtest: validateObservation: future sourceTimestamp rejected
+ok 272 - validateObservation: future sourceTimestamp rejected
+  ---
+  duration_ms: 0.083489
+  type: 'test'
+  ...
+# Subtest: validateObservation: NaN/Infinity value rejected, null value allowed
+ok 273 - validateObservation: NaN/Infinity value rejected, null value allowed
+  ---
+  duration_ms: 0.446399
+  type: 'test'
+  ...
+# Subtest: validateObservation: invalid verificationStatus rejected
+ok 274 - validateObservation: invalid verificationStatus rejected
+  ---
+  duration_ms: 0.47269
+  type: 'test'
+  ...
+# Subtest: validateObservation (post-audit): invalid dataNature rejected
+ok 275 - validateObservation (post-audit): invalid dataNature rejected
+  ---
+  duration_ms: 0.208937
+  type: 'test'
+  ...
+# Subtest: validateObservation (post-audit): DERIVED without formulaVersion rejected
+ok 276 - validateObservation (post-audit): DERIVED without formulaVersion rejected
+  ---
+  duration_ms: 0.068191
+  type: 'test'
+  ...
+# Subtest: validateObservation (post-audit): DERIVED with a formulaVersion is valid
+ok 277 - validateObservation (post-audit): DERIVED with a formulaVersion is valid
+  ---
+  duration_ms: 0.049144
+  type: 'test'
+  ...
+# Subtest: validateObservation (post-audit): non-DERIVED with a non-null formulaVersion rejected (inconsistent combination)
+ok 278 - validateObservation (post-audit): non-DERIVED with a non-null formulaVersion rejected (inconsistent combination)
+  ---
+  duration_ms: 0.041246
+  type: 'test'
+  ...
+# Subtest: deduplicateObservations: exact duplicates (same symbol+metric+source+timestamp) collapse to one
+ok 279 - deduplicateObservations: exact duplicates (same symbol+metric+source+timestamp) collapse to one
+  ---
+  duration_ms: 0.194619
+  type: 'test'
+  ...
+# Subtest: deduplicateObservations: different sources for the same symbol/metric/time are NOT deduplicated
+ok 280 - deduplicateObservations: different sources for the same symbol/metric/time are NOT deduplicated
+  ---
+  duration_ms: 1.437155
+  type: 'test'
+  ...
+# Subtest: deduplicateObservations: different timestamps are NOT deduplicated
+ok 281 - deduplicateObservations: different timestamps are NOT deduplicated
+  ---
+  duration_ms: 0.127257
+  type: 'test'
+  ...
+# Subtest: resolveConflicts: single observation per symbol/metric -> no conflict, passes through
+ok 282 - resolveConflicts: single observation per symbol/metric -> no conflict, passes through
+  ---
+  duration_ms: 0.189889
+  type: 'test'
+  ...
+# Subtest: resolveConflicts: same value from multiple sources is NOT a genuine conflict
+ok 283 - resolveConflicts: same value from multiple sources is NOT a genuine conflict
+  ---
+  duration_ms: 6.618664
+  type: 'test'
+  ...
+# Subtest: resolveConflicts: different values -> genuine conflict, higher verification status wins
+ok 284 - resolveConflicts: different values -> genuine conflict, higher verification status wins
+  ---
+  duration_ms: 0.146328
+  type: 'test'
+  ...
+# Subtest: resolveConflicts: tie on verification status -> more recent timestamp wins
+ok 285 - resolveConflicts: tie on verification status -> more recent timestamp wins
+  ---
+  duration_ms: 0.073555
+  type: 'test'
+  ...
+# Subtest: resolveConflicts: tie on status AND timestamp -> alphabetically-first source wins (deterministic)
+ok 286 - resolveConflicts: tie on status AND timestamp -> alphabetically-first source wins (deterministic)
+  ---
+  duration_ms: 0.148613
+  type: 'test'
+  ...
+# Subtest: resolveConflicts: conflict record captures all candidates for audit, not just the winner
+ok 287 - resolveConflicts: conflict record captures all candidates for audit, not just the winner
+  ---
+  duration_ms: 0.116249
+  type: 'test'
+  ...
+# Subtest: qualityCheck: positive plausible price passes
+ok 288 - qualityCheck: positive plausible price passes
+  ---
+  duration_ms: 0.10624
+  type: 'test'
+  ...
+# Subtest: qualityCheck: zero or negative price fails
+ok 289 - qualityCheck: zero or negative price fails
+  ---
+  duration_ms: 0.049401
+  type: 'test'
+  ...
+# Subtest: qualityCheck: absurdly large price flagged, not silently accepted
+ok 290 - qualityCheck: absurdly large price flagged, not silently accepted
+  ---
+  duration_ms: 0.076882
+  type: 'test'
+  ...
+# Subtest: qualityCheck: null value passes (MISSING data is not a quality violation, it is a status)
+ok 291 - qualityCheck: null value passes (MISSING data is not a quality violation, it is a status)
+  ---
+  duration_ms: 0.089703
+  type: 'test'
+  ...
+# Subtest: InMemoryRawObservationStore: append + getAll, no mutation method exists
+ok 292 - InMemoryRawObservationStore: append + getAll, no mutation method exists
+  ---
+  duration_ms: 0.223234
+  type: 'test'
+  ...
+# Subtest: InMemoryRawObservationStore (post-audit): mutating the object passed to append() does not corrupt the stored record
+ok 293 - InMemoryRawObservationStore (post-audit): mutating the object passed to append() does not corrupt the stored record
+  ---
+  duration_ms: 0.078586
+  type: 'test'
+  ...
+# Subtest: InMemoryRawObservationStore (post-audit): mutating a record returned by getAll() does not corrupt the store
+ok 294 - InMemoryRawObservationStore (post-audit): mutating a record returned by getAll() does not corrupt the store
+  ---
+  duration_ms: 0.150481
+  type: 'test'
+  ...
+# Subtest: InMemoryCanonicalObservationStore: insert assigns observationId and insertedAt
+ok 295 - InMemoryCanonicalObservationStore: insert assigns observationId and insertedAt
+  ---
+  duration_ms: 0.423172
+  type: 'test'
+  ...
+# Subtest: InMemoryCanonicalObservationStore (post-audit): mutating a returned record does not corrupt the store
+ok 296 - InMemoryCanonicalObservationStore (post-audit): mutating a returned record does not corrupt the store
+  ---
+  duration_ms: 0.166619
+  type: 'test'
+  ...
+# Subtest: InMemoryJobLogStore: append + getAll, no mutation method exists
+ok 297 - InMemoryJobLogStore: append + getAll, no mutation method exists
+  ---
+  duration_ms: 0.173088
+  type: 'test'
+  ...
+# Subtest: InMemoryJobLogStore (post-audit): mutating a returned entry does not corrupt the store
+ok 298 - InMemoryJobLogStore (post-audit): mutating a returned entry does not corrupt the store
+  ---
+  duration_ms: 0.069986
+  type: 'test'
+  ...
+# Subtest: runPipeline: clean quotes flow all the way through to canonical store, status SUCCESS
+ok 299 - runPipeline: clean quotes flow all the way through to canonical store, status SUCCESS
+  ---
+  duration_ms: 0.371609
+  type: 'test'
+  ...
+# Subtest: runPipeline: bad-quality quote is rejected and does not reach canonical store, status PARTIAL
+ok 300 - runPipeline: bad-quality quote is rejected and does not reach canonical store, status PARTIAL
+  ---
+  duration_ms: 0.311973
+  type: 'test'
+  ...
+# Subtest: runPipeline: all quotes bad -> status FAILURE, nothing reaches canonical store
+ok 301 - runPipeline: all quotes bad -> status FAILURE, nothing reaches canonical store
+  ---
+  duration_ms: 0.216121
+  type: 'test'
+  ...
+# Subtest: runPipeline: conflicting sources resolve to one canonical record, conflict is reported
+ok 302 - runPipeline: conflicting sources resolve to one canonical record, conflict is reported
+  ---
+  duration_ms: 0.324877
+  type: 'test'
+  ...
+# Subtest: runPipeline: raw store preserves BOTH conflicting observations even though only one becomes canonical
+ok 303 - runPipeline: raw store preserves BOTH conflicting observations even though only one becomes canonical
+  ---
+  duration_ms: 0.163945
+  type: 'test'
+  ...
+# (node:1002) ExperimentalWarning: Type Stripping is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: Rotation: 1M cap of 20% enforced
+ok 304 - Rotation: 1M cap of 20% enforced
+  ---
+  duration_ms: 1.43302
+  type: 'test'
+  ...
+# Subtest: Rotation: 3M cap of 30% enforced
+ok 305 - Rotation: 3M cap of 30% enforced
+  ---
+  duration_ms: 0.242001
+  type: 'test'
+  ...
+# Subtest: Rotation: negative returns are capped symmetrically (floor, not just ceiling)
+ok 306 - Rotation: negative returns are capped symmetrically (floor, not just ceiling)
+  ---
+  duration_ms: 0.143268
+  type: 'test'
+  ...
+# Subtest: Rotation: weighted final score matches the documented coefficients exactly (40/30/20/10)
+ok 307 - Rotation: weighted final score matches the documented coefficients exactly (40/30/20/10)
+  ---
+  duration_ms: 0.244354
+  type: 'test'
+  ...
+# Subtest: Rotation: N_REF=20 boundary — below reference sample size scales iqrConsistency down proportionally
+ok 308 - Rotation: N_REF=20 boundary — below reference sample size scales iqrConsistency down proportionally
+  ---
+  duration_ms: 0.426505
+  type: 'test'
+  ...
+# Subtest: Rotation: single observation does not crash and produces a defined result
+ok 309 - Rotation: single observation does not crash and produces a defined result
+  ---
+  duration_ms: 0.317221
+  type: 'test'
+  ...
+# Subtest: Rotation: hierarchy composition (Stock -> Stock Group -> Sub-Sector -> Sector) — the engine is level-agnostic; hierarchy is realized by the CALLER feeding correctly-scoped observations at each level in turn. Demonstrated here, not enforced by the engine.
+ok 310 - Rotation: hierarchy composition (Stock -> Stock Group -> Sub-Sector -> Sector) — the engine is level-agnostic; hierarchy is realized by the CALLER feeding correctly-scoped observations at each level in turn. Demonstrated here, not enforced by the engine.
+  ---
+  duration_ms: 0.299373
+  type: 'test'
+  ...
+# Subtest: StockScore: base matches the documented coefficients exactly (22/18/16/10/10/8/8/8) when no components are missing
+ok 311 - StockScore: base matches the documented coefficients exactly (22/18/16/10/10/8/8/8) when no components are missing
+  ---
+  duration_ms: 0.465336
+  type: 'test'
+  ...
+# Subtest: StockScore: multiple missing components redistribute correctly, weights still cap at 1.25x original
+ok 312 - StockScore: multiple missing components redistribute correctly, weights still cap at 1.25x original
+  ---
+  duration_ms: 0.574787
+  type: 'test'
+  ...
+# Subtest: StockScore: riskPenalty boundary values -30 and 0 are both accepted (inclusive bounds)
+ok 313 - StockScore: riskPenalty boundary values -30 and 0 are both accepted (inclusive bounds)
+  ---
+  duration_ms: 1.591008
+  type: 'test'
+  ...
+# Subtest: StockScore: riskPenalty of +5 (positive, out of [-30,0]) throws
+ok 314 - StockScore: riskPenalty of +5 (positive, out of [-30,0]) throws
+  ---
+  duration_ms: 0.399845
+  type: 'test'
+  ...
+# Subtest: StockScore: all four documented catalyst values (0, 4, 8, 12) are accepted and additive
+ok 315 - StockScore: all four documented catalyst values (0, 4, 8, 12) are accepted and additive
+  ---
+  duration_ms: 0.151395
+  type: 'test'
+  ...
+# Subtest: Finding 9-A CLOSED (Owner-authorized runtime guard): out-of-spec catalyst values now throw instead of silently passing through
+ok 316 - Finding 9-A CLOSED (Owner-authorized runtime guard): out-of-spec catalyst values now throw instead of silently passing through
+  ---
+  duration_ms: 0.195381
+  type: 'test'
+  ...
+# Subtest: Finding 9-A: all four documented catalyst values (0, 4, 8, 12) still work correctly after the guard was added
+ok 317 - Finding 9-A: all four documented catalyst values (0, 4, 8, 12) still work correctly after the guard was added
+  ---
+  duration_ms: 0.150588
+  type: 'test'
+  ...
+# Subtest: StockScore: Confidence is structurally absent from this engine — cannot multiply the score because there is no confidence parameter at all
+ok 318 - StockScore: Confidence is structurally absent from this engine — cannot multiply the score because there is no confidence parameter at all
+  ---
+  duration_ms: 0.056834
+  type: 'test'
+  ...
+# Subtest: Module 8/9 isolation: rotationEngine.ts and stockScoreEngine.ts have zero import statements between them (structurally cannot cross-reference)
+ok 319 - Module 8/9 isolation: rotationEngine.ts and stockScoreEngine.ts have zero import statements between them (structurally cannot cross-reference)
+  ---
+  duration_ms: 0.362137
+  type: 'test'
+  ...
+1..319
+# tests 319
+# suites 0
+# pass 319
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 3284.062187

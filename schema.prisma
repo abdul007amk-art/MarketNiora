@@ -1,0 +1,657 @@
+generator client {
+  provider       = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["public", "governance_layer", "production_layer", "staging_enrichment"]
+}
+
+// ============================================================
+// PUBLIC APPLICATION CONTROL PLANE
+// ============================================================
+
+enum IdentityRole {
+  USER
+  ADMIN
+  OWNER
+
+  @@schema("public")
+}
+
+model AppUser {
+  userId                  String                  @id @default(uuid()) @db.Uuid @map("user_id")
+  oidcIssuer              String                  @map("oidc_issuer")
+  oidcSubject             String                  @map("oidc_subject")
+  email                   String                  @unique
+  emailVerified           Boolean                 @map("email_verified")
+  role                    IdentityRole             @default(USER)
+  createdAt               DateTime                @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt               DateTime                @updatedAt @db.Timestamptz(6) @map("updated_at")
+  lastLoginAt             DateTime?               @db.Timestamptz(6) @map("last_login_at")
+  disabledAt              DateTime?               @db.Timestamptz(6) @map("disabled_at")
+
+  sessions                Session[]
+  entitlements            Entitlement[]
+  ownerTotpSecret         OwnerTotpSecret?
+  ownerMfaChallenges      OwnerMfaChallenge[]
+  featurePoliciesUpdated  FeaturePolicy[]         @relation("FeaturePolicyUpdater")
+  approvedFormulaVersions FormulaVersion[]         @relation("FormulaApprover")
+  appAuditLogs            AppAuditLog[]           @relation("AppAuditActor")
+  governanceAuditLogs     GovernanceAuditLog[]    @relation("GovernanceAuditActor")
+
+  @@unique([oidcIssuer, oidcSubject])
+  @@index([role])
+  @@map("app_user")
+  @@schema("public")
+}
+
+model Session {
+  sessionId       String    @id @default(uuid()) @db.Uuid @map("session_id")
+  userId          String    @db.Uuid @map("user_id")
+  tokenHash       Bytes     @unique @db.Bytea @map("token_hash")
+  createdAt       DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  lastSeenAt      DateTime? @db.Timestamptz(6) @map("last_seen_at")
+  expiresAt       DateTime  @db.Timestamptz(6) @map("expires_at")
+  revokedAt       DateTime? @db.Timestamptz(6) @map("revoked_at")
+
+  user            AppUser   @relation(fields: [userId], references: [userId], onDelete: Restrict)
+
+  @@index([userId, expiresAt])
+  @@index([userId, revokedAt])
+  @@map("session")
+  @@schema("public")
+}
+
+model Entitlement {
+  entitlementId  String    @id @default(uuid()) @db.Uuid @map("entitlement_id")
+  userId         String    @db.Uuid @map("user_id")
+  tier           String
+  source         String
+  status         String
+  paymentRef     String?   @map("payment_ref")
+  startsAt       DateTime  @db.Timestamptz(6) @map("starts_at")
+  endsAt         DateTime? @db.Timestamptz(6) @map("ends_at")
+  createdAt      DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
+  revokedAt      DateTime? @db.Timestamptz(6) @map("revoked_at")
+
+  user           AppUser   @relation(fields: [userId], references: [userId], onDelete: Restrict)
+
+  @@index([userId, status])
+  @@index([userId, startsAt, endsAt])
+  @@map("entitlement")
+  @@schema("public")
+}
+
+model FeaturePolicy {
+  featurePolicyId  String    @id @default(uuid()) @db.Uuid @map("feature_policy_id")
+  featureKey       String    @unique @map("feature_key")
+  enabled          Boolean
+  updatedByUserId  String?   @db.Uuid @map("updated_by_user_id")
+  reason           String?
+  createdAt        DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt        DateTime  @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  updatedBy        AppUser?  @relation("FeaturePolicyUpdater", fields: [updatedByUserId], references: [userId], onDelete: Restrict)
+
+  @@index([updatedByUserId])
+  @@map("feature_policy")
+  @@schema("public")
+}
+
+model FormulaVersion {
+  formulaVersionId      String           @id @default(uuid()) @db.Uuid @map("formula_version_id")
+  formulaKey            String           @map("formula_key")
+  version               String
+  formulaHash           String           @map("formula_hash")
+  configurationSnapshot Json?            @map("configuration_snapshot")
+  ownerApprovedByUserId String?          @db.Uuid @map("owner_approved_by_user_id")
+  ownerApprovedAt       DateTime?        @db.Timestamptz(6) @map("owner_approved_at")
+  lockedAt              DateTime?        @db.Timestamptz(6) @map("locked_at")
+  supersedesVersionId   String?          @db.Uuid @map("supersedes_version_id")
+  createdAt             DateTime         @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  ownerApprovedBy       AppUser?         @relation("FormulaApprover", fields: [ownerApprovedByUserId], references: [userId], onDelete: Restrict)
+  supersedes             FormulaVersion?  @relation("FormulaLineage", fields: [supersedesVersionId], references: [formulaVersionId], onDelete: Restrict)
+  successors             FormulaVersion[] @relation("FormulaLineage")
+  rotationScores         RotationScore[]
+  stockScores            StockScore[]
+  rawObservations        RawStockObservation[]
+
+  @@unique([formulaKey, version])
+  @@index([formulaKey, lockedAt])
+  @@map("formula_version")
+  @@schema("public")
+}
+
+model OwnerTotpSecret {
+  userId           String    @id @db.Uuid @map("user_id")
+  secretCiphertext Bytes     @db.Bytea @map("secret_ciphertext")
+  kmsKeyRef        String    @map("kms_key_ref")
+  keyVersion       String?   @map("key_version")
+  confirmedAt      DateTime? @db.Timestamptz(6) @map("confirmed_at")
+  createdAt        DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  rotatedAt        DateTime? @db.Timestamptz(6) @map("rotated_at")
+  disabledAt       DateTime? @db.Timestamptz(6) @map("disabled_at")
+
+  user             AppUser   @relation(fields: [userId], references: [userId], onDelete: Restrict)
+
+  @@map("owner_totp_secret")
+  @@schema("public")
+}
+
+model OwnerMfaChallenge {
+  challengeId      String    @id @default(uuid()) @db.Uuid @map("challenge_id")
+  userId           String    @db.Uuid @map("user_id")
+  challengeHash    Bytes     @db.Bytea @map("challenge_hash")
+  attempts         Int       @default(0)
+  createdAt        DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+  expiresAt        DateTime  @db.Timestamptz(6) @map("expires_at")
+  consumedAt       DateTime? @db.Timestamptz(6) @map("consumed_at")
+
+  user             AppUser   @relation(fields: [userId], references: [userId], onDelete: Restrict)
+
+  @@index([userId, expiresAt])
+  @@index([userId, consumedAt])
+  @@map("owner_mfa_challenge")
+  @@schema("public")
+}
+
+model AppAuditLog {
+  auditId    String         @id @default(uuid()) @db.Uuid @map("audit_id")
+  actorType  String         @map("actor_type")
+  actorId    String?        @db.Uuid @map("actor_id")
+  action     String
+  targetType String?        @map("target_type")
+  targetId   String?        @map("target_id")
+  metadata   Json?          @map("metadata")
+  createdAt  DateTime       @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  actor      AppUser?       @relation("AppAuditActor", fields: [actorId], references: [userId], onDelete: Restrict)
+
+  @@index([actorId, createdAt])
+  @@index([action, createdAt])
+  @@map("app_audit_log")
+  @@schema("public")
+}
+
+// ============================================================
+// GOVERNANCE LAYER — LIVE 001-007 OBJECTS
+// Existing CHECK constraints, RLS policies, views and functions
+// remain SQL migration concerns.
+// ============================================================
+
+model GovernanceAuditLog {
+  auditId     BigInt    @id @default(autoincrement()) @db.BigInt @map("audit_id")
+  actorUserId String?   @db.Uuid @map("actor_user_id")
+  action      String
+  targetType  String?   @map("target_type")
+  targetId    String?   @map("target_id")
+  metadata    Json      @default(dbgenerated("'{}'::jsonb"))
+  createdAt   DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  actorUser   AppUser? @relation("GovernanceAuditActor", fields: [actorUserId], references: [userId], onDelete: Restrict)
+
+  @@map("audit_log")
+  @@schema("governance_layer")
+}
+
+model MasterImportBatch {
+  batchId           String               @id @default(uuid()) @db.Uuid @map("batch_id")
+  sourceName        String               @map("source_name")
+  sourceHash        String?              @map("source_hash")
+  status            String
+  ownerAuthorizedAt DateTime?            @db.Timestamptz(6) @map("owner_authorized_at")
+  createdAt         DateTime             @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  identityConflicts IdentityConflict[]
+  sourceEvidence    SourceEvidence[]
+  classificationReviews ClassificationReview[]
+
+  @@map("master_import_batch")
+  @@schema("governance_layer")
+}
+
+model IdentityConflict {
+  conflictId    String           @id @default(uuid()) @db.Uuid @map("conflict_id")
+  batchId       String           @db.Uuid @map("batch_id")
+  exchange      String
+  symbol        String
+  status        String
+  resolutionNote String?         @map("resolution_note")
+  resolvedAt    DateTime?        @db.Timestamptz(6) @map("resolved_at")
+
+  batch         MasterImportBatch @relation(fields: [batchId], references: [batchId], onDelete: Restrict)
+  sourceEvidence SourceEvidence[]
+
+  @@unique([batchId, exchange, symbol])
+  @@index([batchId, status])
+  @@map("identity_conflict")
+  @@schema("governance_layer")
+}
+
+model IdentityResolutionRequest {
+  id                        String    @id @default(uuid()) @db.Uuid
+  symbol                    String
+  conflictType              String    @map("conflict_type")
+  evidenceUrl               String?   @map("evidence_url")
+  proposedCanonicalIdentity String    @map("proposed_canonical_identity")
+  proposedIsin              String?   @map("proposed_isin")
+  impactOn4187Rows          String    @map("impact_on_4187_rows")
+  state                     String
+  ownerDecision             String?   @map("owner_decision")
+  ownerDecidedAt            DateTime? @db.Timestamptz(6) @map("owner_decided_at")
+  ownerNote                 String?   @map("owner_note")
+  createdAt                 DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  @@index([symbol])
+  @@index([state])
+  @@map("identity_resolution_requests")
+  @@schema("governance_layer")
+}
+
+model ProviderRegistry {
+  providerId   String         @id @default(uuid()) @db.Uuid @map("provider_id")
+  providerName String         @unique @map("provider_name")
+  providerType String         @map("provider_type")
+  status       String         @default("NOT_CONFIGURED")
+  baseUrl      String?        @map("base_url")
+  secretRef    String?        @map("secret_ref")
+  createdAt    DateTime       @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt    DateTime       @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  sourceHealth SourceHealth[]
+
+  @@map("provider_registry")
+  @@schema("governance_layer")
+}
+
+model SourceHealth {
+  healthId    String          @id @default(uuid()) @db.Uuid @map("health_id")
+  providerId  String          @db.Uuid @map("provider_id")
+  checkedAt   DateTime        @default(now()) @db.Timestamptz(6) @map("checked_at")
+  healthy     Boolean
+  latencyMs   Int?            @map("latency_ms")
+  errorCode   String?         @map("error_code")
+  details     Json            @default(dbgenerated("'{}'::jsonb"))
+
+  provider    ProviderRegistry @relation(fields: [providerId], references: [providerId], onDelete: Restrict)
+
+  @@index([providerId, checkedAt])
+  @@map("source_health")
+  @@schema("governance_layer")
+}
+
+model SourceEvidence {
+  evidenceId  String            @id @default(uuid()) @db.Uuid @map("evidence_id")
+  batchId     String?           @db.Uuid @map("batch_id")
+  conflictId  String?           @db.Uuid @map("conflict_id")
+  evidenceType String           @map("evidence_type")
+  sourceName  String            @map("source_name")
+  sourceUrl   String?           @map("source_url")
+  observedAt  DateTime?         @db.Timestamptz(6) @map("observed_at")
+  claim       String
+  status      String            @default("PROPOSED")
+  createdAt   DateTime          @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  batch       MasterImportBatch? @relation(fields: [batchId], references: [batchId], onDelete: Restrict)
+  conflict    IdentityConflict?  @relation(fields: [conflictId], references: [conflictId], onDelete: Restrict)
+  classificationReviews ClassificationReview[]
+
+  @@index([conflictId])
+  @@map("source_evidence")
+  @@schema("governance_layer")
+}
+
+model ClassificationReview {
+  reviewId       String          @id @default(uuid()) @db.Uuid @map("review_id")
+  batchId        String?         @db.Uuid @map("batch_id")
+  symbol         String
+  companyName    String?         @map("company_name")
+  issueType      String          @map("issue_type")
+  proposedAction String?         @map("proposed_action")
+  status         String          @default("OPEN")
+  evidenceId     String?         @db.Uuid @map("evidence_id")
+  createdAt      DateTime        @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  batch          MasterImportBatch? @relation(fields: [batchId], references: [batchId], onDelete: Restrict)
+  evidence       SourceEvidence?    @relation(fields: [evidenceId], references: [evidenceId], onDelete: Restrict)
+
+  @@index([batchId, status])
+  @@map("classification_review")
+  @@schema("governance_layer")
+}
+
+// ============================================================
+// PRODUCTION LAYER — LIVE BASELINE + RECONCILED DOMAIN
+// ============================================================
+
+enum FreshnessStatus {
+  LIVE
+  DELAYED
+  STALE
+  UNAVAILABLE
+
+  @@schema("production_layer")
+}
+
+enum VerificationStatus {
+  VERIFIED
+  UNKNOWN
+
+  @@schema("production_layer")
+}
+
+enum InterpretationStatus {
+  NOT_INTERPRETABLE
+  INTERPRETABLE
+
+  @@schema("production_layer")
+}
+
+enum WorkflowStatus {
+  SOURCE_REQUIRED
+  PENDING
+  MISSING
+
+  @@schema("production_layer")
+}
+
+model CanonicalStock {
+  stockId        String                   @id @default(uuid()) @db.Uuid @map("stock_id")
+  name           String
+  symbol         String
+  exchange       String
+  identityKey    String                   @unique @map("identity_key")
+  sector         String?
+  subSector      String?                  @map("sub_sector")
+  createdAt      DateTime                 @default(now()) @db.Timestamptz(6) @map("created_at")
+  updatedAt      DateTime                 @updatedAt @db.Timestamptz(6) @map("updated_at")
+
+  classification StockClassification?
+  groupMemberships StockGroupMembership[]
+  themeMemberships StockThemeMembership[]
+  valueChainStages ValueChainStage[]
+  observations   RawStockObservation[]
+  stockScores    StockScore[]
+  shariahStatus  ShariahStatus?
+
+  @@index([symbol])
+  @@index([exchange])
+  @@map("canonical_stock")
+  @@schema("production_layer")
+}
+
+model RawStockObservation {
+  observationId       String                @id @default(uuid()) @db.Uuid @map("observation_id")
+  stockId             String?               @db.Uuid @map("stock_id")
+  source              String
+  sourceTimestamp     DateTime?             @db.Timestamptz(6) @map("source_timestamp")
+  reportedDate        DateTime?             @db.Date @map("reported_date")
+  dataNature          String                @map("data_nature")
+  formulaVersion      String?               @map("formula_version")
+  payload             Json
+  createdAt           DateTime              @default(now()) @db.Timestamptz(6) @map("created_at")
+  freshnessStatus     FreshnessStatus       @map("freshness_status")
+  verificationStatus  VerificationStatus    @map("verification_status")
+  interpretationStatus InterpretationStatus  @map("interpretation_status")
+  workflowStatus      WorkflowStatus        @map("workflow_status")
+  retrievedAt         DateTime?             @db.Timestamptz(6) @map("retrieved_at")
+  validationStatus    String?               @map("validation_status")
+  configurationSnapshot Json?               @map("configuration_snapshot")
+  formulaVersionId    String?               @db.Uuid @map("formula_version_id")
+
+  stock               CanonicalStock?       @relation(fields: [stockId], references: [stockId], onDelete: Restrict)
+  formulaVersionRef   FormulaVersion?       @relation(fields: [formulaVersionId], references: [formulaVersionId], onDelete: Restrict)
+
+  @@index([stockId])
+  @@index([source, sourceTimestamp])
+  @@index([workflowStatus, verificationStatus])
+  @@map("raw_stock_observation")
+  @@schema("production_layer")
+}
+
+model Sector {
+  sectorId      String        @id @default(uuid()) @db.Uuid @map("sector_id")
+  name          String        @unique
+  subSectors    SubSector[]
+  rotationScores RotationScore[]
+
+  @@map("sector")
+  @@schema("production_layer")
+}
+
+model SubSector {
+  subSectorId   String        @id @default(uuid()) @db.Uuid @map("sub_sector_id")
+  sectorId      String        @db.Uuid @map("sector_id")
+  name          String
+
+  sector        Sector        @relation(fields: [sectorId], references: [sectorId], onDelete: Restrict)
+  classifications StockClassification[]
+  rotationScores RotationScore[]
+
+  @@unique([sectorId, name])
+  @@map("sub_sector")
+  @@schema("production_layer")
+}
+
+model StockClassification {
+  stockId       String        @id @db.Uuid @map("stock_id")
+  subSectorId   String        @db.Uuid @map("sub_sector_id")
+  verifiedAt    DateTime?     @db.Timestamptz(6) @map("verified_at")
+  source        String?
+
+  stock         CanonicalStock @relation(fields: [stockId], references: [stockId], onDelete: Restrict)
+  subSector     SubSector      @relation(fields: [subSectorId], references: [subSectorId], onDelete: Restrict)
+
+  @@map("stock_classification")
+  @@schema("production_layer")
+}
+
+model StockGroup {
+  groupId       String               @id @default(uuid()) @db.Uuid @map("group_id")
+  name          String               @unique
+  memberships   StockGroupMembership[]
+  rotationScores RotationScore[]
+
+  @@map("stock_group")
+  @@schema("production_layer")
+}
+
+model StockGroupMembership {
+  stockId       String        @db.Uuid @map("stock_id")
+  groupId       String        @db.Uuid @map("group_id")
+  verifiedAt    DateTime?     @db.Timestamptz(6) @map("verified_at")
+  source        String?
+
+  stock         CanonicalStock @relation(fields: [stockId], references: [stockId], onDelete: Restrict)
+  group         StockGroup     @relation(fields: [groupId], references: [groupId], onDelete: Restrict)
+
+  @@id([stockId, groupId])
+  @@map("stock_group_membership")
+  @@schema("production_layer")
+}
+
+model Theme {
+  themeId       String     @id @default(uuid()) @db.Uuid @map("theme_id")
+  name          String     @unique
+  subThemes     SubTheme[]
+
+  @@map("theme")
+  @@schema("production_layer")
+}
+
+model SubTheme {
+  subThemeId    String      @id @default(uuid()) @db.Uuid @map("sub_theme_id")
+  themeId       String      @db.Uuid @map("theme_id")
+  name          String
+
+  theme         Theme       @relation(fields: [themeId], references: [themeId], onDelete: Restrict)
+  industries    Industry[]
+
+  @@unique([themeId, name])
+  @@map("sub_theme")
+  @@schema("production_layer")
+}
+
+model Industry {
+  industryId    String                   @id @default(uuid()) @db.Uuid @map("industry_id")
+  subThemeId    String                   @db.Uuid @map("sub_theme_id")
+  name          String
+
+  subTheme      SubTheme                 @relation(fields: [subThemeId], references: [subThemeId], onDelete: Restrict)
+  memberships   StockThemeMembership[]
+
+  @@unique([subThemeId, name])
+  @@map("industry")
+  @@schema("production_layer")
+}
+
+model StockThemeMembership {
+  stockId       String       @db.Uuid @map("stock_id")
+  industryId    String       @db.Uuid @map("industry_id")
+  verifiedAt    DateTime?    @db.Timestamptz(6) @map("verified_at")
+  source        String?
+
+  stock         CanonicalStock @relation(fields: [stockId], references: [stockId], onDelete: Restrict)
+  industry      Industry       @relation(fields: [industryId], references: [industryId], onDelete: Restrict)
+
+  @@id([stockId, industryId])
+  @@map("stock_theme_membership")
+  @@schema("production_layer")
+}
+
+model ValueChainStage {
+  stageId       String            @id @default(uuid()) @db.Uuid @map("stage_id")
+  stockId       String            @db.Uuid @map("stock_id")
+  stageName     String            @map("stage_name")
+  detail        Json?
+  source        String?
+  updatedAt     DateTime          @default(now()) @db.Timestamptz(6) @map("updated_at")
+
+  stock         CanonicalStock    @relation(fields: [stockId], references: [stockId], onDelete: Restrict)
+  evidence      ValueChainEvidence[]
+
+  @@index([stockId, stageName])
+  @@map("value_chain_stage")
+  @@schema("production_layer")
+}
+
+model ValueChainEvidence {
+  evidenceId    String          @id @default(uuid()) @db.Uuid @map("evidence_id")
+  stageId       String          @db.Uuid @map("stage_id")
+  evidenceType  String          @map("evidence_type")
+  sourceName    String          @map("source_name")
+  sourceUrl     String?         @map("source_url")
+  observedAt    DateTime?       @db.Timestamptz(6) @map("observed_at")
+  claim         String
+  verification  VerificationStatus @map("verification")
+  createdAt     DateTime        @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  stage         ValueChainStage @relation(fields: [stageId], references: [stageId], onDelete: Restrict)
+
+  @@index([stageId])
+  @@map("value_chain_evidence")
+  @@schema("production_layer")
+}
+
+model RotationScore {
+  rotationId        String          @id @default(uuid()) @db.Uuid @map("rotation_id")
+  level             String
+  horizon           String
+  stockGroupId      String?         @db.Uuid @map("stock_group_id")
+  subSectorId       String?         @db.Uuid @map("sub_sector_id")
+  sectorId          String?         @db.Uuid @map("sector_id")
+  medianReturn      Decimal?        @db.Decimal @map("median_return")
+  participation     Decimal?        @db.Decimal
+  ewCappedReturn    Decimal?        @db.Decimal @map("ew_capped_return")
+  iqrConsistency    Decimal?        @db.Decimal @map("iqr_consistency")
+  confidence        Decimal         @db.Decimal
+  state             String?
+  finalScore        Decimal?        @db.Decimal @map("final_score")
+  calculatedAt      DateTime        @default(now()) @db.Timestamptz(6) @map("calculated_at")
+  formulaVersionId  String          @db.Uuid @map("formula_version_id")
+  configurationSnapshot Json         @map("configuration_snapshot")
+
+  stockGroup        StockGroup?     @relation(fields: [stockGroupId], references: [groupId], onDelete: Restrict)
+  subSector         SubSector?      @relation(fields: [subSectorId], references: [subSectorId], onDelete: Restrict)
+  sector            Sector?         @relation(fields: [sectorId], references: [sectorId], onDelete: Restrict)
+  formulaVersion    FormulaVersion  @relation(fields: [formulaVersionId], references: [formulaVersionId], onDelete: Restrict)
+
+  @@index([level, horizon, calculatedAt])
+  @@index([stockGroupId, horizon, calculatedAt])
+  @@index([subSectorId, horizon, calculatedAt])
+  @@index([sectorId, horizon, calculatedAt])
+  @@map("rotation_score")
+  @@schema("production_layer")
+}
+
+model StockScore {
+  scoreId             String         @id @default(uuid()) @db.Uuid @map("score_id")
+  stockId             String         @db.Uuid @map("stock_id")
+  momentum            Decimal?       @db.Decimal
+  earningsMomentum    Decimal?       @db.Decimal @map("earnings_momentum")
+  businessQuality     Decimal?       @db.Decimal @map("business_quality")
+  relativeStrength    Decimal?       @db.Decimal @map("relative_strength")
+  valuation           Decimal?       @db.Decimal
+  trendQuality        Decimal?       @db.Decimal @map("trend_quality")
+  volumeConfirmation  Decimal?       @db.Decimal @map("volume_confirmation")
+  growthVisibility    Decimal?       @db.Decimal @map("growth_visibility")
+  baseScore           Decimal?       @db.Decimal @map("base_score")
+  riskPenalty         Decimal?       @db.Decimal @map("risk_penalty")
+  catalyst            Int?           @map("catalyst")
+  finalScore          Decimal?       @db.Decimal @map("final_score")
+  confidence          Decimal        @db.Decimal
+  calculatedAt        DateTime       @default(now()) @db.Timestamptz(6) @map("calculated_at")
+  formulaVersionId    String         @db.Uuid @map("formula_version_id")
+  configurationSnapshot Json         @map("configuration_snapshot")
+  comparisonSnapshot  Json?         @map("comparison_snapshot")
+
+  stock               CanonicalStock @relation(fields: [stockId], references: [stockId], onDelete: Restrict)
+  formulaVersion      FormulaVersion @relation(fields: [formulaVersionId], references: [formulaVersionId], onDelete: Restrict)
+
+  @@index([stockId, calculatedAt])
+  @@index([formulaVersionId, calculatedAt])
+  @@map("stock_score")
+  @@schema("production_layer")
+}
+
+model ShariahStatus {
+  stockId     String          @id @db.Uuid @map("stock_id")
+  status      String
+  source      String?
+  updatedAt   DateTime        @default(now()) @db.Timestamptz(6) @map("updated_at")
+
+  stock       CanonicalStock  @relation(fields: [stockId], references: [stockId], onDelete: Restrict)
+
+  @@map("shariah_status")
+  @@schema("production_layer")
+}
+
+// ============================================================
+// STAGING ENRICHMENT — LIVE 001-007 OBJECT
+// ============================================================
+
+model Master4187Staging {
+  stagingRowId  BigInt    @id @default(autoincrement()) @db.BigInt @map("staging_row_id")
+  batchId       String?   @db.Uuid @map("batch_id")
+  name          String
+  symbol        String
+  exchange      String
+  sector        String?
+  subSector     String?   @map("sub_sector")
+  identityStatus String   @default("PENDING") @map("identity_status")
+  createdAt     DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  @@index([exchange, symbol])
+  @@map("master_4187_staging")
+  @@schema("staging_enrichment")
+}
+
+// NOTE:
+// governance_layer.v_* views and governance_layer.resolve_identity_conflict()
+// are intentionally SQL migration-only because the deployed DB owns these
+// executable database artifacts and their security posture.
