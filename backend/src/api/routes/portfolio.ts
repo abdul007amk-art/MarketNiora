@@ -14,7 +14,7 @@ import { resolveIdentity } from '../requestAuth.ts';
 import { getPortfolio } from '../../portfolio/portfolioAccess.ts';
 
 export async function getPortfolioHandler(ctx: ParsedRequest, deps: AppDependencies): Promise<RouteResult> {
-  const identity = resolveIdentity(ctx, deps);
+  const identity = await resolveIdentity(ctx, deps);
   if (!identity) {
     return { status: 401, body: { error: 'not authenticated' } };
   }
