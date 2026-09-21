@@ -8,13 +8,13 @@ export interface OwnerMfaChallengeStore { get(hash: string): OwnerMfaChallengeRe
 
 export class InMemoryOwnerTotpStore implements OwnerTotpStore {
   private records = new Map<string, OwnerTotpRecord>();
-  get(userId: string) { return this.records.get(userId); }
-  set(userId: string, record: OwnerTotpRecord) { this.records.set(userId, structuredClone(record)); }
+  get(userId: string): OwnerTotpRecord | undefined { return this.records.get(userId); }
+  set(userId: string, record: OwnerTotpRecord): void { this.records.set(userId, structuredClone(record)); }
 }
 export class InMemoryOwnerMfaChallengeStore implements OwnerMfaChallengeStore {
   private records = new Map<string, OwnerMfaChallengeRecord>();
-  get(hash: string) { return this.records.get(hash); }
-  set(hash: string, record: OwnerMfaChallengeRecord) { this.records.set(hash, structuredClone(record)); }
+  get(hash: string): OwnerMfaChallengeRecord | undefined { return this.records.get(hash); }
+  set(hash: string, record: OwnerMfaChallengeRecord): void { this.records.set(hash, structuredClone(record)); }
 }
 export function hashChallenge(challenge: string): string { return createHash('sha256').update(challenge).digest('hex'); }
 
