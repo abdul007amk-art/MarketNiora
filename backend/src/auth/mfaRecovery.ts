@@ -2,12 +2,11 @@
  * MFA RECOVERY CODES
  * Status: IMPLEMENTATION — unit tested below.
  *
- * GOVERNANCE: This is the proper home for the capability that Module 3's
- * audit explicitly kept OUT of the RBAC matrix — recovery must never be a
- * standing "BYPASS_MFA" permission that some role simply holds. Instead:
- * a recovery code is its own single-use credential, hashed at rest exactly
- * like a password (never stored or logged in plaintext), and consuming one
- * requires actually possessing it — not a role check.
+ * GOVERNANCE: Recovery codes are dedicated, single-use credentials. They
+ * are never stored or logged in plaintext. Password authentication has been
+ * removed from MarketNiora, so recovery-code hashing is intentionally
+ * self-contained here and does not depend on the deleted password-auth
+ * module.
  *
  * Post-audit hardening (HIGH finding): the original consumeRecoveryCode()
  * was check-then-remove with the caller responsible for persisting the
@@ -23,15 +22,54 @@
  * and session store): this mutex is per-process/in-memory. It guarantees
  * atomicity within one Node process, not across multiple serverless
  * instances. A real production deployment needs a DB-level atomic
- * operation (e.g. Postgres `DELETE ... WHERE hash = $1 RETURNING *`
- * inside a transaction) behind the same store interface.
+ * operation (e.g. Postgres DELETE ... WHERE hash = $1 RETURNING * inside a
+ * transaction) behind the same store interface.
  */
 
-import { randomBytes } from 'crypto';
-import { hashPassword, verifyPassword } from './passwordHashing.ts';
+import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 
 const DEFAULT_CODE_COUNT = 10;
 const CODE_BYTES = 5; // -> 10 hex characters per code
+const RECOVERY_HASH_PREFIX = 'scrypt-v1';
+const RECOVERY_SALT_BYTES = 16;
+const RECOVERY_KEY_BYTES = 32;
+const RECOVERY_SCRYPT_N = 4096;
+const RECOVERY_SCRYPT_R = 8;
+const RECOVERY_SCRYPT_P = 1;
+
+function hashRecoveryCode(code: string): string {
+  const salt = randomBytes(RECOVERY_SALT_BYTES);
+  const derived = scryptSync(code, salt, RECOVERY_KEY_BYTES, {
+    N: RECOVERY_SCRYPT_N,
+    r: RECOVERY_SCRYPT_R,
+    p: RECOVERY_SCRYPT_P,
+  });
+  return [
+    RECOVERY_HASH_PREFIX,
+    salt.toString('base64url'),
+    derived.toString('base64url'),
+  ].join('$');
+}
+
+function verifyRecoveryCode(code: string, encoded: string): boolean {
+  const parts = encoded.split('$');
+  if (parts.length !== 3 || parts[0] !== RECOVERY_HASH_PREFIX) return false;
+
+  try {
+    const salt = Buffer.from(parts[1], 'base64url');
+    const expected = Buffer.from(parts[2], 'base64url');
+    if (salt.length !== RECOVERY_SALT_BYTES || expected.length !== RECOVERY_KEY_BYTES) return false;
+
+    const actual = scryptSync(code, salt, RECOVERY_KEY_BYTES, {
+      N: RECOVERY_SCRYPT_N,
+      r: RECOVERY_SCRYPT_R,
+      p: RECOVERY_SCRYPT_P,
+    });
+    return timingSafeEqual(actual, expected);
+  } catch {
+    return false;
+  }
+}
 
 export interface GeneratedRecoveryCodes {
   /** Shown to the Owner exactly once at generation time. Never persist this array anywhere. */
@@ -41,13 +79,13 @@ export interface GeneratedRecoveryCodes {
 }
 
 export function generateRecoveryCodes(count: number = DEFAULT_CODE_COUNT): GeneratedRecoveryCodes {
-  if (count <= 0) throw new Error('count must be positive');
+  if (!Number.isInteger(count) || count <= 0) throw new Error('count must be a positive integer');
   const plaintextCodes: string[] = [];
   const hashedCodes: string[] = [];
   for (let i = 0; i < count; i++) {
     const code = randomBytes(CODE_BYTES).toString('hex');
     plaintextCodes.push(code);
-    hashedCodes.push(hashPassword(code)); // a recovery code is a secret credential — hash it like one
+    hashedCodes.push(hashRecoveryCode(code));
   }
   return { plaintextCodes, hashedCodes };
 }
@@ -74,7 +112,7 @@ export function consumeRecoveryCode(hashedCodes: string[] | null | undefined, su
   }
 
   for (let i = 0; i < hashedCodes.length; i++) {
-    if (verifyPassword(submittedCode, hashedCodes[i])) {
+    if (verifyRecoveryCode(submittedCode, hashedCodes[i])) {
       const remaining = [...hashedCodes.slice(0, i), ...hashedCodes.slice(i + 1)];
       return { valid: true, remainingHashedCodes: remaining, reason: 'recovery code accepted and consumed (single-use)' };
     }
@@ -122,12 +160,12 @@ export class InMemoryRecoveryCodeStore {
     });
     this.locks.set(ownerId, previousTurn.then(() => thisTurn));
 
-    await previousTurn; // wait for our turn in line
+    await previousTurn;
 
     try {
       const codes = this.codesByOwner.get(ownerId) ?? [];
       for (let i = 0; i < codes.length; i++) {
-        if (verifyPassword(submittedCode, codes[i])) {
+        if (verifyRecoveryCode(submittedCode, codes[i])) {
           const remaining = [...codes.slice(0, i), ...codes.slice(i + 1)];
           this.codesByOwner.set(ownerId, remaining);
           return true;
