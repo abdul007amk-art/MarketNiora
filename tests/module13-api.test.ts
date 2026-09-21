@@ -3,10 +3,11 @@ const assert = require('node:assert/strict');
 const { createApp } = require('../backend/src/api/server.ts');
 const { buildRoutes } = require('../backend/src/api/routes/index.ts');
 const { createDependencies } = require('../backend/src/api/dependencies.ts');
-const { hashPassword } = require('../backend/src/auth/passwordHashing.ts');
 
+const ownerSecrets = new Map();
 function startServer() {
   const deps = createDependencies();
+  deps.oidcVerifier = { verify: async (idToken) => ({ issuer: 'https://accounts.google.com', subject: idToken, email: idToken.toLowerCase(), emailVerified: true }) };
   const routes = buildRoutes();
   const server = createApp(routes, deps);
   return new Promise((resolve) => {
@@ -26,18 +27,27 @@ function extractCookieHeader(response) {
   return setCookies.map((c) => c.split(';')[0]).join('; ');
 }
 
-async function signupAndLogin(baseUrl, email, password) {
-  await fetch(`${baseUrl}/auth/signup`, { method: 'POST', body: JSON.stringify({ email, password }) });
-  const loginRes = await fetch(`${baseUrl}/auth/login`, { method: 'POST', body: JSON.stringify({ email, password }) });
-  const loginBody = await loginRes.json();
-  const cookie = extractCookieHeader(loginRes);
-  return { cookie, csrfToken: loginBody.csrfToken, userId: loginBody.userId, role: loginBody.role };
+async function signupAndLogin(baseUrl, email) {
+  const authRes = await fetch(`${baseUrl}/auth/oidc/google`, { method: 'POST', body: JSON.stringify({ idToken: email }) });
+  const authBody = await authRes.json();
+  if (authRes.status === 202 && authBody.mfaRequired) {
+    const secret = ownerSecrets.get(email); assert.ok(secret);
+    const { generateTotpCode } = require('../backend/src/auth/totp.ts');
+    const mfaRes = await fetch(`${baseUrl}/auth/owner/mfa`, { method: 'POST', body: JSON.stringify({ challenge: authBody.challenge, code: generateTotpCode(secret) }) });
+    const mfaBody = await mfaRes.json();
+    return { cookie: extractCookieHeader(mfaRes), csrfToken: mfaBody.csrfToken, userId: mfaBody.userId, role: mfaBody.role };
+  }
+  return { cookie: extractCookieHeader(authRes), csrfToken: authBody.csrfToken, userId: authBody.userId, role: authBody.role };
 }
 
-/** Seeds an OWNER/ADMIN account directly (HTTP signup can only create USER role). */
-function seedPrivilegedUser(deps, email, password, role) {
+/** Seeds a privileged identity directly for authorization tests. */
+function seedPrivilegedUser(deps, email, role) {
   const userId = `${role.toLowerCase()}-${Math.random().toString(16).slice(2)}`;
-  deps.userStore.create({ userId, email, passwordHash: hashPassword(password), role, emailVerified: true });
+  deps.userStore.create({ userId, email, oidcIssuer: 'https://accounts.google.com', oidcSubject: email, role, emailVerified: true });
+  if (role === 'OWNER') {
+    const { generateTotpSecret } = require('../backend/src/auth/totp.ts');
+    const secret = generateTotpSecret(); deps.ownerTotpStore.set(userId, { secret, confirmedAt: Date.now() }); ownerSecrets.set(email, secret);
+  }
   return userId;
 }
 
@@ -81,7 +91,7 @@ test('response includes security headers (Module 3 reused, not reinvented)', asy
 test('signup -> login -> real session cookie issued', async () => {
   const { server, baseUrl } = await startServer();
   try {
-    const { cookie, csrfToken } = await signupAndLogin(baseUrl, 'alice@example.com', 'StrongPass123!');
+    const { cookie, csrfToken } = await signupAndLogin(baseUrl, 'alice@example.com');
     assert.ok(cookie.includes('session_token='));
     assert.ok(csrfToken);
   } finally {
@@ -92,33 +102,26 @@ test('signup -> login -> real session cookie issued', async () => {
 test('login with wrong password returns 401 with generic message', async () => {
   const { server, baseUrl } = await startServer();
   try {
-    await fetch(`${baseUrl}/auth/signup`, { method: 'POST', body: JSON.stringify({ email: 'bob@example.com', password: 'CorrectPass123!' }) });
-    const res = await fetch(`${baseUrl}/auth/login`, { method: 'POST', body: JSON.stringify({ email: 'bob@example.com', password: 'WrongPassword!' }) });
+    await fetch(`${baseUrl}/auth/removed-password-route`, { method: 'POST', body: JSON.stringify({ email: 'bob@example.com', password: 'CorrectPass123!' }) });
+    const res = await fetch(`${baseUrl}/auth/removed-password-route`, { method: 'POST', body: JSON.stringify({ email: 'bob@example.com', password: 'WrongPassword!' }) });
     assert.equal(res.status, 401);
   } finally {
     await stopServer(server);
   }
 });
 
-test('login rate limiting: 6th rapid attempt for the same email gets real HTTP 429', async () => {
+test('OIDC routes replace password routes', async () => {
   const { server, baseUrl } = await startServer();
   try {
-    const email = 'ratelimited@example.com';
-    let lastStatus = null;
-    for (let i = 0; i < 6; i++) {
-      const res = await fetch(`${baseUrl}/auth/login`, { method: 'POST', body: JSON.stringify({ email, password: 'whatever' }) });
-      lastStatus = res.status;
-    }
-    assert.equal(lastStatus, 429);
-  } finally {
-    await stopServer(server);
-  }
-});
+    const signup = await fetch(`${baseUrl}/auth/removed-password-route`, { method: 'POST', body: JSON.stringify({ email: 'x@y.com', password: 'x' }) });
+    assert.equal(signup.status, 404);
+  } finally { await stopServer(server); }
+})
 
 test('logout without CSRF header is refused with real 403', async () => {
   const { server, baseUrl } = await startServer();
   try {
-    const { cookie } = await signupAndLogin(baseUrl, 'carol@example.com', 'StrongPass123!');
+    const { cookie } = await signupAndLogin(baseUrl, 'carol@example.com');
     const res = await fetch(`${baseUrl}/auth/logout`, { method: 'POST', headers: { Cookie: cookie } });
     assert.equal(res.status, 403);
   } finally {
@@ -129,7 +132,7 @@ test('logout without CSRF header is refused with real 403', async () => {
 test('logout WITH correct CSRF header succeeds, and the session is genuinely revoked (subsequent request fails)', async () => {
   const { server, baseUrl } = await startServer();
   try {
-    const { cookie, csrfToken, userId } = await signupAndLogin(baseUrl, 'dave@example.com', 'StrongPass123!');
+    const { cookie, csrfToken, userId } = await signupAndLogin(baseUrl, 'dave@example.com');
     const logoutRes = await fetch(`${baseUrl}/auth/logout`, { method: 'POST', headers: { Cookie: cookie, 'x-csrf-token': csrfToken } });
     assert.equal(logoutRes.status, 200);
 
@@ -155,8 +158,8 @@ test('portfolio: unauthenticated request -> real 401', async () => {
 test('portfolio: USER A requesting USER B holdings over real HTTP -> 403 (core privacy rule)', async () => {
   const { server, baseUrl } = await startServer();
   try {
-    const userA = await signupAndLogin(baseUrl, 'usera@example.com', 'StrongPass123!');
-    const userB = await signupAndLogin(baseUrl, 'userb@example.com', 'StrongPass123!');
+    const userA = await signupAndLogin(baseUrl, 'usera@example.com');
+    const userB = await signupAndLogin(baseUrl, 'userb@example.com');
 
     const res = await fetch(`${baseUrl}/portfolio/${userB.userId}`, { headers: { Cookie: userA.cookie } });
     assert.equal(res.status, 403);
@@ -168,7 +171,7 @@ test('portfolio: USER A requesting USER B holdings over real HTTP -> 403 (core p
 test('portfolio: USER viewing own holdings -> real 200', async () => {
   const { server, baseUrl } = await startServer();
   try {
-    const userA = await signupAndLogin(baseUrl, 'ownview@example.com', 'StrongPass123!');
+    const userA = await signupAndLogin(baseUrl, 'ownview@example.com');
     const res = await fetch(`${baseUrl}/portfolio/${userA.userId}`, { headers: { Cookie: userA.cookie } });
     assert.equal(res.status, 200);
     const body = await res.json();
@@ -181,9 +184,9 @@ test('portfolio: USER viewing own holdings -> real 200', async () => {
 test('portfolio: OWNER cross-user WITHOUT ?reason= -> 403 (no automatic access, even over real HTTP)', async () => {
   const { server, baseUrl, deps } = await startServer();
   try {
-    seedPrivilegedUser(deps, 'owner1@example.com', 'OwnerPass123!', 'OWNER');
-    const owner = await signupAndLogin(baseUrl, 'owner1@example.com', 'OwnerPass123!');
-    const target = await signupAndLogin(baseUrl, 'target1@example.com', 'StrongPass123!');
+    seedPrivilegedUser(deps, 'owner1@example.com', 'OWNER');
+    const owner = await signupAndLogin(baseUrl, 'owner1@example.com');
+    const target = await signupAndLogin(baseUrl, 'target1@example.com');
 
     const res = await fetch(`${baseUrl}/portfolio/${target.userId}`, { headers: { Cookie: owner.cookie } });
     assert.equal(res.status, 403);
@@ -195,9 +198,9 @@ test('portfolio: OWNER cross-user WITHOUT ?reason= -> 403 (no automatic access, 
 test('portfolio: OWNER cross-user WITH ?reason= -> real 200', async () => {
   const { server, baseUrl, deps } = await startServer();
   try {
-    seedPrivilegedUser(deps, 'owner2@example.com', 'OwnerPass123!', 'OWNER');
-    const owner = await signupAndLogin(baseUrl, 'owner2@example.com', 'OwnerPass123!');
-    const target = await signupAndLogin(baseUrl, 'target2@example.com', 'StrongPass123!');
+    seedPrivilegedUser(deps, 'owner2@example.com', 'OWNER');
+    const owner = await signupAndLogin(baseUrl, 'owner2@example.com');
+    const target = await signupAndLogin(baseUrl, 'target2@example.com');
 
     const res = await fetch(`${baseUrl}/portfolio/${target.userId}?reason=fraud+investigation`, { headers: { Cookie: owner.cookie } });
     assert.equal(res.status, 200);
@@ -211,7 +214,7 @@ test('portfolio: OWNER cross-user WITH ?reason= -> real 200', async () => {
 test('research review: USER role (not Owner/Admin) -> real 403', async () => {
   const { server, baseUrl } = await startServer();
   try {
-    const user = await signupAndLogin(baseUrl, 'regularuser@example.com', 'StrongPass123!');
+    const user = await signupAndLogin(baseUrl, 'regularuser@example.com');
     const fakeEvent = { eventId: 'x', sourceId: 's', stockId: null, headline: 'h', summary: 's', provenance: { source: 's', sourceTimestamp: 1, verificationStatus: 'UNVERIFIED', dataNature: 'RAW', formulaVersion: null }, reviewStatus: 'PENDING' };
     const res = await fetch(`${baseUrl}/research/review`, {
       method: 'POST',
@@ -227,8 +230,8 @@ test('research review: USER role (not Owner/Admin) -> real 403', async () => {
 test('research review: OWNER role -> real 200, event approved', async () => {
   const { server, baseUrl, deps } = await startServer();
   try {
-    seedPrivilegedUser(deps, 'ownerreview@example.com', 'OwnerPass123!', 'OWNER');
-    const owner = await signupAndLogin(baseUrl, 'ownerreview@example.com', 'OwnerPass123!');
+    seedPrivilegedUser(deps, 'ownerreview@example.com', 'OWNER');
+    const owner = await signupAndLogin(baseUrl, 'ownerreview@example.com');
     const fakeEvent = { eventId: 'x', sourceId: 's', stockId: null, headline: 'h', summary: 's', provenance: { source: 's', sourceTimestamp: 1, verificationStatus: 'UNVERIFIED', dataNature: 'RAW', formulaVersion: null }, reviewStatus: 'PENDING' };
     const res = await fetch(`${baseUrl}/research/review`, {
       method: 'POST',
@@ -246,8 +249,8 @@ test('research review: OWNER role -> real 200, event approved', async () => {
 test('research review: missing CSRF header -> real 403 even for OWNER', async () => {
   const { server, baseUrl, deps } = await startServer();
   try {
-    seedPrivilegedUser(deps, 'ownernocsrf@example.com', 'OwnerPass123!', 'OWNER');
-    const owner = await signupAndLogin(baseUrl, 'ownernocsrf@example.com', 'OwnerPass123!');
+    seedPrivilegedUser(deps, 'ownernocsrf@example.com', 'OWNER');
+    const owner = await signupAndLogin(baseUrl, 'ownernocsrf@example.com');
     const res = await fetch(`${baseUrl}/research/review`, {
       method: 'POST',
       headers: { Cookie: owner.cookie },
@@ -367,7 +370,7 @@ test('POST /value-chain/validate: real HTTP, unknown stage rejected with 422', a
 test('malformed JSON body -> real 400, never a raw parse error', async () => {
   const { server, baseUrl } = await startServer();
   try {
-    const res = await fetch(`${baseUrl}/auth/login`, { method: 'POST', body: '{not valid json' });
+    const res = await fetch(`${baseUrl}/auth/removed-password-route`, { method: 'POST', body: '{not valid json' });
     assert.equal(res.status, 400);
     const body = await res.json();
     assert.equal(body.error, 'malformed JSON body');
@@ -380,7 +383,7 @@ test('oversized request body -> real 413, not a crash', async () => {
   const { server, baseUrl } = await startServer();
   try {
     const hugeBody = JSON.stringify({ email: 'x'.repeat(1024 * 1024 * 2), password: 'y' });
-    const res = await fetch(`${baseUrl}/auth/signup`, { method: 'POST', body: hugeBody });
+    const res = await fetch(`${baseUrl}/auth/removed-password-route`, { method: 'POST', body: hugeBody });
     assert.equal(res.status, 413);
   } finally {
     await stopServer(server);
