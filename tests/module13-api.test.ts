@@ -44,6 +44,7 @@ async function signupAndLogin(baseUrl, email) {
 function seedPrivilegedUser(deps, email, role) {
   const userId = `${role.toLowerCase()}-${Math.random().toString(16).slice(2)}`;
   deps.userStore.create({ userId, email, oidcIssuer: 'https://accounts.google.com', oidcSubject: email, role, emailVerified: true });
+  if (role === 'OWNER') process.env.OWNER_EMAILS = Array.from(new Set(((process.env.OWNER_EMAILS ?? '').split(',').filter(Boolean)).concat(email))).join(',');
   if (role === 'OWNER') {
     const { generateTotpSecret } = require('../backend/src/auth/totp.ts');
     const secret = generateTotpSecret(); deps.ownerTotpStore.set(userId, { secret, confirmedAt: Date.now() }); ownerSecrets.set(email, secret);
@@ -88,7 +89,7 @@ test('response includes security headers (Module 3 reused, not reinvented)', asy
 
 // ================= AUTH =================
 
-test('signup -> login -> real session cookie issued', async () => {
+test('Google OIDC -> real session cookie issued', async () => {
   const { server, baseUrl } = await startServer();
   try {
     const { cookie, csrfToken } = await signupAndLogin(baseUrl, 'alice@example.com');
@@ -99,16 +100,14 @@ test('signup -> login -> real session cookie issued', async () => {
   }
 });
 
-test('login with wrong password returns 401 with generic message', async () => {
+test('password authentication endpoints are removed', async () => {
   const { server, baseUrl } = await startServer();
   try {
-    await fetch(`${baseUrl}/auth/removed-password-route`, { method: 'POST', body: JSON.stringify({ email: 'bob@example.com', password: 'CorrectPass123!' }) });
-    const res = await fetch(`${baseUrl}/auth/removed-password-route`, { method: 'POST', body: JSON.stringify({ email: 'bob@example.com', password: 'WrongPassword!' }) });
-    assert.equal(res.status, 401);
-  } finally {
-    await stopServer(server);
-  }
-});
+    const res1 = await fetch(`${baseUrl}/auth/signup`, { method: 'POST', body: JSON.stringify({ email: 'x@y.com', password: 'x' }) });
+    const res2 = await fetch(`${baseUrl}/auth/login`, { method: 'POST', body: JSON.stringify({ email: 'x@y.com', password: 'x' }) });
+    assert.equal(res1.status, 404); assert.equal(res2.status, 404);
+  } finally { await stopServer(server); }
+})
 
 test('OIDC routes replace password routes', async () => {
   const { server, baseUrl } = await startServer();
@@ -370,7 +369,7 @@ test('POST /value-chain/validate: real HTTP, unknown stage rejected with 422', a
 test('malformed JSON body -> real 400, never a raw parse error', async () => {
   const { server, baseUrl } = await startServer();
   try {
-    const res = await fetch(`${baseUrl}/auth/removed-password-route`, { method: 'POST', body: '{not valid json' });
+    const res = await fetch(`${baseUrl}/auth/oidc/google`, { method: 'POST', body: '{not valid json' });
     assert.equal(res.status, 400);
     const body = await res.json();
     assert.equal(body.error, 'malformed JSON body');
@@ -382,8 +381,8 @@ test('malformed JSON body -> real 400, never a raw parse error', async () => {
 test('oversized request body -> real 413, not a crash', async () => {
   const { server, baseUrl } = await startServer();
   try {
-    const hugeBody = JSON.stringify({ email: 'x'.repeat(1024 * 1024 * 2), password: 'y' });
-    const res = await fetch(`${baseUrl}/auth/removed-password-route`, { method: 'POST', body: hugeBody });
+    const hugeBody = JSON.stringify({ idToken: 'x'.repeat(1024 * 1024 * 2) });
+    const res = await fetch(`${baseUrl}/auth/oidc/google`, { method: 'POST', body: hugeBody });
     assert.equal(res.status, 413);
   } finally {
     await stopServer(server);
