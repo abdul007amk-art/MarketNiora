@@ -160,7 +160,7 @@ export class PrismaOwnerTotpStore implements OwnerTotpStore {
     if (!record || record.disabledAt) return undefined;
 
     return {
-      secret: this.cipher.decrypt(record.secretCiphertext),
+      secret: this.cipher.decrypt(Buffer.from(record.secretCiphertext)),
       confirmedAt: record.confirmedAt?.getTime() ?? null,
     };
   }
