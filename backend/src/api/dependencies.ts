@@ -16,7 +16,7 @@ import { InMemorySessionStore } from '../auth/sessionManager.ts';
 import type { SessionStore } from '../auth/sessionManager.ts';
 import { InMemoryPortfolioStore } from '../portfolio/portfolioStore.ts';
 import type { PortfolioStore } from '../portfolio/portfolioStore.ts';
-import { FixedWindowRateLimiter } from '../middleware/rateLimiter.ts';
+import { FixedWindowRateLimiter } from '../security/rateLimiter.ts';
 
 export interface AppDependencies {
   userStore: UserStore;
