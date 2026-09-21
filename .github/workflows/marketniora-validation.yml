@@ -1,0 +1,72 @@
+name: MarketNiora Validation
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test suite
+        run: npm test
+
+      - name: Prisma validate
+        run: npx prisma validate --schema database/prisma/schema.prisma
+
+      - name: Prisma generate
+        run: npx prisma generate --schema database/prisma/schema.prisma
+
+      - name: Verify protected engines unchanged in this commit
+        shell: bash
+        run: |
+          set -euo pipefail
+          base_ref="${{ github.event.before }}"
+          head_ref="${{ github.sha }}"
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            echo "workflow_dispatch: protected-file verification is informational only."
+            exit 0
+          fi
+
+          if [ -z "$base_ref" ] || [ "$base_ref" = "0000000000000000000000000000000000000000" ]; then
+            echo "No valid previous commit SHA available; skipping protected-file diff check."
+            exit 0
+          fi
+
+          changed="$(git diff --name-only "$base_ref" "$head_ref" --             backend/src/protected/rotationEngine.ts             backend/src/protected/stockScoreEngine.ts)"
+
+          if [ -n "$changed" ]; then
+            echo "Protected files changed:"
+            echo "$changed"
+            exit 1
+          fi
+
+          echo "Protected files unchanged."
+
+      - name: Git state summary
+        run: |
+          git status --short
+          git rev-parse HEAD
+          git diff --stat ${{ github.event.before }} ${{ github.sha }} || true
