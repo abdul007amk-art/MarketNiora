@@ -10,7 +10,7 @@ import type { ParsedRequest, RouteResult } from '../router.ts';
 import type { AppDependencies } from '../dependencies.ts';
 import { resolveIdentity } from '../requestAuth.ts';
 import { reviewResearchEvent } from '../../research/reviewGate.ts';
-import { verifyCsrfToken } from '../../middleware/csrfToken.ts';
+import { verifyCsrfToken } from '../../security/csrfToken.ts';
 
 export async function researchReviewHandler(ctx: ParsedRequest, deps: AppDependencies): Promise<RouteResult> {
   const identity = resolveIdentity(ctx, deps);
