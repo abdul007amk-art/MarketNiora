@@ -18,14 +18,14 @@ export interface RequestIdentity {
   role: Role;
 }
 
-export function resolveIdentity(ctx: ParsedRequest, deps: AppDependencies): RequestIdentity | null {
+export async function resolveIdentity(ctx: ParsedRequest, deps: AppDependencies): Promise<RequestIdentity | null> {
   const token = ctx.cookies['session_token'];
   if (!token) return null;
 
-  const check = validateSession(deps.sessionStore, token);
+  const check = await validateSession(deps.sessionStore, token);
   if (!check.valid) return null;
 
-  const session = deps.sessionStore.get(token);
+  const session = await deps.sessionStore.get(token);
   if (!session) return null;
 
   return { userId: session.userId, role: session.role };
