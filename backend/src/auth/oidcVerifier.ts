@@ -38,9 +38,20 @@ export class GoogleOidcVerifier implements OidcVerifier {
     if (!this.clientId) throw new Error('GOOGLE_CLIENT_ID is not configured');
     const parts = idToken.split('.');
     if (parts.length !== 3) throw new Error('invalid ID token format');
-    const header = object(parts[0]);
-    const payload = object(parts[1]);
-    const signature = decode(parts[2]);
+    let header: Record<string, unknown>;
+    let payload: Record<string, unknown>;
+    try {
+      header = object(parts[0]);
+      payload = object(parts[1]);
+    } catch {
+      throw new Error('invalid ID token format');
+    }
+    let signature: Buffer;
+    try {
+      signature = decode(parts[2]);
+    } catch {
+      throw new Error('invalid ID token format');
+    }
     if (string(header.alg, 'alg') !== 'RS256') throw new Error('unsupported ID token algorithm');
     const kid = string(header.kid, 'kid');
     const issuer = string(payload.iss, 'iss');
