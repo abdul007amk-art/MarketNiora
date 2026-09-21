@@ -32,8 +32,8 @@ export class NonProdLocalSecretCipher implements SecretCipher {
   encrypt(plaintext: string): Buffer {
     if (!plaintext) throw new Error('cannot encrypt an empty secret');
 
-    const cipher = createCipheriv(ALGORITHM, localDevKey(), randomBytes(IV_BYTES));
-    const iv = cipher.getIV();
+    const iv = randomBytes(IV_BYTES);
+    const cipher = createCipheriv(ALGORITHM, localDevKey(), iv);
     const ciphertext = Buffer.concat([cipher.update(plaintext, 'utf8'), cipher.final()]);
     const tag = cipher.getAuthTag();
 
