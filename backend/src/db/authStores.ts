@@ -34,7 +34,8 @@ function toDate(milliseconds: number): Date {
 
 export class PrismaUserStore implements UserStore {
   public readonly productionReady = false;
-  constructor(private readonly prisma: PrismaClient) {}
+  private readonly prisma: PrismaClient;
+  constructor(prisma: PrismaClient) { this.prisma = prisma; }
 
   async create(user: StoredUser): Promise<void> {
     try {
@@ -104,7 +105,8 @@ export class PrismaUserStore implements UserStore {
 
 export class PrismaSessionStore implements SessionStore {
   public readonly productionReady = false;
-  constructor(private readonly prisma: PrismaClient) {}
+  private readonly prisma: PrismaClient;
+  constructor(prisma: PrismaClient) { this.prisma = prisma; }
 
   async get(token: string): Promise<Session | undefined> {
     const session = await this.prisma.session.findUnique({
@@ -153,7 +155,9 @@ export class PrismaSessionStore implements SessionStore {
 
 export class PrismaOwnerTotpStore implements OwnerTotpStore {
   public readonly productionReady = false;
-  constructor(private readonly prisma: PrismaClient, private readonly cipher: SecretCipher) {}
+  private readonly prisma: PrismaClient;
+  private readonly cipher: SecretCipher;
+  constructor(prisma: PrismaClient, cipher: SecretCipher) { this.prisma = prisma; this.cipher = cipher; }
 
   async get(userId: string): Promise<OwnerTotpRecord | undefined> {
     const record = await this.prisma.ownerTotpSecret.findUnique({ where: { userId } });
@@ -193,7 +197,8 @@ export class PrismaOwnerTotpStore implements OwnerTotpStore {
 
 export class PrismaOwnerMfaChallengeStore implements OwnerMfaChallengeStore {
   public readonly productionReady = false;
-  constructor(private readonly prisma: PrismaClient) {}
+  private readonly prisma: PrismaClient;
+  constructor(prisma: PrismaClient) { this.prisma = prisma; }
 
   async get(hash: string): Promise<OwnerMfaChallengeRecord | undefined> {
     const record = await this.prisma.ownerMfaChallenge.findUnique({
