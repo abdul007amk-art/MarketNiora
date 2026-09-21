@@ -1,7 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { generateTotpCode, verifyTotpCode } = require('../backend/src/auth/totp.ts');
-const { generateTotpSecret, provisionOwnerTotp, confirmOwnerTotp, beginOwnerMfa, verifyOwnerMfa, InMemoryOwnerTotpStore, InMemoryOwnerMfaChallengeStore } = require('../backend/src/auth/ownerMfa.ts');
+const { generateTotpCode, generateTotpSecret, verifyTotpCode } = require('../backend/src/auth/totp.ts');
+const { provisionOwnerTotp, confirmOwnerTotp, beginOwnerMfa, verifyOwnerMfa, InMemoryOwnerTotpStore, InMemoryOwnerMfaChallengeStore } = require('../backend/src/auth/ownerMfa.ts');
 const { GoogleOidcVerifier } = require('../backend/src/auth/oidcVerifier.ts');
 
 test('TOTP verification succeeds for current code and rejects an expired code', () => {
