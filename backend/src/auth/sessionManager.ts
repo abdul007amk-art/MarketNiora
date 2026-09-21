@@ -65,9 +65,9 @@ function createSessionRecord(userId: string, role: Role, now: number, ttlMs: num
 }
 
 export interface SessionStore {
-  get(token: string): Session | undefined;
-  set(token: string, session: Session): void;
-  revoke(token: string): void;
+  get(token: string): Session | undefined | Promise<Session | undefined>;
+  set(token: string, session: Session): void | Promise<void>;
+  revoke(token: string): void | Promise<void>;
 }
 
 export class InMemorySessionStore implements SessionStore {
@@ -97,14 +97,14 @@ export class InMemorySessionStore implements SessionStore {
  * (useful for tests / same-process callers), but only session.token should
  * ever be handed to a client.
  */
-export function issueSession(store: SessionStore, userId: string, role: Role, now: number = Date.now(), ttlMs: number = DEFAULT_SESSION_TTL_MS): Session {
+export async function issueSession(store: SessionStore, userId: string, role: Role, now: number = Date.now(), ttlMs: number = DEFAULT_SESSION_TTL_MS): Promise<Session> {
   const session = createSessionRecord(userId, role, now, ttlMs);
-  store.set(session.token, session);
+  await store.set(session.token, session);
   return session;
 }
 
-export function revokeSession(store: SessionStore, token: string): void {
-  store.revoke(token);
+export async function revokeSession(store: SessionStore, token: string): Promise<void> {
+  await store.revoke(token);
 }
 
 export interface SessionValidation {
@@ -122,10 +122,10 @@ export interface SessionValidation {
  * There is no code path here that trusts anything the client claims
  * about who a token belongs to or when it expires.
  */
-export function validateSession(store: SessionStore, token: string | null | undefined, now: number = Date.now()): SessionValidation {
+export async function validateSession(store: SessionStore, token: string | null | undefined, now: number = Date.now()): Promise<SessionValidation> {
   if (!token) return { valid: false, reason: 'no token provided' };
 
-  const session = store.get(token);
+  const session = await store.get(token);
   if (!session) return { valid: false, reason: 'unknown or revoked token' };
 
   if (now >= session.expiresAt) return { valid: false, reason: 'session expired' };
