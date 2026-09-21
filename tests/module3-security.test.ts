@@ -4,9 +4,9 @@ const { hasPermission, getPermissions } = require('../backend/src/security/rbac.
 const { authorize } = require('../backend/src/security/failClosedAuthz.ts');
 const { buildAuditEntry, writeAuditLog } = require('../backend/src/security/auditLogger.ts');
 const { requireSecret, requireSecrets } = require('../backend/src/security/secretsLoader.ts');
-const { securityHeaders } = require('../backend/src/middleware/securityHeaders.ts');
-const { FixedWindowRateLimiter } = require('../backend/src/middleware/rateLimiter.ts');
-const { generateCsrfToken, verifyCsrfToken } = require('../backend/src/middleware/csrfToken.ts');
+const { securityHeaders } = require('../backend/src/security/securityHeaders.ts');
+const { FixedWindowRateLimiter } = require('../backend/src/security/rateLimiter.ts');
+const { generateCsrfToken, verifyCsrfToken } = require('../backend/src/security/csrfToken.ts');
 
 test('RBAC: OWNER has EDIT_LOCKED_FORMULA', () => {
   assert.equal(hasPermission('OWNER', 'EDIT_LOCKED_FORMULA'), true);
