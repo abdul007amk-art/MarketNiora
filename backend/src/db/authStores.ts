@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { Prisma, type PrismaClient } from '@prisma/client';
+import { Prisma, type IdentityRole, type PrismaClient } from '@prisma/client';
 import type { Role } from '../security/rbac.ts';
 import type { StoredUser, UserStore } from '../api/userStore.ts';
 import type { Session, SessionStore } from '../auth/sessionManager.ts';
@@ -8,7 +8,7 @@ import type { SecretCipher } from './nonProdSecretCipher.ts';
 
 type PersistedRole = Exclude<Role, 'AI_AGENT'>;
 
-function toRole(role: Prisma.IdentityRole): PersistedRole {
+function toRole(role: IdentityRole): PersistedRole {
   return role as PersistedRole;
 }
 
@@ -122,7 +122,6 @@ export class PrismaSessionStore implements SessionStore {
     await this.prisma.session.upsert({
       where: { tokenHash: hashToken(token) },
       create: {
-        sessionId: undefined,
         userId: session.userId,
         tokenHash: hashToken(token),
         createdAt: toDate(session.issuedAt),
