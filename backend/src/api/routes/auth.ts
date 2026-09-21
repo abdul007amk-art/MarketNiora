@@ -1,114 +1,56 @@
-/**
- * AUTH ROUTES
- * Status: IMPLEMENTATION — unit tested below via real HTTP requests
- * against a running server.
- *
- * DEMO SIMPLIFICATION (documented, not hidden): real email verification
- * requires sending an email (Module 6's NotificationProvider), which
- * needs real network access this sandbox doesn't have. Signup marks the
- * account verified immediately so the signup -> login flow is genuinely
- * testable end-to-end here. A production deployment would wire the real
- * verification-token-then-email flow from Module 4/6 instead.
- */
-
-import { randomBytes } from 'crypto';
+/** AUTH ROUTES — Google OIDC only. Blueprint v1.1 / ODR-2026-001. */
 import type { ParsedRequest, RouteResult } from '../router.ts';
 import type { AppDependencies } from '../dependencies.ts';
-import { buildNewUserRecord } from '../../auth/signupFlow.ts';
-import { attemptLogin } from '../../auth/loginFlow.ts';
-import { revokeSession, validateSession } from '../../auth/sessionManager.ts';
+import { issueSession, revokeSession, validateSession } from '../../auth/sessionManager.ts';
 import { generateCsrfToken, verifyCsrfToken } from '../../security/csrfToken.ts';
+import { beginOwnerMfa, verifyOwnerMfa } from '../../auth/ownerMfa.ts';
 
-interface SignupBody {
-  email?: string;
-  password?: string;
-}
-
-export async function signupHandler(ctx: ParsedRequest, deps: AppDependencies): Promise<RouteResult> {
-  const body = (ctx.body ?? {}) as SignupBody;
-  if (!body.email || !body.password) {
-    return { status: 400, body: { error: 'email and password are required' } };
-  }
-
-  const result = buildNewUserRecord(body.email, body.password);
-  if (!result.success || !result.record) {
-    return { status: 400, body: { errors: result.errors } };
-  }
-
-  try {
-    const userId = randomBytes(12).toString('hex');
-    deps.userStore.create({
-      userId,
-      email: result.record.email,
-      passwordHash: result.record.password_hash,
-      role: 'USER',
-      emailVerified: true, // see file-level note — demo simplification, no real network to verify via email here
-    });
-    return { status: 201, body: { userId } };
-  } catch {
-    // Generic — never confirm/deny exact reason (e.g. "email already exists") beyond a safe message
-    return { status: 409, body: { error: 'unable to create account with these details' } };
-  }
-}
-
-interface LoginBody {
-  email?: string;
-  password?: string;
-}
-
-export async function loginHandler(ctx: ParsedRequest, deps: AppDependencies): Promise<RouteResult> {
-  const body = (ctx.body ?? {}) as LoginBody;
-  if (!body.email || !body.password) {
-    return { status: 400, body: { error: 'email and password are required' } };
-  }
-
-  const allowed = deps.loginRateLimiter.check(body.email, Date.now());
-  if (!allowed) {
-    return { status: 429, body: { error: 'too many login attempts — try again later' } };
-  }
-
-  const stored = deps.userStore.getByEmail(body.email);
-  const storedUser = stored
-    ? { userId: stored.userId, email: stored.email, passwordHash: stored.passwordHash, role: stored.role, emailVerified: stored.emailVerified }
-    : null;
-
-  const result = attemptLogin(body.email, body.password, storedUser, deps.sessionStore);
-  if (!result.success || !result.session) {
-    return { status: 401, body: { error: result.clientMessage } };
-  }
-
+interface OidcBody { idToken?: string; }
+interface OwnerMfaBody { challenge?: string; code?: string; }
+function ownerEmails(): Set<string> { return new Set((process.env.OWNER_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)); }
+function sessionResponse(session: ReturnType<typeof issueSession>): RouteResult {
   const csrfToken = generateCsrfToken();
-
-  return {
-    status: 200,
-    body: { userId: result.session.userId, role: result.session.role, csrfToken },
-    headers: {
-      'Set-Cookie': [
-        `session_token=${result.session.token}; HttpOnly; Path=/; SameSite=Strict`,
-        `csrf_token=${csrfToken}; Path=/; SameSite=Strict`,
-      ],
-    },
-  };
+  return { status: 200, body: { userId: session.userId, role: session.role, csrfToken }, headers: { 'Set-Cookie': ['session_token=' + session.token + '; HttpOnly; Path=/; SameSite=Strict', 'csrf_token=' + csrfToken + '; Path=/; SameSite=Strict'] } };
 }
-
+export async function oidcLoginHandler(ctx: ParsedRequest, deps: AppDependencies): Promise<RouteResult> {
+  const body = (ctx.body ?? {}) as OidcBody;
+  if (!body.idToken) return { status: 400, body: { error: 'Google ID token is required' } };
+  let identity;
+  try { identity = await deps.oidcVerifier.verify(body.idToken); } catch { return { status: 401, body: { error: 'invalid Google identity token' } }; }
+  if (!identity.emailVerified) return { status: 401, body: { error: 'Google account email is not verified' } };
+  const isOwner = ownerEmails().has(identity.email);
+  let user = deps.userStore.getByEmail(identity.email);
+  if (!user) {
+    const userId = 'oidc-' + identity.subject;
+    deps.userStore.create({ userId, email: identity.email, oidcIssuer: identity.issuer, oidcSubject: identity.subject, role: isOwner ? 'OWNER' : 'USER', emailVerified: true });
+    user = deps.userStore.getById(userId);
+  }
+  if (!user) return { status: 500, body: { error: 'identity provisioning failed' } };
+  if (user.oidcIssuer !== identity.issuer || user.oidcSubject !== identity.subject) return { status: 401, body: { error: 'identity binding mismatch' } };
+  if (isOwner) {
+    if (user.role !== 'OWNER') { deps.userStore.setRole(user.userId, 'OWNER'); user = deps.userStore.getById(user.userId); }
+    if (!user) return { status: 500, body: { error: 'owner identity resolution failed' } };
+    const challenge = beginOwnerMfa(deps.ownerTotpStore, deps.ownerMfaChallengeStore, user.userId);
+    if (!challenge) return { status: 403, body: { error: 'owner TOTP is not configured or confirmed' } };
+    return { status: 202, body: { mfaRequired: true, challenge } };
+  }
+  return sessionResponse(issueSession(deps.sessionStore, user.userId, 'USER'));
+}
+export async function ownerMfaHandler(ctx: ParsedRequest, deps: AppDependencies): Promise<RouteResult> {
+  const body = (ctx.body ?? {}) as OwnerMfaBody;
+  if (!body.challenge || !body.code) return { status: 400, body: { error: 'MFA challenge and TOTP code are required' } };
+  const result = verifyOwnerMfa(deps.ownerTotpStore, deps.ownerMfaChallengeStore, body.challenge, body.code);
+  if (!result.success || !result.userId) return { status: 401, body: { error: 'invalid or expired owner MFA challenge' } };
+  const user = deps.userStore.getById(result.userId);
+  if (!user || user.role !== 'OWNER') return { status: 403, body: { error: 'owner authorization failed' } };
+  return sessionResponse(issueSession(deps.sessionStore, user.userId, 'OWNER'));
+}
 export async function logoutHandler(ctx: ParsedRequest, deps: AppDependencies): Promise<RouteResult> {
-  const sessionToken = ctx.cookies['session_token'];
-  if (!sessionToken) {
-    return { status: 401, body: { error: 'not authenticated' } };
-  }
-
-  const check = validateSession(deps.sessionStore, sessionToken);
-  if (!check.valid) {
-    return { status: 401, body: { error: 'not authenticated' } };
-  }
-
-  const csrfCookie = ctx.cookies['csrf_token'];
-  const csrfHeaderRaw = ctx.headers['x-csrf-token'];
-  const csrfHeader = Array.isArray(csrfHeaderRaw) ? csrfHeaderRaw[0] : csrfHeaderRaw;
-  if (!verifyCsrfToken(csrfCookie, csrfHeader)) {
-    return { status: 403, body: { error: 'CSRF validation failed' } };
-  }
-
-  revokeSession(deps.sessionStore, sessionToken);
-  return { status: 200, body: { success: true } };
+  const token = ctx.cookies['session_token'];
+  if (!token) return { status: 401, body: { error: 'not authenticated' } };
+  let check; try { check = validateSession(deps.sessionStore, token); } catch { return { status: 401, body: { error: 'not authenticated' } }; }
+  if (!check.valid) return { status: 401, body: { error: 'not authenticated' } };
+  const csrfHeaderRaw = ctx.headers['x-csrf-token']; const csrfHeader = Array.isArray(csrfHeaderRaw) ? csrfHeaderRaw[0] : csrfHeaderRaw;
+  if (!verifyCsrfToken(ctx.cookies['csrf_token'], csrfHeader)) return { status: 403, body: { error: 'CSRF validation failed' } };
+  revokeSession(deps.sessionStore, token); return { status: 200, body: { success: true } };
 }
