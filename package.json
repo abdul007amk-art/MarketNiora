@@ -8,6 +8,9 @@
     "typecheck": "tsc --noEmit",
     "build": "tsc"
   },
+  "dependencies": {
+    "@prisma/client": "6.19.3"
+  },
   "devDependencies": {
     "typescript": "^5.6.0",
     "@types/node": "^20.14.0",
