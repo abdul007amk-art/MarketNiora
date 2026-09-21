@@ -145,7 +145,7 @@ model OwnerTotpSecret {
 model OwnerMfaChallenge {
   challengeId      String    @id @default(uuid()) @db.Uuid @map("challenge_id")
   userId           String    @db.Uuid @map("user_id")
-  challengeHash    Bytes     @map("challenge_hash")
+  challengeHash    Bytes     @unique @map("challenge_hash")
   attempts         Int       @default(0)
   createdAt        DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
   expiresAt        DateTime  @db.Timestamptz(6) @map("expires_at")
