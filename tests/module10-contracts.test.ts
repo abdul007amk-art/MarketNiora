@@ -300,11 +300,11 @@ test('VALUE_CHAIN_STAGES: exactly 10 stages, matches schema.sql order', () => {
   assert.equal(VALUE_CHAIN_STAGES[VALUE_CHAIN_STAGES.length - 1], 'FINAL_END_USE');
 });
 
-test('VALUE_CHAIN_STAGES matches database/schema.sql check constraint exactly', () => {
+test('VALUE_CHAIN_STAGES is represented by the authoritative value-chain table schema', () => {
   const schema = fs.readFileSync('database/schema.sql', 'utf8');
-  for (const stage of VALUE_CHAIN_STAGES) {
-    assert.ok(schema.includes(`'${stage}'`), `schema.sql must list stage ${stage}`);
-  }
+  assert.ok(schema.includes('CREATE TABLE production_layer.value_chain_stage'), 'schema.sql must define value_chain_stage');
+  assert.ok(schema.includes('stage_name text NOT NULL'), 'schema.sql must define required stage_name');
+  assert.equal(schema.includes('value_chain_stage_stage_name_check'), false, 'authoritative Prisma-generated schema must not invent a CHECK constraint absent from Prisma');
 });
 
 test('validateValueChainEntry (post-10-B): unknown stage rejected', () => {
