@@ -13,7 +13,7 @@ import { reviewResearchEvent } from '../../research/reviewGate.ts';
 import { verifyCsrfToken } from '../../security/csrfToken.ts';
 
 export async function researchReviewHandler(ctx: ParsedRequest, deps: AppDependencies): Promise<RouteResult> {
-  const identity = resolveIdentity(ctx, deps);
+  const identity = await resolveIdentity(ctx, deps);
   if (!identity) {
     return { status: 401, body: { error: 'not authenticated' } };
   }
