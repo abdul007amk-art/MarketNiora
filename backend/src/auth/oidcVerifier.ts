@@ -47,7 +47,8 @@ export class GoogleOidcVerifier implements OidcVerifier {
     const email = string(payload.email, 'email').trim().toLowerCase();
     if (payload.email_verified !== true) throw new Error('Google email is not verified');
     const jwk = await this.getKey(kid);
-    const publicKey = createPublicKey({ key: jwk as unknown as Record<string, unknown>, format: 'jwk' });
+    const jwkForCrypto: import('crypto').JsonWebKey = { kty: jwk.kty, n: jwk.n, e: jwk.e };
+    const publicKey = createPublicKey({ key: jwkForCrypto, format: 'jwk' });
     if (!cryptoVerify('RSA-SHA256', Buffer.from(parts[0] + '.' + parts[1]), publicKey, signature)) throw new Error('invalid ID token signature');
     return { issuer, subject, email, emailVerified: true };
   }
