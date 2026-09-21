@@ -1,5 +1,5 @@
 import { createHash } from 'crypto';
-import { Prisma, type IdentityRole, type PrismaClient } from '@prisma/client';
+import { Prisma, type PrismaClient } from '@prisma/client';
 import type { Role } from '../security/rbac.ts';
 import type { StoredUser, UserStore } from '../api/userStore.ts';
 import type { Session, SessionStore } from '../auth/sessionManager.ts';
@@ -8,8 +8,13 @@ import type { SecretCipher } from './nonProdSecretCipher.ts';
 
 type PersistedRole = Exclude<Role, 'AI_AGENT'>;
 
-function toRole(role: IdentityRole): PersistedRole {
-  return role as PersistedRole;
+function toRole(role: string): PersistedRole {
+  if (role === 'USER' || role === 'ADMIN' || role === 'OWNER') return role;
+  throw new Error('invalid persisted identity role');
+}
+
+function prismaBytes(value: Buffer): Uint8Array<ArrayBuffer> {
+  return new Uint8Array(value) as unknown as Uint8Array<ArrayBuffer>;
 }
 
 function hashToken(token: string): Buffer {
@@ -103,8 +108,8 @@ export class PrismaSessionStore implements SessionStore {
 
   async get(token: string): Promise<Session | undefined> {
     const session = await this.prisma.session.findUnique({
-      where: { tokenHash: hashToken(token) },
-      include: { user: true },
+      where: { tokenHash: prismaBytes(hashToken(token)) },
+      select: { userId: true, createdAt: true, expiresAt: true, revokedAt: true, user: { select: { role: true } } },
     });
 
     if (!session || session.revokedAt) return undefined;
@@ -120,10 +125,10 @@ export class PrismaSessionStore implements SessionStore {
 
   async set(token: string, session: Session): Promise<void> {
     await this.prisma.session.upsert({
-      where: { tokenHash: hashToken(token) },
+      where: { tokenHash: prismaBytes(hashToken(token)) },
       create: {
         userId: session.userId,
-        tokenHash: hashToken(token),
+        tokenHash: prismaBytes(hashToken(token)),
         createdAt: toDate(session.issuedAt),
         expiresAt: toDate(session.expiresAt),
         revokedAt: null,
@@ -140,7 +145,7 @@ export class PrismaSessionStore implements SessionStore {
 
   async revoke(token: string): Promise<void> {
     await this.prisma.session.updateMany({
-      where: { tokenHash: hashToken(token), revokedAt: null },
+      where: { tokenHash: prismaBytes(hashToken(token)), revokedAt: null },
       data: { revokedAt: new Date() },
     });
   }
@@ -168,14 +173,14 @@ export class PrismaOwnerTotpStore implements OwnerTotpStore {
       where: { userId },
       create: {
         userId,
-        secretCiphertext: encrypted,
+        secretCiphertext: prismaBytes(encrypted),
         kmsKeyRef: this.cipher.keyRef,
         keyVersion: this.cipher.keyVersion,
         confirmedAt: record.confirmedAt === null ? null : toDate(record.confirmedAt),
         rotatedAt: existing ? new Date() : null,
       },
       update: {
-        secretCiphertext: encrypted,
+        secretCiphertext: prismaBytes(encrypted),
         kmsKeyRef: this.cipher.keyRef,
         keyVersion: this.cipher.keyVersion,
         confirmedAt: record.confirmedAt === null ? null : toDate(record.confirmedAt),
@@ -192,7 +197,7 @@ export class PrismaOwnerMfaChallengeStore implements OwnerMfaChallengeStore {
 
   async get(hash: string): Promise<OwnerMfaChallengeRecord | undefined> {
     const record = await this.prisma.ownerMfaChallenge.findUnique({
-      where: { challengeHash: hashChallengeHex(hash) },
+      where: { challengeHash: prismaBytes(hashChallengeHex(hash)) },
     });
     if (!record) return undefined;
 
@@ -207,10 +212,10 @@ export class PrismaOwnerMfaChallengeStore implements OwnerMfaChallengeStore {
   async set(hash: string, record: OwnerMfaChallengeRecord): Promise<void> {
     const challengeHash = hashChallengeHex(hash);
     await this.prisma.ownerMfaChallenge.upsert({
-      where: { challengeHash },
+      where: { challengeHash: prismaBytes(challengeHash) },
       create: {
         userId: record.userId,
-        challengeHash,
+        challengeHash: prismaBytes(challengeHash),
         attempts: record.attempts,
         expiresAt: toDate(record.expiresAt),
         consumedAt: record.consumedAt === null ? null : toDate(record.consumedAt),
