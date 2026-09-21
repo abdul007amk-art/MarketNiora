@@ -1,6 +1,5 @@
 generator client {
   provider       = "prisma-client-js"
-  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
@@ -51,7 +50,7 @@ model AppUser {
 model Session {
   sessionId       String    @id @default(uuid()) @db.Uuid @map("session_id")
   userId          String    @db.Uuid @map("user_id")
-  tokenHash       Bytes     @unique @db.Bytea @map("token_hash")
+  tokenHash       Bytes     @unique @map("token_hash")
   createdAt       DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
   lastSeenAt      DateTime? @db.Timestamptz(6) @map("last_seen_at")
   expiresAt       DateTime  @db.Timestamptz(6) @map("expires_at")
@@ -129,7 +128,7 @@ model FormulaVersion {
 
 model OwnerTotpSecret {
   userId           String    @id @db.Uuid @map("user_id")
-  secretCiphertext Bytes     @db.Bytea @map("secret_ciphertext")
+  secretCiphertext Bytes     @map("secret_ciphertext")
   kmsKeyRef        String    @map("kms_key_ref")
   keyVersion       String?   @map("key_version")
   confirmedAt      DateTime? @db.Timestamptz(6) @map("confirmed_at")
@@ -146,7 +145,7 @@ model OwnerTotpSecret {
 model OwnerMfaChallenge {
   challengeId      String    @id @default(uuid()) @db.Uuid @map("challenge_id")
   userId           String    @db.Uuid @map("user_id")
-  challengeHash    Bytes     @db.Bytea @map("challenge_hash")
+  challengeHash    Bytes     @map("challenge_hash")
   attempts         Int       @default(0)
   createdAt        DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
   expiresAt        DateTime  @db.Timestamptz(6) @map("expires_at")
