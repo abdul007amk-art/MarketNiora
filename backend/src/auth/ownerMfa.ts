@@ -2,9 +2,15 @@ import { createHash, randomBytes } from 'crypto';
 import { generateTotpSecret, verifyTotpCode } from './totp.ts';
 
 export interface OwnerTotpRecord { secret: string; confirmedAt: number | null; }
-export interface OwnerTotpStore { get(userId: string): OwnerTotpRecord | undefined; set(userId: string, record: OwnerTotpRecord): void; }
+export interface OwnerTotpStore {
+  get(userId: string): OwnerTotpRecord | undefined | Promise<OwnerTotpRecord | undefined>;
+  set(userId: string, record: OwnerTotpRecord): void | Promise<void>;
+}
 export interface OwnerMfaChallengeRecord { userId: string; expiresAt: number; attempts: number; consumedAt: number | null; }
-export interface OwnerMfaChallengeStore { get(hash: string): OwnerMfaChallengeRecord | undefined; set(hash: string, record: OwnerMfaChallengeRecord): void; }
+export interface OwnerMfaChallengeStore {
+  get(hash: string): OwnerMfaChallengeRecord | undefined | Promise<OwnerMfaChallengeRecord | undefined>;
+  set(hash: string, record: OwnerMfaChallengeRecord): void | Promise<void>;
+}
 
 export class InMemoryOwnerTotpStore implements OwnerTotpStore {
   private records = new Map<string, OwnerTotpRecord>();
@@ -18,39 +24,40 @@ export class InMemoryOwnerMfaChallengeStore implements OwnerMfaChallengeStore {
 }
 export function hashChallenge(challenge: string): string { return createHash('sha256').update(challenge).digest('hex'); }
 
-export function provisionOwnerTotp(store: OwnerTotpStore, userId: string): { secret: string; otpauthUri: string } {
-  if (store.get(userId)?.confirmedAt) throw new Error('confirmed TOTP already exists');
+export async function provisionOwnerTotp(store: OwnerTotpStore, userId: string): Promise<{ secret: string; otpauthUri: string }> {
+  if ((await store.get(userId))?.confirmedAt) throw new Error('confirmed TOTP already exists');
   const secret = generateTotpSecret();
-  store.set(userId, { secret, confirmedAt: null });
+  await store.set(userId, { secret, confirmedAt: null });
   return { secret, otpauthUri: 'otpauth://totp/MarketNiora:owner?secret=' + secret + '&issuer=MarketNiora&algorithm=SHA1&digits=6&period=30' };
 }
 
-export function confirmOwnerTotp(store: OwnerTotpStore, userId: string, code: string, now = Date.now()): boolean {
-  const record = store.get(userId);
+export async function confirmOwnerTotp(store: OwnerTotpStore, userId: string, code: string, now = Date.now()): Promise<boolean> {
+  const record = await store.get(userId);
   if (!record || record.confirmedAt) return false;
   const result = verifyTotpCode(record.secret, code, now);
   if (!result.valid) return false;
-  store.set(userId, { ...record, confirmedAt: now });
+  await store.set(userId, { ...record, confirmedAt: now });
   return true;
 }
 
-export function beginOwnerMfa(store: OwnerTotpStore, challenges: OwnerMfaChallengeStore, userId: string, now = Date.now()): string | null {
-  if (!store.get(userId)?.confirmedAt) return null;
+export async function beginOwnerMfa(store: OwnerTotpStore, challenges: OwnerMfaChallengeStore, userId: string, now = Date.now()): Promise<string | null> {
+  if (!(await store.get(userId))?.confirmedAt) return null;
   const challenge = randomBytes(32).toString('hex');
-  challenges.set(hashChallenge(challenge), { userId, expiresAt: now + 5 * 60 * 1000, attempts: 0, consumedAt: null });
+  await challenges.set(hashChallenge(challenge), { userId, expiresAt: now + 5 * 60 * 1000, attempts: 0, consumedAt: null });
   return challenge;
 }
 
-export function verifyOwnerMfa(store: OwnerTotpStore, challenges: OwnerMfaChallengeStore, challenge: string, code: string, now = Date.now()): { success: boolean; userId?: string } {
-  const record = challenges.get(hashChallenge(challenge));
+export async function verifyOwnerMfa(store: OwnerTotpStore, challenges: OwnerMfaChallengeStore, challenge: string, code: string, now = Date.now()): Promise<{ success: boolean; userId?: string }> {
+  const hash = hashChallenge(challenge);
+  const record = await challenges.get(hash);
   if (!record || record.consumedAt || now >= record.expiresAt || record.attempts >= 5) return { success: false };
   record.attempts += 1;
-  const secret = store.get(record.userId);
+  const secret = await store.get(record.userId);
   if (!secret?.confirmedAt || !verifyTotpCode(secret.secret, code, now).valid) {
-    challenges.set(hashChallenge(challenge), record);
+    await challenges.set(hash, record);
     return { success: false };
   }
   record.consumedAt = now;
-  challenges.set(hashChallenge(challenge), record);
+  await challenges.set(hash, record);
   return { success: true, userId: record.userId };
 }
