@@ -41,13 +41,13 @@ async function signupAndLogin(baseUrl, email) {
 }
 
 /** Seeds a privileged identity directly for authorization tests. */
-function seedPrivilegedUser(deps, email, role) {
+async function seedPrivilegedUser(deps, email, role) {
   const userId = `${role.toLowerCase()}-${Math.random().toString(16).slice(2)}`;
-  deps.userStore.create({ userId, email, oidcIssuer: 'https://accounts.google.com', oidcSubject: email, role, emailVerified: true });
+  await deps.userStore.create({ userId, email, oidcIssuer: 'https://accounts.google.com', oidcSubject: email, role, emailVerified: true });
   if (role === 'OWNER') process.env.OWNER_EMAILS = Array.from(new Set(((process.env.OWNER_EMAILS ?? '').split(',').filter(Boolean)).concat(email))).join(',');
   if (role === 'OWNER') {
     const { generateTotpSecret } = require('../backend/src/auth/totp.ts');
-    const secret = generateTotpSecret(); deps.ownerTotpStore.set(userId, { secret, confirmedAt: Date.now() }); ownerSecrets.set(email, secret);
+    const secret = generateTotpSecret(); await deps.ownerTotpStore.set(userId, { secret, confirmedAt: Date.now() }); ownerSecrets.set(email, secret);
   }
   return userId;
 }
@@ -183,7 +183,7 @@ test('portfolio: USER viewing own holdings -> real 200', async () => {
 test('portfolio: OWNER cross-user WITHOUT ?reason= -> 403 (no automatic access, even over real HTTP)', async () => {
   const { server, baseUrl, deps } = await startServer();
   try {
-    seedPrivilegedUser(deps, 'owner1@example.com', 'OWNER');
+    await seedPrivilegedUser(deps, 'owner1@example.com', 'OWNER');
     const owner = await signupAndLogin(baseUrl, 'owner1@example.com');
     const target = await signupAndLogin(baseUrl, 'target1@example.com');
 
@@ -197,7 +197,7 @@ test('portfolio: OWNER cross-user WITHOUT ?reason= -> 403 (no automatic access, 
 test('portfolio: OWNER cross-user WITH ?reason= -> real 200', async () => {
   const { server, baseUrl, deps } = await startServer();
   try {
-    seedPrivilegedUser(deps, 'owner2@example.com', 'OWNER');
+    await seedPrivilegedUser(deps, 'owner2@example.com', 'OWNER');
     const owner = await signupAndLogin(baseUrl, 'owner2@example.com');
     const target = await signupAndLogin(baseUrl, 'target2@example.com');
 
@@ -229,7 +229,7 @@ test('research review: USER role (not Owner/Admin) -> real 403', async () => {
 test('research review: OWNER role -> real 200, event approved', async () => {
   const { server, baseUrl, deps } = await startServer();
   try {
-    seedPrivilegedUser(deps, 'ownerreview@example.com', 'OWNER');
+    await seedPrivilegedUser(deps, 'ownerreview@example.com', 'OWNER');
     const owner = await signupAndLogin(baseUrl, 'ownerreview@example.com');
     const fakeEvent = { eventId: 'x', sourceId: 's', stockId: null, headline: 'h', summary: 's', provenance: { source: 's', sourceTimestamp: 1, verificationStatus: 'UNVERIFIED', dataNature: 'RAW', formulaVersion: null }, reviewStatus: 'PENDING' };
     const res = await fetch(`${baseUrl}/research/review`, {
@@ -248,7 +248,7 @@ test('research review: OWNER role -> real 200, event approved', async () => {
 test('research review: missing CSRF header -> real 403 even for OWNER', async () => {
   const { server, baseUrl, deps } = await startServer();
   try {
-    seedPrivilegedUser(deps, 'ownernocsrf@example.com', 'OWNER');
+    await seedPrivilegedUser(deps, 'ownernocsrf@example.com', 'OWNER');
     const owner = await signupAndLogin(baseUrl, 'ownernocsrf@example.com');
     const res = await fetch(`${baseUrl}/research/review`, {
       method: 'POST',
