@@ -9,7 +9,15 @@ const DEFAULT_ISSUERS = new Set(['https://accounts.google.com', 'accounts.google
 const JWKS_CACHE_TTL_MS = 5 * 60 * 1000;
 
 function decode(value: string): Buffer { return Buffer.from(value.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(value.length / 4) * 4, '='), 'base64'); }
-function object(value: string): Record<string, unknown> { const parsed = JSON.parse(decode(value).toString('utf8')) as unknown; if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('invalid JWT object'); return parsed as Record<string, unknown>; }
+function object(value: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(decode(value).toString('utf8')) as unknown;
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) throw new Error('invalid JWT object');
+    return parsed as Record<string, unknown>;
+  } catch {
+    throw new Error('invalid JWT object');
+  }
+}
 function string(value: unknown, field: string): string { if (typeof value !== 'string' || !value) throw new Error('invalid ' + field); return value; }
 function number(value: unknown, field: string): number { if (typeof value !== 'number' || !Number.isFinite(value)) throw new Error('invalid ' + field); return value; }
 
