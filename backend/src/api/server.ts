@@ -15,7 +15,7 @@
 
 import { createServer } from 'http';
 import type { IncomingMessage, ServerResponse, Server } from 'http';
-import { securityHeaders } from '../middleware/securityHeaders.ts';
+import { securityHeaders } from '../security/securityHeaders.ts';
 import { matchRoute } from './router.ts';
 import type { Route } from './router.ts';
 import { parseCookies } from './cookies.ts';
