@@ -17,7 +17,7 @@ import type { AppDependencies } from '../dependencies.ts';
 import { buildNewUserRecord } from '../../auth/signupFlow.ts';
 import { attemptLogin } from '../../auth/loginFlow.ts';
 import { revokeSession, validateSession } from '../../auth/sessionManager.ts';
-import { generateCsrfToken, verifyCsrfToken } from '../../middleware/csrfToken.ts';
+import { generateCsrfToken, verifyCsrfToken } from '../../security/csrfToken.ts';
 
 interface SignupBody {
   email?: string;
