@@ -11,10 +11,10 @@ export interface StoredUser {
 }
 
 export interface UserStore {
-  create(user: StoredUser): void;
-  getByEmail(email: string): StoredUser | undefined;
-  getById(userId: string): StoredUser | undefined;
-  setRole(userId: string, role: Exclude<Role, 'AI_AGENT'>): void;
+  create(user: StoredUser): void | Promise<void>;
+  getByEmail(email: string): StoredUser | undefined | Promise<StoredUser | undefined>;
+  getById(userId: string): StoredUser | undefined | Promise<StoredUser | undefined>;
+  setRole(userId: string, role: Exclude<Role, 'AI_AGENT'>): void | Promise<void>;
 }
 
 export class InMemoryUserStore implements UserStore {
