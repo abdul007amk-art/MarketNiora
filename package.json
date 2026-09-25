@@ -6,7 +6,9 @@
   "scripts": {
     "test": "node --experimental-strip-types --test tests/*.test.ts",
     "typecheck": "tsc --noEmit",
-    "build": "tsc"
+    "build": "tsc",
+    "start": "node --experimental-strip-types backend/src/main.ts",
+    "dev": "node --experimental-strip-types backend/src/main.ts"
   },
   "dependencies": {
     "@prisma/client": "6.19.3"
