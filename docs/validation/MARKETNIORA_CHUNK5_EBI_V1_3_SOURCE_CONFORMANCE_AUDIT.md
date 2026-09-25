@@ -173,3 +173,20 @@ This is **implementation progress, not lock evidence**. The source package's rem
 **CHUNK 5: NOT READY / NOT LOCKED**
 
 The correct next implementation sequence is to add the remaining v1.3-defined EBI surfaces only where the authoritative package supplies sufficient normative rules, then run the complete executable test suite. Where the package does not define enough detail for an implementation without invention, the item must remain explicitly open rather than being filled by assumption.
+
+
+## Further implementation progress — explicit v1.3 CFQ/PGQ/evidence layers
+
+Additional executable surfaces have now been added where the v1.3 package supplies explicit deterministic behavior:
+
+- CFQ: CFO/PAT classification and FCF = CFO − Capex.
+- PGQ: margin primitive, denominator handling, negative-base classification, and negative-to-positive TURNAROUND EVENT.
+- Evidence-only contracts for DDE, BNI, CPI, GVI, ECI and BERI preserve the source package's categorical/evidence vocabulary without inventing scores or automatic conclusions.
+
+The implementation intentionally does **not** invent unspecified scoring formulas, confidence mappings, severity mappings, or lifecycle transition rules.
+
+### Current repository test state
+
+A GitHub Actions **MarketNiora Validation** run has been created for the latest implementation commit. At the time of this audit update it is **QUEUED**, so no PASS/FAIL conclusion is recorded yet.
+
+**No lock decision is changed:** CHUNK 5 remains **NOT READY / NOT LOCKED** until the complete implementation surface, full regression, independence checks, and independent fourth audit evidence are complete.
