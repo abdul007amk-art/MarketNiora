@@ -21,7 +21,7 @@ Therefore CI #129 being green is necessary evidence, but it does not by itself s
 | Checkpoint | Current state | Disposition | Required next action |
 |---|---|---|---|
 | 6 Missing data | PASS/PARTIAL | OPEN | Define/implement production-wide fail-closed coverage across all EBI outputs, or formally scope the missing layers. |
-| 7 Truth-state compatibility | PARTIAL | OPEN | Define explicit truth-state contract/transition behavior compatible with the locked foundation. |
+| 7 Truth-state compatibility | IMPLEMENTED — PENDING CI | OPEN | OEP now enforces the locked CHUNK 0 truth-state vocabulary and resolves multi-input derived truth state to the weakest required input; fresh CI/re-audit evidence still required. |
 | 11 No weight redistribution | PASS/PARTIAL | OPEN | Add executable guard/tests at downstream integration boundaries proving no automatic redistribution. |
 | 12 ENE/RGQ/PGQ separation | PARTIAL | OPEN | Establish production orchestration boundary and cross-engine independence tests. |
 | 13 CFQ/BSQ/CEI separation | PARTIAL | OPEN | Establish production orchestration boundary and cross-engine independence tests. |
@@ -54,4 +54,4 @@ No locked baseline is changed by this register.
 
 **CHUNK 5 remains NOT LOCKED.**
 
-The next engineering process is to resolve the applicable open checkpoint gaps, beginning with the smallest deterministic governance contracts and their tests, then re-run the complete validation suite and update the 32-checkpoint audit.
+The next engineering process is to resolve the applicable open checkpoint gaps, beginning with the smallest deterministic governance contracts and their tests, then re-run the complete validation suite and update the 32-checkpoint audit. Checkpoint 7 is the first implementation pass; it is not yet marked PASS until fresh CI and re-audit evidence are recorded.
