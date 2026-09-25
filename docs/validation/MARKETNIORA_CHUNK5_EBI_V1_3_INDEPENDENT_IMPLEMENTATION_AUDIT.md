@@ -10,19 +10,20 @@ This is an implementation/conformance audit of the current GitHub branch. It is 
 
 ### Current executable evidence
 
-- Previous validation run #124: PASS, 343/343 tests, TypeScript PASS, Prisma validate PASS, protected-engine verification PASS.
-- After this audit identified a provenance-boundary gap, the EBI input boundary was patched to invoke the canonical `validateProvenance()` contract.
-- A regression test was added for DERIVED input requiring a non-empty formula version.
-- A fresh CI result for the new commits is **not yet available** at audit time.
+- CI validation run #129: **PASS**, **344/344 tests**, TypeScript PASS, Prisma validate PASS, protected-engine verification PASS, Git state summary PASS.
+- Before run #129, CI #128 exposed one failing C5-028 restatement-chain fixture because the test used a string `sourceTimestamp` while the canonical provenance contract requires a finite numeric timestamp.
+- The fixture was corrected on commit `30be390c4f1dc2195d5baaff8abe100bd0f73be0`.
+- CI #129 for that commit is the fresh post-patch executable validation evidence.
+- The earlier provenance-boundary finding EBI-IMPL-001 was patched by enforcing the canonical `validateProvenance()` contract at the EBI input boundary, with a regression test.
 
 ## 32-checkpoint assessment
 
 | # | Checkpoint | Current assessment | Evidence / finding |
 |---|---|---|---|
 | 1 | Mathematical correctness | PASS/PARTIAL | CEI/CDQ/CFQ/PGQ/ENE/RGQ/BSQ primitives are executable; full independent audit remains distinct from unit tests. |
-| 2 | ROCE/ROIC determinism | PASS/PARTIAL | CEI formulas and deterministic tests exist; fresh post-patch CI is pending. |
-| 3 | NOPAT / Invested Capital | PASS | v1.3 financing-side IC and ETR fail-closed logic are implemented. |
-| 4 | Zero / negative denominators | PASS | Applicable CEI/CFQ/PGQ denominator states are explicit. |
+| 2 | ROCE/ROIC determinism | PASS | CEI formulas and regression tests pass in CI #129. |
+| 3 | NOPAT / Invested Capital | PASS | v1.3 financing-side IC and ETR fail-closed logic are implemented and tested. |
+| 4 | Zero / negative denominators | PASS | Applicable CEI/CFQ/PGQ denominator states are explicit and tested. |
 | 5 | Period consistency | PASS | Mixed period type and boundary mismatches are rejected. |
 | 6 | Missing data | PASS/PARTIAL | Implemented primitives fail closed; complete production-wide engine coverage is not present in this branch. |
 | 7 | Truth-state compatibility | PARTIAL | OEP contract exists, but truth-state values are not governed by an explicit enum/transition engine. |
@@ -45,12 +46,12 @@ This is an implementation/conformance audit of the current GitHub branch. It is 
 | 24 | Stock Score independence | PARTIAL | Dependency is typed but no live integration layer is implemented. |
 | 25 | Version-pinned integration | PASS | IIC requires non-empty methodologyVersion and DATA_ONLY authority. |
 | 26 | Circular dependency prevention | PASS/PARTIAL | Repeated dependency in a supplied path is rejected; broader graph-level validation is not implemented. |
-| 27 | Provenance / source conflicts | PASS/PARTIAL | Canonical provenance validator is now enforced at EBI input boundary; source conflict resolution remains outside this module. |
-| 28 | Restatement handling | PARTIAL | Structural pairing is enforced; no full restatement lifecycle/version-selection engine is present. |
+| 27 | Provenance / source conflicts | PASS/PARTIAL | Canonical provenance validator is enforced at EBI input boundary; source conflict resolution remains outside this module. |
+| 28 | Restatement handling | PARTIAL | Structural pairing is enforced and regression-tested; no full restatement lifecycle/version-selection engine is present. |
 | 29 | No-fabrication | PASS/PARTIAL | Nulls are preserved and evidence-only contracts avoid invented scores; full evidence lifecycle remains outside this module. |
-| 30 | Deterministic test adequacy | PENDING FRESH CI | Prior CI #124 passed 343/343 before the latest provenance patch; new post-patch CI must confirm the current head. |
+| 30 | Deterministic test adequacy | PASS | CI #129 passed 344/344 on the current head after the latest patches. |
 | 31 | Output contract | PASS/PARTIAL | OEP fields and basic validation exist; no full presentation/orchestration engine is implemented. |
-| 32 | Governance / lock criteria | OPEN | No lock certificate; current implementation has partial/contract-only surfaces and fresh post-patch CI is pending. |
+| 32 | Governance / lock criteria | OPEN | No lock certificate; several checkpoints remain partial or contract-only and require formal governance disposition. |
 
 ## Audit finding
 
@@ -62,24 +63,26 @@ This is an implementation/conformance audit of the current GitHub branch. It is 
 
 **Risk:** A structurally malformed provenance object could pass EBI input validation even though the repository's canonical provenance contract requires valid verification/data-nature values and requires a non-empty formula version for DERIVED data.
 
-**Disposition:** PATCHED on this branch.
+**Disposition:** PATCHED.
 
 **Patch:** EBI input validation now invokes `validateProvenance(input.provenance)`.
 
 **Regression:** Added a test requiring DERIVED input to provide a non-empty formula version.
 
-**Post-patch verification:** Fresh CI pending.
+**Post-patch verification:** CI #129 PASS, 344/344.
+
+### CI-128 fixture correction
+
+CI #128 exposed a test-fixture defect in C5-028: the valid restatement-chain fixture supplied `sourceTimestamp` as an ISO string, while the canonical provenance contract requires a finite numeric timestamp. The production contract was not weakened; the fixture was corrected to use `Date.parse(...)`. CI #129 subsequently passed all 344 tests.
 
 ## Governance conclusion
 
-The current implementation is **not clean-lock-ready** from this implementation audit alone.
+The current executable implementation evidence is green at CI level.
 
-Reasons:
-1. One implementation finding was identified and patched.
-2. Fresh CI after that patch is pending.
-3. Several checkpoints are explicitly partial or contract-only because this branch contains contracts/primitives rather than complete production orchestration for every EBI layer.
-4. The project-owner-supplied Gemini result remains a methodology-audit result and does not substitute for implementation evidence.
+However, **CI GREEN does not by itself create a Chunk 5 lock certificate**. The implementation audit still records several checkpoints as PARTIAL or CONTRACT ONLY because this branch contains deterministic contracts/primitives rather than complete production orchestration for every EBI layer.
 
-**Current status: PATCHED — RE-AUDIT / FRESH CI REQUIRED; NOT LOCKED.**
+The project-owner-supplied Gemini result remains a methodology-audit result and does not substitute for implementation evidence.
 
-A lock certificate must remain withheld until the current head passes executable validation and the remaining implementation/governance gaps are explicitly accepted or completed under the formal Chunk 5 lock process.
+**Current status: CI VERIFIED — GOVERNANCE LOCK STILL PENDING; NOT LOCKED.**
+
+A lock certificate must remain withheld until the remaining implementation/governance gaps are explicitly accepted or completed under the formal Chunk 5 lock process, followed by the required user confirmation.
