@@ -39,9 +39,10 @@ The kernel provides:
 - explicit ordered stage events
 - stale-evidence blocking
 - transactional rollback on refresh failure
-- source_event_id/versioned evidence deduplication
+- immutable source_event_id deduplication (replay and conflicting replay protection)
 - bitemporal knowledge-time reconstruction
 - provenance retention
+- derived formulaVersion-to-run formulaVersion consistency
 - deterministic evidence ordering
 - fixed-point decimal aggregation
 - OCE -> reviewable catalyst-candidate boundary without direct score/catalyst mutation
@@ -86,8 +87,8 @@ The exact D12-001 through D12-009 domain specifications are not present in the r
 ## Verification status
 
 The new regression test file was executed against the exact implementation in an isolated Node 22 type-stripping environment:
-- 10 tests
-- 10 passed
+- 12 tests
+- 12 passed
 - 0 failed
 
 The repository's GitHub workflow wrapper currently exposes pull-request-triggered workflow runs only; no PR-triggered run is available for the direct main-branch commits. Therefore the repository CI result is still unverified.
