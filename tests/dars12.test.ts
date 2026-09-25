@@ -1,5 +1,7 @@
-const test=require('node:test'); const assert=require('node:assert/strict'); const fs=require('fs');
-const {Dars12Engine,Dars12Store,addDecimalStrings,toCatalystCandidate}=require('../backend/src/dars12/dars12Engine.ts');
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import { Dars12Engine, Dars12Store, addDecimalStrings, toCatalystCandidate } from '../backend/src/dars12/dars12Engine.ts';
 
 const base=(o={})=>({sourceEventId:'evt-1',source:'SOURCE_A',symbol:'AAA',value:'1.25',sourceTimestamp:100,effectiveTime:100,knowledgeTime:100,verificationStatus:'VERIFIED',dataNature:'RAW',formulaVersion:null,...o});
 const sum=e=>addDecimalStrings(e.map(x=>x.value));
@@ -18,7 +20,7 @@ test('DARS12-003 refresh failure is isolated and prior canonical state is preser
  const s=new Dars12Store(), e=new Dars12Engine(s);
  e.run({runKnowledgeTime:200,providerHealthy:true,rawEvents:[base()],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
  const before=s.allEvidence();
- const r=e.run({runKnowledgeTime:300,providerHealthy:true,rawEvents:[base({value:'9.99',knowledgeTime:300})],evidenceRefreshSucceeded:false,formulaVersion:'F1',formula:sum});
+ const r=e.run({runKnowledgeTime:300,providerHealthy:true,rawEvents:[base({sourceEventId:'evt-2',value:'9.99',knowledgeTime:300})],evidenceRefreshSucceeded:false,formulaVersion:'F1',formula:sum});
  assert.equal(r.formulaExecuted,false); assert.ok(idx(r,'EVIDENCE_REFRESH','FAILED')>=0); assert.deepEqual(s.allEvidence(),before);
 });
 test('DARS12-004 source_event_id replay is idempotent',()=>{
@@ -26,15 +28,15 @@ test('DARS12-004 source_event_id replay is idempotent',()=>{
  const a=e.run(input), b=e.run({...input,runKnowledgeTime:300}); assert.equal(a.formulaOutput,b.formulaOutput); assert.equal(s.allEvidence().length,1); assert.deepEqual(b.duplicateSourceEventIds,['evt-1']);
 });
 test('DARS12-005 DARS-1.2 does not import protected engines or receive imports from them',()=>{
- const src=fs.readFileSync(require.resolve('../backend/src/dars12/dars12Engine.ts'),'utf8');
- const rot=fs.readFileSync(require.resolve('../backend/src/protected/rotationEngine.ts'),'utf8');
- const score=fs.readFileSync(require.resolve('../backend/src/protected/stockScoreEngine.ts'),'utf8');
+ const src=fs.readFileSync(new URL('../backend/src/dars12/dars12Engine.ts', import.meta.url),'utf8');
+ const rot=fs.readFileSync(new URL('../backend/src/protected/rotationEngine.ts', import.meta.url),'utf8');
+ const score=fs.readFileSync(new URL('../backend/src/protected/stockScoreEngine.ts', import.meta.url),'utf8');
  assert.equal(/^\\s*import\\b.*protected\\//m.test(src),false); assert.equal(/^\\s*import\\b.*dars12/m.test(rot),false); assert.equal(/^\\s*import\\b.*dars12/m.test(score),false);
 });
 test('DARS12-006 point-in-time reconstruction uses knowledge_time cutoff',()=>{
  const s=new Dars12Store(), e=new Dars12Engine(s);
  e.run({runKnowledgeTime:200,providerHealthy:true,rawEvents:[base({value:'1.25',knowledgeTime:100})],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
- e.run({runKnowledgeTime:300,providerHealthy:true,rawEvents:[base({value:'2.50',knowledgeTime:300})],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
+ e.run({runKnowledgeTime:300,providerHealthy:true,rawEvents:[base({sourceEventId:'evt-2',value:'2.50',knowledgeTime:300})],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
  assert.equal(s.reconstruct(250)[0].value,'1.25'); assert.equal(s.reconstruct(350)[0].value,'2.50'); assert.equal(s.reconstruct(250)[0].effectiveTime,100);
 });
 test('DARS12-007 provenance fields and source_event_id are retained',()=>{
@@ -71,6 +73,6 @@ test('DARS12 adversarial: conflicting duplicate source_event_id inside one batch
  assert.deepEqual(r.duplicateSourceEventIds,['evt-1']);
  assert.equal(r.formulaExecuted,false);
  assert.equal(r.truthState,'BLOCKED');
- assert.match(r.errors[0],'conflicting source_event_id replay rejected');
+ assert.match(r.errors[0],/conflicting source_event_id replay rejected/);
  assert.equal(s.allEvidence().length,0);
 });
