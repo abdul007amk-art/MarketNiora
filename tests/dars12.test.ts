@@ -64,3 +64,13 @@ test('DARS12 adversarial: derived evidence cannot claim a different formula vers
  const r=new Dars12Engine().run({runKnowledgeTime:200,providerHealthy:true,rawEvents:[base({dataNature:'DERIVED',formulaVersion:'F0'})],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
  assert.equal(r.formulaExecuted,false); assert.equal(r.truthState,'BLOCKED');
 });
+
+test('DARS12 adversarial: conflicting duplicate source_event_id inside one batch is rejected atomically',()=>{
+ const s=new Dars12Store(), e=new Dars12Engine(s);
+ const r=e.run({runKnowledgeTime:200,providerHealthy:true,rawEvents:[base({value:'1.25'}),base({value:'9.99'})],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
+ assert.deepEqual(r.duplicateSourceEventIds,['evt-1']);
+ assert.equal(r.formulaExecuted,false);
+ assert.equal(r.truthState,'BLOCKED');
+ assert.match(r.errors[0],'conflicting source_event_id replay rejected');
+ assert.equal(s.allEvidence().length,0);
+});
