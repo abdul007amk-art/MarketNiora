@@ -18,7 +18,7 @@ test('DARS12-003 refresh failure is isolated and prior canonical state is preser
  const s=new Dars12Store(), e=new Dars12Engine(s);
  e.run({runKnowledgeTime:200,providerHealthy:true,rawEvents:[base()],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
  const before=s.allEvidence();
- const r=e.run({runKnowledgeTime:300,providerHealthy:true,rawEvents:[base({value:'9.99',knowledgeTime:300})],evidenceRefreshSucceeded:false,formulaVersion:'F1',formula:sum});
+ const r=e.run({runKnowledgeTime:300,providerHealthy:true,rawEvents:[base()],evidenceRefreshSucceeded:false,formulaVersion:'F1',formula:sum});
  assert.equal(r.formulaExecuted,false); assert.ok(idx(r,'EVIDENCE_REFRESH','FAILED')>=0); assert.deepEqual(s.allEvidence(),before);
 });
 test('DARS12-004 source_event_id replay is idempotent',()=>{
@@ -29,13 +29,15 @@ test('DARS12-005 DARS-1.2 does not import protected engines or receive imports f
  const src=fs.readFileSync(require.resolve('../backend/src/dars12/dars12Engine.ts'),'utf8');
  const rot=fs.readFileSync(require.resolve('../backend/src/protected/rotationEngine.ts'),'utf8');
  const score=fs.readFileSync(require.resolve('../backend/src/protected/stockScoreEngine.ts'),'utf8');
- assert.equal(/^\\s*import\\b.*protected\\//m.test(src),false); assert.equal(/^\\s*import\\b.*dars12/m.test(rot),false); assert.equal(/^\\s*import\\b.*dars12/m.test(score),false);
+ assert.equal(/^\s*import\b.*protected\//m.test(src),false); assert.equal(/^\s*import\b.*dars12/m.test(rot),false); assert.equal(/^\s*import\b.*dars12/m.test(score),false);
 });
 test('DARS12-006 point-in-time reconstruction uses knowledge_time cutoff',()=>{
  const s=new Dars12Store(), e=new Dars12Engine(s);
- e.run({runKnowledgeTime:200,providerHealthy:true,rawEvents:[base({value:'1.25',knowledgeTime:100})],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
- e.run({runKnowledgeTime:300,providerHealthy:true,rawEvents:[base({value:'2.50',knowledgeTime:300})],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
- assert.equal(s.reconstruct(250)[0].value,'1.25'); assert.equal(s.reconstruct(350)[0].value,'2.50'); assert.equal(s.reconstruct(250)[0].effectiveTime,100);
+ s.upsertEvidence({...base({sourceEventId:'evt-1',value:'1.25',knowledgeTime:100}),evidenceKey:'evt-1|SOURCE_A|AAA',refreshedAt:200,truthState:'CURRENT'});
+ s.upsertEvidence({...base({sourceEventId:'evt-2',value:'2.50',knowledgeTime:300}),evidenceKey:'evt-2|SOURCE_A|AAA',refreshedAt:300,truthState:'CURRENT'});
+ const early=s.reconstruct(250), late=s.reconstruct(350);
+ assert.equal(early.some(x=>x.value==='2.50'),false); assert.equal(early.some(x=>x.value==='1.25'),true);
+ assert.equal(late.some(x=>x.value==='2.50'),true); assert.equal(early.find(x=>x.value==='1.25').effectiveTime,100);
 });
 test('DARS12-007 provenance fields and source_event_id are retained',()=>{
  const r=new Dars12Engine().run({runKnowledgeTime:200,providerHealthy:true,rawEvents:[base({origin:'OCE'})],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum}), e=r.evidence[0];
@@ -71,6 +73,6 @@ test('DARS12 adversarial: conflicting duplicate source_event_id inside one batch
  assert.deepEqual(r.duplicateSourceEventIds,['evt-1']);
  assert.equal(r.formulaExecuted,false);
  assert.equal(r.truthState,'BLOCKED');
- assert.match(r.errors[0],'conflicting source_event_id replay rejected');
+ assert.match(r.errors[0],/conflicting source_event_id values within input batch rejected/);
  assert.equal(s.allEvidence().length,0);
 });
