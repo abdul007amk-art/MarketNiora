@@ -137,3 +137,39 @@ Likewise, the existing locked Rotation and Stock Score engines remain outside th
 This is a stronger evidence state than the earlier source-only gate: the authoritative v1.3 package is present, but the repository currently lacks the executable CHUNK 5 EBI engine/test surface required to perform the claimed 32-checkpoint regression.
 
 **Next technical step:** establish the actual CHUNK 5 implementation surface from the v1.3 authority before attempting a lock audit. No Gemini execution, test PASS, or lock certificate is claimed by this document.
+
+
+## Implementation progress — CEI/CDQ core added
+
+The branch now contains a deliberately narrow executable implementation of the unambiguous v1.3 CEI and CDQ rules:
+
+- `backend/src/ebi/cei.ts`
+  - ROE
+  - ROCE
+  - NOPAT
+  - financing-side Invested Capital
+  - Total Debt including short-term and long-term interest-bearing debt
+  - Average Invested Capital
+  - ROIC
+  - missing-input fail-closed behavior
+  - zero/negative capital handling
+  - ETR outside [0,1] handling without clamping
+- `backend/src/ebi/cdq.ts`
+  - `EBI_COVERAGE_MIN = 40.0%`
+  - exact v1.3 mandatory-engine registry
+  - coverage calculation
+  - CoverageGate TRUE/FALSE behavior
+  - missing requirement denominator → REVIEW/CONFLICT
+- `tests/chunk5-cei-cdq.test.ts`
+  - CEI-ROIC-006 through CEI-ROIC-012
+  - ETR boundaries
+  - ROCE definition
+  - CDQ 40% gate and registry
+
+This is **implementation progress, not lock evidence**. The source package's remaining EBI engines and integration/output contracts are not yet implemented, and repository test execution has not been claimed or verified.
+
+### Updated decision
+
+**CHUNK 5: NOT READY / NOT LOCKED**
+
+The correct next implementation sequence is to add the remaining v1.3-defined EBI surfaces only where the authoritative package supplies sufficient normative rules, then run the complete executable test suite. Where the package does not define enough detail for an implementation without invention, the item must remain explicitly open rather than being filled by assumption.
