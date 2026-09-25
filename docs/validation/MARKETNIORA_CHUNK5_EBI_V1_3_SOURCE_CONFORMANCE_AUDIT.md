@@ -190,3 +190,14 @@ The implementation intentionally does **not** invent unspecified scoring formula
 A GitHub Actions **MarketNiora Validation** run has been created for the latest implementation commit. At the time of this audit update it is **QUEUED**, so no PASS/FAIL conclusion is recorded yet.
 
 **No lock decision is changed:** CHUNK 5 remains **NOT READY / NOT LOCKED** until the complete implementation surface, full regression, independence checks, and independent fourth audit evidence are complete.
+
+
+## Further implementation progress — ENE/RGQ/BSQ
+
+Added explicit v1.3-supported primitives:
+
+- ENE: earnings-growth classification and acceleration as current growth minus prior growth in percentage points.
+- RGQ: revenue-growth primitive plus evidence fields that keep organic/inorganic, volume/realisation support, concentration, recurring quality and persistence separate.
+- BSQ: D/E and net-debt primitives with fail-closed missing/zero handling.
+
+No final EBI score, automatic qualitative verdict, or fabricated evidence was introduced.
