@@ -211,3 +211,31 @@ Added:
 - OEP-1.0 Stock 360 output/evidence contract with truth state, coverage, source and last-updated fields.
 
 These are contract-level controls only; they do not create scores, verdicts, or downstream decision authority.
+
+
+## Gemini fourth re-audit reconciliation — user-supplied result
+
+The earlier source-conformance section above recorded the fourth Gemini result as absent. That statement is superseded by the Gemini fourth-audit result supplied by the project owner during the CHUNK 5 audit workflow.
+
+Recorded Gemini fourth re-audit result:
+- Scope: complete CHUNK 5 EBI v1.3 Parts 1–18.
+- Regression scope: all 32 mandatory checkpoints.
+- CRITICAL: 0
+- HIGH: 0
+- MEDIUM: 0
+- LOW: 0
+- Final verdict: LOCK READY.
+
+The Gemini result specifically confirms the v1.3 corrected financing-side Invested Capital definition and the associated CEI/CDQ regression requirements.
+
+### Governance distinction
+
+The Gemini result is an **independent methodology/specification audit result** supplied by the project owner. It does not by itself prove that the current GitHub implementation executes the same rules successfully.
+
+Therefore:
+- The Gemini fourth-audit result is recorded as **LOCK READY** for the v1.3 specification/audit package.
+- The current repository implementation remains subject to separate executable CI/test verification.
+- No repository lock certificate is created from the Gemini result alone.
+- Any repository implementation defect must be handled as an implementation/regression issue without rewriting the Gemini audit result.
+
+This reconciliation corrects the earlier wording that incorrectly stated the fourth Gemini result was absent.
