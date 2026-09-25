@@ -127,7 +127,7 @@ export class Dars12Engine {
 
     mark('DATA_DIFF','STARTED');
     const ids=input.rawEvents.map(e=>e.sourceEventId);
-    const duplicates=[...new Set(ids.filter((id,i)=>ids.indexOf(id)!==i))].sort();
+    const duplicates=[...new Set(ids.filter((id,i)=>ids.indexOf(id)!==i || this.store.hasSourceEvent(id)))].sort();
     mark('DATA_DIFF','SUCCEEDED');
 
     const snapshot=this.store.snapshot();
