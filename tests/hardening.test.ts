@@ -94,7 +94,7 @@ test('ENE produces normalized P/E independently of reported P/E', () => {
   assert.equal(r.reportedProfit,200);
   assert.equal(r.normalizedProfit,108);
   assert.equal(r.reportedPe,90);
-  assert.equal(r.normalizedPe,166.66666666666669);
+  assert.ok(Math.abs(r.normalizedPe-166.66666666666666)<1e-12);
 });
 
 test('governance ledger rejects future knowledge', () => {
@@ -129,5 +129,5 @@ test('backtest summary is deterministic', () => {
   const s = summarizeOutcomes(outcomes);
   assert.equal(s.observations,1);
   assert.equal(s.hitRate,1);
-  assert.equal(s.averageReturnPct,10);
+  assert.ok(Math.abs(s.averageReturnPct-10)<1e-12);
 });
