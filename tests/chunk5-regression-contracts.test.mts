@@ -7,7 +7,7 @@ import type { EbiInputMetric } from '../backend/src/ebi/inputContract.ts';
 
 const provenance = {
   source: 'test-source',
-  sourceTimestamp: '2026-09-26T00:00:00Z',
+  sourceTimestamp: Date.parse('2026-09-26T00:00:00Z'),
   verificationStatus: 'VERIFIED' as const,
   dataNature: 'RAW' as const,
   formulaVersion: null,
