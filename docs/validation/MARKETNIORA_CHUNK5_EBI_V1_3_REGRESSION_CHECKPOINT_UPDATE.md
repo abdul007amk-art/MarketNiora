@@ -1,74 +1,51 @@
 # MarketNiora — CHUNK 5 EBI v1.3 Regression Checkpoint Update
 
 Date: 2026-09-26
-Branch: chunk5-implementation-audit
+Branch: `chunk5-implementation-audit`
 
 ## Executable surfaces now present
 
 CEI, CDQ, CFQ, PGQ, ENE, RGQ, BSQ, evidence contracts, EBI input envelope, period consistency guard, IIC integration guard, and OEP output contract are present under `backend/src/ebi/`.
 
-Regression tests include:
-- `tests/chunk5-cei-cdq.test.ts`
-- `tests/chunk5-cfq-pgq-evidence.test.ts`
-- `tests/chunk5-ene-rgq-bsq.test.ts`
-- `tests/chunk5-input-iic-oep.test.ts`
-- `tests/chunk5-regression-contracts.test.ts`
+## Fresh CI evidence
 
-## Checkpoint disposition
+GitHub Actions **MarketNiora Validation #129** completed successfully for commit `30be390c4f1dc2195d5baaff8abe100bd0f73be0`.
 
-1. Mathematical correctness — IMPLEMENTED/PARTIAL; executable primitives and regression coverage exist; independent methodology audit remains a separate governance requirement.
-2. ROCE/ROIC determinism — IMPLEMENTED/PARTIAL; CEI and deterministic tests execute successfully; full independent audit remains separate.
-3. NOPAT/Invested Capital — IMPLEMENTED per v1.3.
-4. Zero/negative denominators — IMPLEMENTED in applicable primitives.
-5. Period consistency — IMPLEMENTED by deterministic guard.
-6. Missing data — IMPLEMENTED/PARTIAL; primitive coverage exists, full engine coverage remains.
-7. Truth-state compatibility — PARTIAL; OEP/provenance contracts exist.
-8. Coverage denominator — IMPLEMENTED in CDQ.
-9. 40% threshold — IMPLEMENTED in CDQ.
-10. CoverageGate TRUE/FALSE — IMPLEMENTED in CDQ.
-11. No weight redistribution — CONTRACT/PARTIAL; no redistribution logic introduced.
-12. ENE/RGQ/PGQ separation — PARTIAL.
-13. CFQ/BSQ/CEI separation — PARTIAL.
-14. BNI/CPI separation — CONTRACT ONLY.
-15. GVI/ECI separation — CONTRACT ONLY.
-16. BERI independence — CONTRACT ONLY.
-17. CDQ independence — IMPLEMENTED/PARTIAL.
-18–24. Rotation/TIE/RSE-DCS/OCE/Theme/Shariah/Stock Score independence — PARTIAL; IIC guard exists, live integration boundaries are not implemented.
-25. Version-pinned integration — IMPLEMENTED.
-26. Circular dependency prevention — IMPLEMENTED.
-27. Provenance/source conflicts — PARTIAL.
-28. Restatement handling — PARTIAL; structural reference validation exists, lifecycle semantics remain open.
-29. No-fabrication — IMPLEMENTED/PARTIAL.
-30. Deterministic test adequacy — EXECUTED; CI run #124 passed the full suite with 343/343 tests passing.
-31. Output contract — IMPLEMENTED.
-32. Governance/lock criteria — OPEN.
+Verified:
+- Typecheck — PASS
+- Test suite — **344 passed, 0 failed**
+- Prisma validate — PASS
+- Protected-engine verification — PASS
+- Git state summary — PASS
 
-## CI evidence
+CI #128 had exposed one C5-028 test-fixture issue: the fixture used an ISO string for `sourceTimestamp`, while the canonical provenance contract requires a finite numeric timestamp. The fixture was corrected without weakening the production contract. CI #129 then passed all 344 tests.
 
-GitHub Actions **MarketNiora Validation #124** completed successfully for commit `73f902654d898c7f869eed81b153164abbb66dc7`.
+## Post-patch implementation audit
 
-Verified successful steps:
-- Typecheck
-- Test suite — **343 passed, 0 failed**
-- Prisma validate
-- Protected-engine verification
-- Git state summary
+The independent implementation audit was updated after CI #129 and records:
+- EBI-IMPL-001 provenance-boundary finding — PATCHED and regression-tested.
+- Checkpoint 30 — PASS based on fresh CI #129.
+- Remaining PARTIAL / CONTRACT-ONLY checkpoints remain explicitly documented rather than being treated as silently complete.
 
-The preceding CI #117 failure was isolated to the protected-file verification step because the PR runner did not have the `github.event.before` object available with the previous shallow checkout. The workflow was hardened to use full history and explicit base-commit availability checking. The corrected validation run #124 passed.
+Audit update commit:
+`b74bd46aebb971b1508a6af65d319065275b887e`
 
 ## Governance distinction
 
-The supplied Gemini fourth re-audit result for CHUNK 5 EBI v1.3 reported 0 Critical, 0 High, 0 Medium, 0 Low across the stated 32-checkpoint scope and gave a methodology verdict of LOCK READY. That result is recorded separately as a project-owner-supplied methodology audit result.
+The supplied Gemini fourth re-audit result remains a project-owner-supplied methodology audit result:
+- 0 Critical
+- 0 High
+- 0 Medium
+- 0 Low
+- stated 32-checkpoint scope
+- methodology verdict: LOCK READY
 
-CI #124 now provides executable repository evidence, but it does not replace the independent methodology/governance requirements or create a lock certificate by itself.
+This does not represent an independently executed Gemini tool result and does not substitute for repository implementation evidence.
 
 ## Current gate
 
-**CHUNK 5: NOT READY / NOT LOCKED**
+**CHUNK 5: CI VERIFIED — GOVERNANCE LOCK PENDING — NOT LOCKED**
 
-Remaining gate sequence:
-1. retain CI #124 as executable evidence;
-2. complete/confirm the independent 32-checkpoint audit record against the current implementation;
-3. patch any findings if applicable;
-4. re-audit if implementation changes;
-5. only then prepare a lock certificate and obtain user confirmation.
+A governance lock-certificate draft has now been prepared. It intentionally does not declare the chunk locked.
+
+Formal LOCKED status still requires explicit acceptance of the remaining PARTIAL/CONTRACT-ONLY implementation scope under the formal lock process and explicit user confirmation.
