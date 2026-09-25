@@ -56,15 +56,24 @@ export function addDecimalStrings(values:readonly string[],digits=6):string {
 
 export class Dars12Store {
   private readonly rows=new Map<string,DarsEvidence>();
-  private versionKey(e:DarsEvidence){return \`\${e.evidenceKey}|\${e.knowledgeTime}\`;}
+  private versionKey(e:DarsEvidence){return e.evidenceKey+'|'+e.knowledgeTime;}
   snapshot(){return [...this.rows.values()];}
   restore(rows:DarsEvidence[]){this.rows.clear(); for(const e of rows)this.rows.set(this.versionKey(e),e);}
+  hasSourceEvent(sourceEventId:string){return [...this.rows.values()].some(e=>e.sourceEventId===sourceEventId);}
   upsertEvidence(e:DarsEvidence){
-    const k=this.versionKey(e), old=this.rows.get(k);
-    if(old && old.value===e.value && old.sourceTimestamp===e.sourceTimestamp){
-      this.rows.set(k,{...old,refreshedAt:e.refreshedAt,truthState:'CURRENT'}); return false;
+    const existing=[...this.rows.values()].find(row=>row.sourceEventId===e.sourceEventId);
+    if(existing){
+      const samePayload = existing.source===e.source && existing.symbol===e.symbol && existing.value===e.value &&
+        existing.sourceTimestamp===e.sourceTimestamp && existing.effectiveTime===e.effectiveTime &&
+        existing.knowledgeTime===e.knowledgeTime && existing.verificationStatus===e.verificationStatus &&
+        existing.dataNature===e.dataNature && existing.formulaVersion===e.formulaVersion && existing.origin===e.origin;
+      if(samePayload){
+        const k=this.versionKey(existing);
+        this.rows.set(k,{...existing,refreshedAt:e.refreshedAt,truthState:'CURRENT'});
+      }
+      return false;
     }
-    this.rows.set(k,e); return true;
+    this.rows.set(this.versionKey(e),e); return true;
   }
   allEvidence(){return [...this.rows.values()].sort((a,b)=>a.evidenceKey.localeCompare(b.evidenceKey)||a.knowledgeTime-b.knowledgeTime);}
   currentEvidence(asOf:number){
@@ -116,6 +125,7 @@ export class Dars12Engine {
       if(e.knowledgeTime<e.sourceTimestamp)ve.push(\`\${e.sourceEventId}: knowledgeTime cannot precede sourceTimestamp\`);
       if(e.knowledgeTime>input.runKnowledgeTime)ve.push(\`\${e.sourceEventId}: knowledgeTime cannot be in the future of the run\`);
       if(e.dataNature==='DERIVED'&&!e.formulaVersion)ve.push(\`\${e.sourceEventId}: DERIVED evidence requires formulaVersion\`);
+      if(e.dataNature==='DERIVED'&&e.formulaVersion!==input.formulaVersion)ve.push(\`\${e.sourceEventId}: DERIVED formulaVersion must match the run formulaVersion\`);
       if(e.dataNature!=='DERIVED'&&e.formulaVersion!==null)ve.push(\`\${e.sourceEventId}: formulaVersion must be null unless DERIVED\`);
     }
     if(ve.length){
@@ -129,6 +139,18 @@ export class Dars12Engine {
     const ids=input.rawEvents.map(e=>e.sourceEventId);
     const duplicates=[...new Set(ids.filter((id,i)=>ids.indexOf(id)!==i || this.store.hasSourceEvent(id)))].sort();
     mark('DATA_DIFF','SUCCEEDED');
+    const conflictingReplay = input.rawEvents.some(e => {
+      const existing=this.store.snapshot().find(row=>row.sourceEventId===e.sourceEventId);
+      if(!existing)return false;
+      return existing.source!==e.source || existing.symbol!==e.symbol || existing.value!==e.value ||
+        existing.sourceTimestamp!==e.sourceTimestamp || existing.effectiveTime!==e.effectiveTime ||
+        existing.knowledgeTime!==e.knowledgeTime || existing.verificationStatus!==e.verificationStatus ||
+        existing.dataNature!==e.dataNature || existing.formulaVersion!==e.formulaVersion || existing.origin!==e.origin;
+    });
+    if(conflictingReplay){
+      fail('conflicting source_event_id replay rejected');
+      return this.out(runId,events,this.store.currentEvidence(input.runKnowledgeTime),null,false,duplicates,'BLOCKED',false,false,errors);
+    }
 
     const snapshot=this.store.snapshot();
     mark('CANONICAL_WRITE','STARTED');
