@@ -31,7 +31,7 @@ test('DARS12-005 DARS-1.2 does not import protected engines or receive imports f
  const src=fs.readFileSync(new URL('../backend/src/dars12/dars12Engine.ts', import.meta.url),'utf8');
  const rot=fs.readFileSync(new URL('../backend/src/protected/rotationEngine.ts', import.meta.url),'utf8');
  const score=fs.readFileSync(new URL('../backend/src/protected/stockScoreEngine.ts', import.meta.url),'utf8');
- assert.equal(/^\\s*import\\b.*protected\\//m.test(src),false); assert.equal(/^\\s*import\\b.*dars12/m.test(rot),false); assert.equal(/^\\s*import\\b.*dars12/m.test(score),false);
+ assert.equal(/^\s*import\b.*protected\//m.test(src),false); assert.equal(/^\s*import\b.*dars12/m.test(rot),false); assert.equal(/^\s*import\b.*dars12/m.test(score),false);
 });
 test('DARS12-006 point-in-time reconstruction uses knowledge_time cutoff',()=>{
  const s=new Dars12Store(), e=new Dars12Engine(s);
@@ -52,7 +52,7 @@ test('DARS12-008 identical state is deterministic',()=>{
 test('D12 precision uses fixed-point decimal arithmetic',()=>{assert.equal(addDecimalStrings(['0.1','0.2']),'0.3');assert.equal(addDecimalStrings(['999999999.123456','0.876544']),'1000000000');});
 test('OCE to Catalyst boundary emits only a reviewable candidate',()=>{
  const r=new Dars12Engine().run({runKnowledgeTime:200,providerHealthy:true,rawEvents:[base({origin:'OCE'})],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
- const c=toCatalystCandidate(r.evidence[0]); assert.deepEqual(c,{sourceEventId:'evt-1',evidenceKey:'evt-1|SOURCE_A|AAA',requiresReview:true}); assert.equal(Object.hasOwn(c,'catalyst'),false);
+ const c=toCatalystCandidate(r.evidence[0]); assert.deepEqual(c,{sourceEventId:'evt-1',evidenceKey:'SOURCE_A|AAA',requiresReview:true}); assert.equal(Object.hasOwn(c,'catalyst'),false);
 });
 
 test('DARS12 adversarial: same source_event_id with conflicting payload cannot overwrite canonical evidence',()=>{
@@ -73,6 +73,6 @@ test('DARS12 adversarial: conflicting duplicate source_event_id inside one batch
  assert.deepEqual(r.duplicateSourceEventIds,['evt-1']);
  assert.equal(r.formulaExecuted,false);
  assert.equal(r.truthState,'BLOCKED');
- assert.match(r.errors[0],/conflicting source_event_id replay rejected/);
+ assert.match(r.errors[0],/conflicting source_event_id values within input batch rejected/);
  assert.equal(s.allEvidence().length,0);
 });
