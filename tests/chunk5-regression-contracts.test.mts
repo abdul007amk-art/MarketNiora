@@ -53,6 +53,11 @@ test('C5-026 repeated dependency is rejected as circular', () => {
   assert.equal(rejectCircularDependency(['ROTATION', 'THEME']), false);
 });
 
+test('C5-029 provenance boundary: derived input requires formula version', () => {
+  const errors = validateEbiInputMetric(metric({ classification: 'DERIVED', provenance: { ...provenance, dataNature: 'DERIVED', formulaVersion: null } }));
+  assert.ok(errors.includes('DERIVED requires a non-empty formulaVersion'));
+});
+
 test('C5-029 no-fabrication boundary: reported input cannot claim derived data nature', () => {
   const errors = validateEbiInputMetric(metric({ classification: 'REPORTED', provenance: { ...provenance, dataNature: 'DERIVED', formulaVersion: 'EBI-1.3' } }));
   assert.ok(errors.includes('REPORTED input cannot use DERIVED dataNature'));
