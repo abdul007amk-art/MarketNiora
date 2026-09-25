@@ -29,7 +29,7 @@ test('DARS12-005 DARS-1.2 does not import protected engines or receive imports f
  const src=fs.readFileSync(require.resolve('../backend/src/dars12/dars12Engine.ts'),'utf8');
  const rot=fs.readFileSync(require.resolve('../backend/src/protected/rotationEngine.ts'),'utf8');
  const score=fs.readFileSync(require.resolve('../backend/src/protected/stockScoreEngine.ts'),'utf8');
- assert.equal(/^\\s*import\\b.*protected\\//m.test(src),false); assert.equal(/^\\s*import\\b.*dars12/m.test(rot),false); assert.equal(/^\\s*import\\b.*dars12/m.test(score),false);
+ assert.equal(/^\s*import\b.*protected\\//m.test(src),false); assert.equal(/^\s*import\b.*dars12/m.test(rot),false); assert.equal(/^\s*import\b.*dars12/m.test(score),false);
 });
 test('DARS12-006 point-in-time reconstruction uses knowledge_time cutoff',()=>{
  const s=new Dars12Store(), e=new Dars12Engine(s);
