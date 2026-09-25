@@ -86,12 +86,14 @@ The exact D12-001 through D12-009 domain specifications are not present in the r
 
 ## Verification status
 
-The new regression test file was executed against the exact implementation in an isolated Node 22 type-stripping environment:
-- 12 tests
-- 12 passed
-- 0 failed
+The repository source was independently inspected and the adversarial gaps identified in the prior DARS review were patched:
+- immutable `source_event_id` identity and conflicting replay rejection
+- `DERIVED.formulaVersion` must match the run `formulaVersion`
+- conflicting duplicate `source_event_id` values within one input batch are covered by an additional regression test
 
-The repository's GitHub workflow wrapper currently exposes pull-request-triggered workflow runs only; no PR-triggered run is available for the direct main-branch commits. Therefore the repository CI result is still unverified.
+The regression suite now contains **13 tests**, but a repository-runtime execution has NOT been verified in the current environment. Therefore no `13/13 PASS`, `REGRESSION PASS`, or LOCK READY claim is made.
+
+The repository's GitHub workflow wrapper currently exposes pull-request-triggered workflow runs only; no PR-triggered run is available for the direct main-branch commits. Therefore repository CI execution remains unverified.
 
 ## Lock rule
 
