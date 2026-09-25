@@ -16,8 +16,8 @@ Regression tests include:
 
 ## Checkpoint disposition
 
-1. Mathematical correctness — PARTIAL; executable primitives exist, independent audit remains.
-2. ROCE/ROIC determinism — PARTIAL; CEI and deterministic tests exist, execution unverified.
+1. Mathematical correctness — IMPLEMENTED/PARTIAL; executable primitives and regression coverage exist; independent methodology audit remains a separate governance requirement.
+2. ROCE/ROIC determinism — IMPLEMENTED/PARTIAL; CEI and deterministic tests execute successfully; full independent audit remains separate.
 3. NOPAT/Invested Capital — IMPLEMENTED per v1.3.
 4. Zero/negative denominators — IMPLEMENTED in applicable primitives.
 5. Period consistency — IMPLEMENTED by deterministic guard.
@@ -39,21 +39,36 @@ Regression tests include:
 27. Provenance/source conflicts — PARTIAL.
 28. Restatement handling — PARTIAL; structural reference validation exists, lifecycle semantics remain open.
 29. No-fabrication — IMPLEMENTED/PARTIAL.
-30. Deterministic test adequacy — PARTIAL; execution evidence missing.
+30. Deterministic test adequacy — EXECUTED; CI run #124 passed the full suite with 343/343 tests passing.
 31. Output contract — IMPLEMENTED.
 32. Governance/lock criteria — OPEN.
 
 ## CI evidence
 
-GitHub Actions lookup for the latest implementation commit returned no workflow run. No PASS is claimed.
+GitHub Actions **MarketNiora Validation #124** completed successfully for commit `73f902654d898c7f869eed81b153164abbb66dc7`.
+
+Verified successful steps:
+- Typecheck
+- Test suite — **343 passed, 0 failed**
+- Prisma validate
+- Protected-engine verification
+- Git state summary
+
+The preceding CI #117 failure was isolated to the protected-file verification step because the PR runner did not have the `github.event.before` object available with the previous shallow checkout. The workflow was hardened to use full history and explicit base-commit availability checking. The corrected validation run #124 passed.
+
+## Governance distinction
+
+The supplied Gemini fourth re-audit result for CHUNK 5 EBI v1.3 reported 0 Critical, 0 High, 0 Medium, 0 Low across the stated 32-checkpoint scope and gave a methodology verdict of LOCK READY. That result is recorded separately as a project-owner-supplied methodology audit result.
+
+CI #124 now provides executable repository evidence, but it does not replace the independent methodology/governance requirements or create a lock certificate by itself.
 
 ## Current gate
 
 **CHUNK 5: NOT READY / NOT LOCKED**
 
 Remaining gate sequence:
-1. verify executable test/CI execution;
-2. complete the independent 32-checkpoint audit;
-3. patch any findings;
-4. re-audit;
+1. retain CI #124 as executable evidence;
+2. complete/confirm the independent 32-checkpoint audit record against the current implementation;
+3. patch any findings if applicable;
+4. re-audit if implementation changes;
 5. only then prepare a lock certificate and obtain user confirmation.
