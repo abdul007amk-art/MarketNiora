@@ -18,7 +18,7 @@ Verified:
 - Protected-engine verification — PASS
 - Git state summary — PASS
 
-CI #128 had exposed one C5-028 test-fixture issue: the fixture used an ISO string for `sourceTimestamp`, while the canonical provenance contract requires a finite numeric timestamp. The fixture was corrected without weakening the production contract. CI #129 then passed all 344 tests.
+CI #128 had exposed one C5-028 test-fixture issue: the fixture used an ISO string for `sourceTimestamp`, while the canonical provenance contract requires a finite numeric timestamp. The fixture was corrected without weakening the production contract. CI #136 then passed all 344 tests.
 
 ## Post-patch implementation audit
 
