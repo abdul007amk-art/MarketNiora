@@ -201,3 +201,13 @@ Added explicit v1.3-supported primitives:
 - BSQ: D/E and net-debt primitives with fail-closed missing/zero handling.
 
 No final EBI score, automatic qualitative verdict, or fabricated evidence was introduced.
+
+
+## Further implementation progress — EBI Input / IIC / OEP
+
+Added:
+- EBI-INPUT-1.0 input envelope preserving period type, dates, reported date, classification, provenance and restatement references.
+- IIC-1.0 data-only, methodology-version-pinned integration guard plus repeated-dependency/circular-path rejection.
+- OEP-1.0 Stock 360 output/evidence contract with truth state, coverage, source and last-updated fields.
+
+These are contract-level controls only; they do not create scores, verdicts, or downstream decision authority.
