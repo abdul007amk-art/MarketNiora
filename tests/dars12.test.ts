@@ -23,7 +23,7 @@ test('DARS12-003 refresh failure is isolated and prior canonical state is preser
 });
 test('DARS12-004 source_event_id replay is idempotent',()=>{
  const s=new Dars12Store(), e=new Dars12Engine(s), input={runKnowledgeTime:200,providerHealthy:true,rawEvents:[base()],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum};
- const a=e.run(input), b=e.run({...input,runKnowledgeTime:300}); assert.equal(a.formulaOutput,b.formulaOutput); assert.equal(s.allEvidence().length,1); assert.deepEqual(b.duplicateSourceEventIds,[]);
+ const a=e.run(input), b=e.run({...input,runKnowledgeTime:300}); assert.equal(a.formulaOutput,b.formulaOutput); assert.equal(s.allEvidence().length,1); assert.deepEqual(b.duplicateSourceEventIds,['evt-1']);
 });
 test('DARS12-005 DARS-1.2 does not import protected engines or receive imports from them',()=>{
  const src=fs.readFileSync(require.resolve('../backend/src/dars12/dars12Engine.ts'),'utf8');
@@ -51,4 +51,16 @@ test('D12 precision uses fixed-point decimal arithmetic',()=>{assert.equal(addDe
 test('OCE to Catalyst boundary emits only a reviewable candidate',()=>{
  const r=new Dars12Engine().run({runKnowledgeTime:200,providerHealthy:true,rawEvents:[base({origin:'OCE'})],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
  const c=toCatalystCandidate(r.evidence[0]); assert.deepEqual(c,{sourceEventId:'evt-1',evidenceKey:'evt-1|SOURCE_A|AAA',requiresReview:true}); assert.equal(Object.hasOwn(c,'catalyst'),false);
+});
+
+test('DARS12 adversarial: same source_event_id with conflicting payload cannot overwrite canonical evidence',()=>{
+ const s=new Dars12Store(), e=new Dars12Engine(s);
+ e.run({runKnowledgeTime:200,providerHealthy:true,rawEvents:[base()],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
+ const r=e.run({runKnowledgeTime:300,providerHealthy:true,rawEvents:[base({value:'99.99',knowledgeTime:300})],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
+ assert.deepEqual(r.duplicateSourceEventIds,['evt-1']);
+ assert.equal(s.allEvidence()[0].value,'1.25');
+});
+test('DARS12 adversarial: derived evidence cannot claim a different formula version',()=>{
+ const r=new Dars12Engine().run({runKnowledgeTime:200,providerHealthy:true,rawEvents:[base({dataNature:'DERIVED',formulaVersion:'F0'})],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
+ assert.equal(r.formulaExecuted,false); assert.equal(r.truthState,'BLOCKED');
 });
