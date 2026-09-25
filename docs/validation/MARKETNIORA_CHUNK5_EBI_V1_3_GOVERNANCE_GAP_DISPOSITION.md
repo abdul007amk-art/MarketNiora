@@ -21,7 +21,7 @@ Therefore CI #129 being green is necessary evidence, but it does not by itself s
 | Checkpoint | Current state | Disposition | Required next action |
 |---|---|---|---|
 | 6 Missing data | PASS/PARTIAL | OPEN | Define/implement production-wide fail-closed coverage across all EBI outputs, or formally scope the missing layers. |
-| 7 Truth-state compatibility | IMPLEMENTED — PENDING CI | OPEN | OEP now enforces the locked CHUNK 0 truth-state vocabulary and resolves multi-input derived truth state to the weakest required input; fresh CI/re-audit evidence still required. |
+| 7 Truth-state compatibility | PASS — CI VERIFIED | CLOSED | OEP enforces the locked CHUNK 0 truth-state vocabulary and resolves multi-input derived truth state to the weakest required input. CI #136 passed with 345/345 tests, including the new C5-007 regression tests. Full 32-checkpoint governance remains open. |
 | 11 No weight redistribution | PASS/PARTIAL | OPEN | Add executable guard/tests at downstream integration boundaries proving no automatic redistribution. |
 | 12 ENE/RGQ/PGQ separation | PARTIAL | OPEN | Establish production orchestration boundary and cross-engine independence tests. |
 | 13 CFQ/BSQ/CEI separation | PARTIAL | OPEN | Establish production orchestration boundary and cross-engine independence tests. |
