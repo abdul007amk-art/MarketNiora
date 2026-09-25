@@ -138,6 +138,18 @@ export class Dars12Engine {
     mark('DATA_DIFF','STARTED');
     const ids=input.rawEvents.map(e=>e.sourceEventId);
     const duplicates=[...new Set(ids.filter((id,i)=>ids.indexOf(id)!==i || this.store.hasSourceEvent(id)))].sort();
+    const batchConflicts = input.rawEvents.filter((e,i)=>input.rawEvents.some((other,j)=>j<i && other.sourceEventId===e.sourceEventId && (
+      other.source!==e.source || other.symbol!==e.symbol || other.value!==e.value ||
+      other.sourceTimestamp!==e.sourceTimestamp || other.effectiveTime!==e.effectiveTime ||
+      other.knowledgeTime!==e.knowledgeTime || other.verificationStatus!==e.verificationStatus ||
+      other.dataNature!==e.dataNature || other.formulaVersion!==e.formulaVersion || other.origin!==e.origin
+    )));
+    if(batchConflicts.length){
+      mark('DATA_DIFF','FAILED');
+      fail('conflicting source_event_id values within input batch rejected');
+      for(const s of DARS12_STAGES.slice(6))mark(s,'SKIPPED');
+      return this.out(runId,events,[],null,false,duplicates,'BLOCKED',false,false,errors);
+    }
     mark('DATA_DIFF','SUCCEEDED');
     const conflictingReplay = input.rawEvents.some(e => {
       const existing=this.store.snapshot().find(row=>row.sourceEventId===e.sourceEventId);
