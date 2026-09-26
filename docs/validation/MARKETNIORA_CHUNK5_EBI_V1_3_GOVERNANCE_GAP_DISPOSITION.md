@@ -23,7 +23,7 @@ Therefore CI #129 being green is necessary evidence, but it does not by itself s
 | 6 Missing data | PASS/PARTIAL | OPEN | Define/implement production-wide fail-closed coverage across all EBI outputs, or formally scope the missing layers. |
 | 7 Truth-state compatibility | PASS — CI VERIFIED | CLOSED | OEP enforces the locked CHUNK 0 truth-state vocabulary and resolves multi-input derived truth state to the weakest required input. CI #136 passed with 345/345 tests, including the new C5-007 regression tests. Full 32-checkpoint governance remains open. |
 | 11 No weight redistribution | PASS — CI VERIFIED | CLOSED | Executable CDQ boundary guard and regression tests prove coverage does not mutate downstream weights. CI #142 passed with 347/347 tests. |
-| 12 ENE/RGQ/PGQ separation | IMPLEMENTED — PENDING CI | OPEN | Added an executable sibling-engine independence boundary and regression tests. ENE, RGQ and PGQ may share source data but cannot consume sibling-engine decisions. Fresh CI verification is required before closure. |
+| 12 ENE/RGQ/PGQ separation | PASS — CI VERIFIED | CLOSED | Executable sibling-engine independence boundary and regression tests passed. ENE, RGQ and PGQ may share source data but cannot consume sibling-engine decisions. CI #146 passed with 350/350 tests. |
 | 13 CFQ/BSQ/CEI separation | PARTIAL | OPEN | Establish production orchestration boundary and cross-engine independence tests. |
 | 14 BNI/CPI separation | CONTRACT ONLY | OPEN | Either implement required executable decision/evidence boundary or formally document why contract-only is sufficient for the v1.3 production scope. |
 | 15 GVI/ECI separation | CONTRACT ONLY | OPEN | Same disposition requirement. |
