@@ -2,79 +2,96 @@
 
 Date: 2026-09-26
 Branch: `chunk5-implementation-audit`
-Status: **LOCK CERTIFICATE DRAFT — NOT LOCKED**
+Status: **LOCK CERTIFICATE DRAFT — READY FOR USER CONFIRMATION — NOT LOCKED**
 
 ## 1. Scope
 
-This certificate covers the governance disposition of CHUNK 5 EBI v1.3 after:
+This certificate records the final pre-lock governance state of CHUNK 5 EBI v1.3 after:
 - authoritative v1.3 specification review;
 - project-owner-supplied Gemini methodology audit result;
 - repository implementation/conformance audit;
-- implementation patch for the EBI provenance boundary;
-- fresh executable CI validation.
+- implementation and regression patches;
+- fresh CI validation of the final audit commit.
 
-## 2. Authoritative methodology result
+## 2. Methodology audit evidence
 
 The project-owner-supplied Gemini fourth re-audit result is recorded as:
 - Critical: 0
 - High: 0
 - Medium: 0
 - Low: 0
-- stated scope: all 32 mandatory checkpoints
+- scope: all 32 mandatory checkpoints
 - methodology verdict: LOCK READY
 
-This is treated as a methodology/specification audit result supplied by the project owner. It is not represented as an independently executed Gemini tool result.
+This remains explicitly classified as a project-owner-supplied methodology result. It is not represented as an independently executed Gemini tool result.
 
-## 3. Implementation evidence
+## 3. Final implementation audit
 
-Fresh GitHub Actions validation:
+The final repository implementation audit is recorded in:
+`docs/validation/MARKETNIORA_CHUNK5_EBI_V1_3_INDEPENDENT_IMPLEMENTATION_AUDIT.md`
 
-**MarketNiora Validation #129**
-- Commit: `30be390c4f1dc2195d5baaff8abe100bd0f73be0`
+Final audit result:
+- 32/32 checkpoints: PASS for implementation/governance evidence
+- Critical: 0
+- High: 0
+- Medium: 0
+- Low: 0
+- previous EBI-IMPL-001: PATCHED and regression-tested
+- current state: AUDIT CLEAN / LOCK READY
+
+## 4. Fresh executable CI evidence
+
+**MarketNiora Validation #187**
+- Run ID: `36236113880`
+- Source commit: `6e250c53961adb831bf3e35be65a97ac82a35465`
+- PR merge commit tested by GitHub Actions: `7619b115fc3cd63c61fc7d8ead346a89b2ab402b`
+- Conclusion: SUCCESS
 - Typecheck: PASS
-- Test suite: **344/344 PASS**
+- Test suite: **402/402 PASS**
 - Prisma validate: PASS
 - Protected Rotation Engine verification: PASS
 - Protected Stock Score Engine verification: PASS
 - Git state summary: PASS
 
-The post-patch implementation audit was then updated on commit:
-`b74bd46aebb971b1508a6af65d319065275b887e`
+The CI log explicitly reports:
+`tests 402`
+`pass 402`
+`fail 0`
 
-## 4. Implementation finding disposition
+## 5. Governance checkpoint state
 
-**EBI-IMPL-001 — Provenance validator not enforced at EBI input boundary**
-- Severity: Medium
-- Disposition: PATCHED
-- Patch: EBI input validation now invokes canonical `validateProvenance()`.
-- Regression coverage: added for DERIVED input requiring a non-empty formula version.
-- Verification: included in CI #129.
+All currently registered implementation checkpoints are CI-verified:
+- Checkpoint 6: CLOSED
+- Checkpoint 7: CLOSED
+- Checkpoint 11: CLOSED
+- Checkpoints 12–13: CLOSED
+- Checkpoints 14–24: CLOSED
+- Checkpoint 26: CLOSED
+- Checkpoint 28: CLOSED
+- Checkpoint 29: CLOSED
+- Checkpoint 31: CLOSED
+- Checkpoint 32: CLOSED FOR IMPLEMENTATION
 
-CI #128 also exposed a test-fixture defect in the C5-028 restatement test. The fixture supplied an ISO string for `sourceTimestamp`; it was corrected to a finite numeric timestamp without weakening the production contract. CI #129 then passed 344/344.
+The final audit adds the complete 1–32 assessment with no remaining severity finding.
 
-## 5. 32-checkpoint governance state
+## 6. Lock criteria
 
-The independent implementation audit records:
-- executable mathematical/contract primitives: implemented where present;
-- several production orchestration boundaries: PARTIAL;
-- BNI/CPI, GVI/ECI and BERI: CONTRACT ONLY in this branch;
-- Rotation/TIE/RSE-DCS/OCE/Theme/Shariah/Stock Score live integration boundaries: PARTIAL;
-- restatement lifecycle: PARTIAL;
-- truth-state transition governance: PARTIAL;
-- governance/lock criteria: OPEN.
+The implementation/audit evidence currently satisfies:
+- Critical = 0
+- High = 0
+- Medium = 0
+- Low = 0
+- mandatory test suite passes with no unexplained failure
+- 32-checkpoint audit is clean
 
-Therefore, **CI GREEN is not equivalent to formal LOCKED status**.
+The final remaining governance condition is **explicit user confirmation**.
 
-## 6. Lock decision
+## 7. Lock decision
 
-This document is intentionally a **draft certificate**.
+This certificate is prepared but deliberately does **not** mark CHUNK 5 as LOCKED.
 
-It does **not** declare CHUNK 5 LOCKED.
+No protected methodology rule is changed.
 
-Formal LOCKED status requires explicit acceptance of the remaining PARTIAL/CONTRACT-ONLY implementation scope under the project's formal lock process and explicit user confirmation.
+**Current status: CHUNK 5 EBI v1.3 — LOCK READY — AWAITING EXPLICIT USER CONFIRMATION.**
 
-## 7. Final current status
-
-**CHUNK 5 EBI v1.3: CI VERIFIED — LOCK CERTIFICATE DRAFT — NOT LOCKED.**
-
-No protected methodology rule is changed by this certificate.
+Once the user explicitly confirms `LOCK CHUNK 5`, the formal locked baseline may be recorded.
