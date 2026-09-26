@@ -57,3 +57,185 @@ Required next sequence:
 3. Patch any actual findings.
 4. Re-audit patched areas and full-chunk independence.
 5. Record formal lock certificate only after clean evidence.
+
+
+## Repository implementation audit — 2026-09-26
+
+This section is a **repository implementation audit**, not an external/Gemini audit. It checks whether the v1.3 specification has corresponding executable implementation and test artifacts in the current `main` codebase.
+
+### Implementation finding
+
+#### C5-IMPL-001 — CHUNK 5 EBI v1.3 production calculation engine is not present in the repository
+**Severity:** MAJOR / lock-blocking
+
+Repository search was performed for:
+- `EBI`
+- `CEI-ROIC`
+- `Invested Capital`
+- `EBI_COVERAGE_MIN`
+- `EBI-INPUT-1.0`
+- `DDE-1.0`
+- `EBI-TEST-1.3`
+
+No repository matches were returned.
+
+The repository does contain `backend/src/contracts/fundamental.ts`, but that file is a **Module 10 fundamental data contract/validation layer**. It explicitly does not implement a Fundamental Score formula and only validates generic fundamental records. It is not an implementation of the v1.3 Parts 1–18 EBI engines (DDE, ENE, RGQ, PGQ, CFQ, BSQ, CEI, BNI, CPI, GVI, ECI, BERI, CDQ, IIC, OEP).
+
+**Effect:** The v1.3 package currently exists as an authoritative specification/audit package, while the repository does not provide executable CHUNK 5 EBI implementations against which the CEI/CDQ and 32-checkpoint regression can be executed.
+
+**Required action:** Do not manufacture a PASS result from the specification. Either:
+1. connect the actual CHUNK 5 implementation if it exists outside the repository, or
+2. implement CHUNK 5 from the v1.3 authority package before claiming executable regression/lock readiness.
+
+### 32-checkpoint repository evidence matrix
+
+| # | Checkpoint | Repository status | Evidence / disposition |
+|---:|---|---|---|
+| 1 | Mathematical correctness | NOT IMPLEMENTED | No EBI calculation engine found |
+| 2 | ROCE/ROIC determinism | NOT IMPLEMENTED | No CEI engine/tests found |
+| 3 | NOPAT & Invested Capital definitions | NOT IMPLEMENTED | v1.3 specifies them; no executable implementation found |
+| 4 | Zero/negative denominator handling | NOT IMPLEMENTED | No CEI engine/tests found |
+| 5 | Period consistency | NOT IMPLEMENTED | No EBI period-validation engine found |
+| 6 | Missing-data behavior | PARTIAL / NOT EBI-VERIFIED | Generic fundamental contract has fail-closed status handling, but not v1.3 EBI calculations |
+| 7 | Truth-state compatibility | PARTIAL / NOT EBI-VERIFIED | Generic provenance/freshness contracts exist; no EBI truth-state engine found |
+| 8 | Coverage denominator integrity | NOT IMPLEMENTED | CDQ implementation not found |
+| 9 | 40% coverage behavior | NOT IMPLEMENTED | `EBI_COVERAGE_MIN` not found |
+| 10 | CoverageGate TRUE/FALSE behavior | NOT IMPLEMENTED | CDQ implementation/tests not found |
+| 11 | No automatic weight redistribution | SPECIFICATION ONLY | v1.3 rule exists; no EBI engine implementation to verify |
+| 12 | ENE/RGQ/PGQ overlap | NOT IMPLEMENTED | EBI sub-engines not found |
+| 13 | CFQ/BSQ/CEI overlap | NOT IMPLEMENTED | EBI sub-engines not found |
+| 14 | BNI/CPI separation | NOT IMPLEMENTED | BNI/CPI engines not found |
+| 15 | GVI/ECI separation | NOT IMPLEMENTED | GVI/ECI engines not found |
+| 16 | BERI independence | NOT IMPLEMENTED | BERI engine not found |
+| 17 | CDQ independence | NOT IMPLEMENTED | CDQ engine not found |
+| 18 | Rotation independence | PARTIAL / NOT EBI-VERIFIED | Existing locked rotation engine is separate; no EBI integration boundary exists to test |
+| 19 | TIE independence | PARTIAL / NOT EBI-VERIFIED | No EBI integration boundary exists to test |
+| 20 | RSE/DCS independence | PARTIAL / NOT EBI-VERIFIED | No EBI integration boundary exists to test |
+| 21 | OCE independence | PARTIAL / NOT EBI-VERIFIED | No EBI integration boundary exists to test |
+| 22 | Theme independence | PARTIAL / NOT EBI-VERIFIED | Existing theme contracts are separate; no EBI integration boundary exists to test |
+| 23 | Shariah independence | PARTIAL / NOT EBI-VERIFIED | No EBI integration boundary exists to test |
+| 24 | Stock Score independence | PARTIAL / NOT EBI-VERIFIED | Locked score engine is separate; no EBI integration boundary exists to test |
+| 25 | Version-pinned integration | PARTIAL | Shared provenance supports formulaVersion, but no EBI integration implementation found |
+| 26 | Circular dependency prevention | NOT IMPLEMENTED | No EBI dependency graph/guard found |
+| 27 | Provenance/source conflicts | PARTIAL | Shared provenance validation exists; EBI-specific conflict handling not found |
+| 28 | Restatement handling | NOT IMPLEMENTED | No EBI restatement implementation found |
+| 29 | No-fabrication | PARTIAL | Generic fundamental contract rejects unusable data; EBI-specific no-fabrication tests are absent |
+| 30 | Deterministic test adequacy | NOT IMPLEMENTED | No EBI-TEST-1.3 suite found |
+| 31 | Output contract | SPECIFICATION ONLY | OEP contract is in v1.3 package; no EBI output implementation found |
+| 32 | Governance/lock criteria | DOCUMENTED ONLY | v1.3 lock criteria exist; execution evidence and independent audit are absent |
+
+### Important separation
+
+The existing `backend/src/contracts/fundamental.ts` must **not** be treated as CHUNK 5 completion. It is a narrower Module 10 contract and its own tests explicitly preserve the scope boundary against scoring/verdict computation.
+
+Likewise, the existing locked Rotation and Stock Score engines remain outside this audit and are not modified.
+
+### Current decision after repository audit
+
+**CHUNK 5: NOT READY / NOT LOCKED**
+
+This is a stronger evidence state than the earlier source-only gate: the authoritative v1.3 package is present, but the repository currently lacks the executable CHUNK 5 EBI engine/test surface required to perform the claimed 32-checkpoint regression.
+
+**Next technical step:** establish the actual CHUNK 5 implementation surface from the v1.3 authority before attempting a lock audit. No Gemini execution, test PASS, or lock certificate is claimed by this document.
+
+
+## Implementation progress — CEI/CDQ core added
+
+The branch now contains a deliberately narrow executable implementation of the unambiguous v1.3 CEI and CDQ rules:
+
+- `backend/src/ebi/cei.ts`
+  - ROE
+  - ROCE
+  - NOPAT
+  - financing-side Invested Capital
+  - Total Debt including short-term and long-term interest-bearing debt
+  - Average Invested Capital
+  - ROIC
+  - missing-input fail-closed behavior
+  - zero/negative capital handling
+  - ETR outside [0,1] handling without clamping
+- `backend/src/ebi/cdq.ts`
+  - `EBI_COVERAGE_MIN = 40.0%`
+  - exact v1.3 mandatory-engine registry
+  - coverage calculation
+  - CoverageGate TRUE/FALSE behavior
+  - missing requirement denominator → REVIEW/CONFLICT
+- `tests/chunk5-cei-cdq.test.ts`
+  - CEI-ROIC-006 through CEI-ROIC-012
+  - ETR boundaries
+  - ROCE definition
+  - CDQ 40% gate and registry
+
+This is **implementation progress, not lock evidence**. The source package's remaining EBI engines and integration/output contracts are not yet implemented, and repository test execution has not been claimed or verified.
+
+### Updated decision
+
+**CHUNK 5: NOT READY / NOT LOCKED**
+
+The correct next implementation sequence is to add the remaining v1.3-defined EBI surfaces only where the authoritative package supplies sufficient normative rules, then run the complete executable test suite. Where the package does not define enough detail for an implementation without invention, the item must remain explicitly open rather than being filled by assumption.
+
+
+## Further implementation progress — explicit v1.3 CFQ/PGQ/evidence layers
+
+Additional executable surfaces have now been added where the v1.3 package supplies explicit deterministic behavior:
+
+- CFQ: CFO/PAT classification and FCF = CFO − Capex.
+- PGQ: margin primitive, denominator handling, negative-base classification, and negative-to-positive TURNAROUND EVENT.
+- Evidence-only contracts for DDE, BNI, CPI, GVI, ECI and BERI preserve the source package's categorical/evidence vocabulary without inventing scores or automatic conclusions.
+
+The implementation intentionally does **not** invent unspecified scoring formulas, confidence mappings, severity mappings, or lifecycle transition rules.
+
+### Current repository test state
+
+A GitHub Actions **MarketNiora Validation** run has been created for the latest implementation commit. At the time of this audit update it is **QUEUED**, so no PASS/FAIL conclusion is recorded yet.
+
+**No lock decision is changed:** CHUNK 5 remains **NOT READY / NOT LOCKED** until the complete implementation surface, full regression, independence checks, and independent fourth audit evidence are complete.
+
+
+## Further implementation progress — ENE/RGQ/BSQ
+
+Added explicit v1.3-supported primitives:
+
+- ENE: earnings-growth classification and acceleration as current growth minus prior growth in percentage points.
+- RGQ: revenue-growth primitive plus evidence fields that keep organic/inorganic, volume/realisation support, concentration, recurring quality and persistence separate.
+- BSQ: D/E and net-debt primitives with fail-closed missing/zero handling.
+
+No final EBI score, automatic qualitative verdict, or fabricated evidence was introduced.
+
+
+## Further implementation progress — EBI Input / IIC / OEP
+
+Added:
+- EBI-INPUT-1.0 input envelope preserving period type, dates, reported date, classification, provenance and restatement references.
+- IIC-1.0 data-only, methodology-version-pinned integration guard plus repeated-dependency/circular-path rejection.
+- OEP-1.0 Stock 360 output/evidence contract with truth state, coverage, source and last-updated fields.
+
+These are contract-level controls only; they do not create scores, verdicts, or downstream decision authority.
+
+
+## Gemini fourth re-audit reconciliation — user-supplied result
+
+The earlier source-conformance section above recorded the fourth Gemini result as absent. That statement is superseded by the Gemini fourth-audit result supplied by the project owner during the CHUNK 5 audit workflow.
+
+Recorded Gemini fourth re-audit result:
+- Scope: complete CHUNK 5 EBI v1.3 Parts 1–18.
+- Regression scope: all 32 mandatory checkpoints.
+- CRITICAL: 0
+- HIGH: 0
+- MEDIUM: 0
+- LOW: 0
+- Final verdict: LOCK READY.
+
+The Gemini result specifically confirms the v1.3 corrected financing-side Invested Capital definition and the associated CEI/CDQ regression requirements.
+
+### Governance distinction
+
+The Gemini result is an **independent methodology/specification audit result** supplied by the project owner. It does not by itself prove that the current GitHub implementation executes the same rules successfully.
+
+Therefore:
+- The Gemini fourth-audit result is recorded as **LOCK READY** for the v1.3 specification/audit package.
+- The current repository implementation remains subject to separate executable CI/test verification.
+- No repository lock certificate is created from the Gemini result alone.
+- Any repository implementation defect must be handled as an implementation/regression issue without rewriting the Gemini audit result.
+
+This reconciliation corrects the earlier wording that incorrectly stated the fourth Gemini result was absent.
