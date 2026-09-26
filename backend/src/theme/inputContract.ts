@@ -1,20 +1,40 @@
 /** CHUNK 7 — THEME-INPUT-1.1 input and parent-context validation. */
 import { validateProvenance } from '../contracts/provenance.ts';
 import { THEME_HIERARCHY, THEME_INPUT_METHODOLOGY_VERSION, type ThemeExposure, type ThemeLevel, type ThemeNode } from './types.ts';
+
 const parentLevel = new Map<ThemeLevel, ThemeLevel|null>([
  ['THEME',null],['SUB_THEME','THEME'],['INDUSTRY','SUB_THEME'],['VALUE_CHAIN','INDUSTRY'],['COMPANY','VALUE_CHAIN'],['STOCK','COMPANY'],
 ]);
+const VALID_LEVELS = new Set(THEME_HIERARCHY);
+
 export function validateThemeNode(node:ThemeNode):string[] {
  const errors:string[]=[];
  if(!node.nodeId.trim()) errors.push('nodeId is required');
  if(!node.name.trim()) errors.push('node name is required');
- if(!THEME_HIERARCHY.includes(node.level)) errors.push('invalid theme hierarchy level');
+ if(!VALID_LEVELS.has(node.level)) errors.push('invalid theme hierarchy level');
  if(node.methodologyVersion!==THEME_INPUT_METHODOLOGY_VERSION) errors.push('theme input methodologyVersion mismatch');
  const requiredParent=parentLevel.get(node.level);
  if(requiredParent===null && node.parentNodeId!==null) errors.push('THEME cannot have a fabricated parent');
  if(requiredParent!==null && !node.parentNodeId?.trim()) errors.push(`${node.level} requires valid parent context: ${requiredParent}`);
  return [...new Set(errors)];
 }
+
+/** Validates the resolved parent itself, not merely that an ID string exists. */
+export function validateResolvedParentContext(
+ childLevel:ThemeLevel,
+ childParentNodeId:string|null,
+ resolvedParents:ReadonlyMap<string,ThemeNode>,
+):string[] {
+ const errors=validateThemeParentContext(childLevel, childLevel==='THEME'?null:parentLevel.get(childLevel)!, childParentNodeId);
+ if(childLevel==='THEME') return errors;
+ if(!childParentNodeId?.trim()) return errors;
+ const parent=resolvedParents.get(childParentNodeId);
+ const required=parentLevel.get(childLevel);
+ if(!parent) errors.push('resolved parent node does not exist');
+ else if(parent.level!==required) errors.push(`resolved parent level must be ${required}`);
+ return [...new Set(errors)];
+}
+
 export function validateThemeParentContext(childLevel:ThemeLevel,parentLevelProvided:ThemeLevel|null,parentNodeId:string|null):string[] {
  const errors:string[]=[]; const required=parentLevel.get(childLevel);
  if(required===null){ if(parentLevelProvided!==null||parentNodeId!==null) errors.push('THEME does not accept parent context'); return errors; }
@@ -22,6 +42,7 @@ export function validateThemeParentContext(childLevel:ThemeLevel,parentLevelProv
  if(!parentNodeId?.trim()) errors.push(`${childLevel} requires a non-empty parentNodeId`);
  return [...new Set(errors)];
 }
+
 export function validateThemeExposure(exposure:ThemeExposure):string[] {
  const errors:string[]=[];
  if(!exposure.exposureId.trim()) errors.push('exposureId is required');
