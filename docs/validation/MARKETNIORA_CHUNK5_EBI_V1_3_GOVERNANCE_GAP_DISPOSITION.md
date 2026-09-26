@@ -33,7 +33,7 @@ Therefore CI #129 being green is necessary evidence, but it does not by itself s
 | 26 Circular dependency prevention | IMPLEMENTED — PENDING CI | OPEN | Added an executable directed integration-graph cycle detector with direct/multi-node/shared-dependency regression tests. Fresh CI verification is required before closure. |
 | 28 Restatement handling | IMPLEMENTED — PENDING CI | OPEN | Added deterministic restatement-chain validation and fail-closed terminal-version selection, with regression tests for missing links, self-supersession, period mismatch and ambiguity. Fresh CI verification is required before closure. |
 | 29 No-fabrication | IMPLEMENTED — PENDING CI | OPEN | Added an executable evidence/provenance boundary requiring source evidence, rejecting SOURCE_REQUIRED evidence for final conclusions, and requiring formula versions for derived evidence. Regression tests added; fresh CI verification is required before closure. |
-| 31 Output contract | PASS/PARTIAL | OPEN | Complete OEP orchestration/transition validation if required by production scope. |
+| 31 Output contract | IMPLEMENTED — PENDING CI | OPEN | Hardened OEP validation for evidence, 0–100 coverage bounds, source presence, and timestamp validity while preserving explicit nulls for unavailable optional fields. Regression tests added; fresh CI verification is required before closure. |
 | 32 Governance | OPEN | BLOCKING | Close all applicable gaps above, rerun the full mandatory suite, then prepare final certificate. |
 
 ## Already closed implementation finding
