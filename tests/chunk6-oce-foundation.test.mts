@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 
 import { validateProvenance } from '../backend/src/contracts/provenance.ts';
 import { validateOceEvidence } from '../backend/src/oce/inputContract.ts';
-import { validateLifecycleTransition, isTerminalLifecycle } from '../backend/src/oce/lifecycle.ts';
+import { validateLifecycleTransition, isTerminalLifecycle, validateLifecycleHistory, validateRevalidation } from '../backend/src/oce/lifecycle.ts';
 import { rejectOceDecisionDependency, validateOceIntegration } from '../backend/src/oce/independence.ts';
 
 const provenance = {
@@ -47,20 +47,32 @@ test('C6-003 derived evidence requires derived provenance', () => {
   assert.ok(result.includes('DERIVED evidence must carry DERIVED provenance'));
 });
 
-test('C6-004 lifecycle never silently reactivates invalidated/cancelled/completed', () => {
-  assert.deepEqual(validateLifecycleTransition('INVALIDATED', 'ACTIVE'), [
-    'INVALIDATED opportunities cannot be silently reactivated',
-  ]);
-  assert.deepEqual(validateLifecycleTransition('CANCELLED', 'ACTIVE'), [
-    'CANCELLED opportunities cannot be silently reactivated',
-  ]);
-  assert.deepEqual(validateLifecycleTransition('COMPLETED', 'ACTIVE'), [
-    'COMPLETED opportunities cannot be silently reopened',
-  ]);
+test('C6-004 lifecycle progression and terminal states are deterministic', () => {
+  assert.deepEqual(validateLifecycleTransition('IDENTIFIED', 'VALIDATED', ['E1']), []);
+  assert.deepEqual(validateLifecycleTransition('VALIDATED', 'DEVELOPING', ['E1']), []);
+  assert.deepEqual(validateLifecycleTransition('DEVELOPING', 'ACTIVE', ['E1']), []);
+  assert.deepEqual(validateLifecycleTransition('ACTIVE', 'REALISING', ['E1']), []);
+  assert.deepEqual(validateLifecycleTransition('REALISING', 'COMPLETED', ['E1']), []);
+  assert.ok(validateLifecycleTransition('IDENTIFIED', 'ACTIVE', ['E1']).length > 0);
+  assert.ok(validateLifecycleTransition('INVALIDATED', 'ACTIVE', ['E1']).some((x) => x.includes('reactivated')));
+  assert.ok(validateLifecycleTransition('CANCELLED', 'ACTIVE', ['E1']).some((x) => x.includes('reactivated')));
+  assert.ok(validateLifecycleTransition('COMPLETED', 'ACTIVE', ['E1']).some((x) => x.includes('reopened')));
   assert.equal(isTerminalLifecycle('INVALIDATED'), true);
 });
 
-test('C6-005 external OCE integration is DATA_ONLY and version-pinned', () => {
+test('C6-005 lifecycle history preserves chronological evidence-backed events and delayed revalidation', () => {
+  const history = [
+    { opportunityId: 'O1', from: null, to: 'IDENTIFIED' as const, evidenceIds: ['E1'], timestamp: 1, reason: 'identified' },
+    { opportunityId: 'O1', from: 'IDENTIFIED' as const, to: 'VALIDATED' as const, evidenceIds: ['E1'], timestamp: 2, reason: 'validated' },
+    { opportunityId: 'O1', from: 'VALIDATED' as const, to: 'DELAYED' as const, evidenceIds: ['E1'], timestamp: 3, reason: 'delayed' },
+    { opportunityId: 'O1', from: 'DELAYED' as const, to: 'ACTIVE' as const, evidenceIds: ['E1'], timestamp: 4, reason: 'revalidated' },
+  ];
+  assert.deepEqual(validateLifecycleHistory(history), []);
+  assert.deepEqual(validateRevalidation('DELAYED', ['E2']), []);
+  assert.ok(validateRevalidation('DELAYED', []).length > 0);
+});
+
+test('C6-006 external OCE integration is DATA_ONLY and version-pinned', () => {
   assert.deepEqual(validateOceIntegration({
     consumer: 'OCE',
     provider: 'ROTATION',
