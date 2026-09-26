@@ -23,34 +23,38 @@ CHUNK 0–5 remain protected. In particular:
 - Missing data is never converted to zero.
 - Provenance and truth-state requirements are inherited from the locked baseline.
 
-## Initial implementation status
+## Current implementation status
 
 | Area | Source methodology | Current status |
 |---|---|---|
 | Input & Evidence Contract | OCE-INPUT-1.1 | **FOUNDATION IMPLEMENTED** |
-| Opportunity Identification | OIE-1.0 | NOT IMPLEMENTED |
-| Catalyst Mapping | COM-1.0 | NOT IMPLEMENTED |
-| Earnings Re-rating | ERO-1.0 | NOT IMPLEMENTED |
-| Valuation Re-rating | VRO-1.0 | NOT IMPLEMENTED |
-| Business & Capacity | BCO-1.0 | NOT IMPLEMENTED |
-| Industry & Cycle | ICO-1.0 | NOT IMPLEMENTED |
-| Market Share & Competitive | MCO-1.0 | NOT IMPLEMENTED |
-| Order Book & Visibility | OVO-1.0 | NOT IMPLEMENTED |
-| Operating Leverage | OLO-1.0 | NOT IMPLEMENTED |
-| Balance Sheet & Cash Flow | BCF-1.0 | NOT IMPLEMENTED |
-| Corporate/Strategic | CSO-1.0 | NOT IMPLEMENTED |
-| Risk vs Opportunity | ROS-1.0 | FOUNDATION CONTRACT ONLY |
-| Strength/Quality/Confidence | OSEQC-1.0 | FOUNDATION CONTRACT ONLY |
-| Lifecycle & Aging | OLA-1.0 | FOUNDATION IMPLEMENTED |
-| Aggregation & Output | OAO-1.0 | CONTRACT TYPES ONLY |
-| Deterministic Tests | OCE-TEST-1.0 | FOUNDATION TESTS ONLY |
-| Governance | OCE-GOV-1.0 | NOT LOCKED |
+| Opportunity Identification | OIE-1.0 | **FOUNDATION IMPLEMENTED** |
+| Catalyst Mapping | COM-1.0 | **FOUNDATION IMPLEMENTED** |
+| Earnings Re-rating | ERO-1.0 | **EVIDENCE CONTRACT IMPLEMENTED** |
+| Valuation Re-rating | VRO-1.0 | **EVIDENCE CONTRACT IMPLEMENTED** |
+| Business & Capacity | BCO-1.0 | **EVIDENCE CONTRACT IMPLEMENTED** |
+| Industry & Cycle | ICO-1.0 | **EVIDENCE CONTRACT IMPLEMENTED** |
+| Market Share & Competitive | MCO-1.0 | **EVIDENCE CONTRACT IMPLEMENTED** |
+| Order Book & Visibility | OVO-1.0 | **EVIDENCE CONTRACT IMPLEMENTED** |
+| Operating Leverage | OLO-1.0 | **EVIDENCE CONTRACT IMPLEMENTED** |
+| Balance Sheet & Cash Flow | BCF-1.0 | **FOUNDATION IMPLEMENTED** |
+| Corporate/Strategic | CSO-1.0 | **EVIDENCE CONTRACT IMPLEMENTED** |
+| Risk vs Opportunity | ROS-1.0 | **FOUNDATION IMPLEMENTED** |
+| Strength/Quality/Confidence | OSEQC-1.0 | **FOUNDATION IMPLEMENTED** |
+| Lifecycle & Aging | OLA-1.0 | **FOUNDATION IMPLEMENTED** |
+| Aggregation & Output | OAO-1.0 | **FOUNDATION IMPLEMENTED** |
+| Deterministic Tests | OCE-TEST-1.0 | **FOUNDATION TESTS IMPLEMENTED** |
+| Governance | OCE-GOV-1.0 | **NOT LOCKED** |
 
-## Explicit source gap preserved
+These are implementation statuses, not audit-pass claims.
+
+## Explicit source gaps preserved
 
 The authoritative draft requires lifecycle transitions to be deterministic, but the package does not provide a complete transition matrix. The implementation therefore enforces only the explicit rule that COMPLETED, INVALIDATED and CANCELLED opportunities cannot be silently reopened/reactivated. No additional transition rules are invented.
 
 Likewise, the package specifies opportunity categories and required separation rules but does not provide a universal numerical opportunity score. No score is being invented.
+
+The specialized opportunity modules currently establish evidence boundaries only. They do not fabricate formulas for ERO/VRO/BCO/ICO/MCO/OVO/OLO/CSO where the authoritative draft does not provide a complete numerical formula.
 
 ## 32-checkpoint gate
 
@@ -88,8 +92,8 @@ The 32 checkpoints remain the formal audit gate:
 31. Regression consistency with CHUNK 0–5
 32. Final lock criteria
 
-**Current verdict: NOT LOCK READY — implementation is incomplete.**
+**Current verdict: NOT LOCK READY — implementation and audit evidence are incomplete.**
 
-Next implementation sequence is to build the source-defined OIE/COM/ERO/VRO/BCO/ICO/MCO/OVO/OLO/BCF/CSO modules, then complete ROS/OSEQC/OAO, deterministic regression tests, governance checks and CI evidence.
+Next: complete the deterministic boundary tests, truth-state/no-fabrication/provenance regression coverage, cross-OCE isolation/circular-dependency checks, then run CI and perform the full 32-checkpoint repository audit.
 
 No lock certificate is created at this stage.
