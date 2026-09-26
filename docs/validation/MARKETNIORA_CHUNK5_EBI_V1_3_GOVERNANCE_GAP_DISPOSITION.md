@@ -25,16 +25,16 @@ Therefore CI #129 being green is necessary evidence, but it does not by itself s
 | 11 No weight redistribution | PASS — CI VERIFIED | CLOSED | Executable CDQ boundary guard and regression tests prove coverage does not mutate downstream weights. CI #142 passed with 347/347 tests. |
 | 12 ENE/RGQ/PGQ separation | PASS — CI VERIFIED | CLOSED | Executable sibling-engine independence boundary and regression tests passed. ENE, RGQ and PGQ may share source data but cannot consume sibling-engine decisions. CI #146 passed with 350/350 tests. |
 | 13 CFQ/BSQ/CEI separation | PASS — CI VERIFIED | CLOSED | Executable sibling-engine independence boundary and regression tests passed. CFQ, BSQ and CEI may share source data but cannot consume sibling-engine decisions. CI #150 completed successfully with Typecheck, Test suite, Prisma validate, and protected-engine verification all green. |
-| 14 BNI/CPI separation | IMPLEMENTED — PENDING CI | OPEN | Added an executable sibling-engine independence boundary and regression tests. BNI and CPI may share source evidence but cannot consume sibling-engine decisions. Fresh CI verification is required before closure. |
-| 15 GVI/ECI separation | IMPLEMENTED — PENDING CI | OPEN | Added an executable sibling-engine independence boundary and regression tests. GVI and ECI may share source evidence but cannot consume sibling-engine decisions. Fresh CI verification is required before closure. |
-| 16 BERI independence | IMPLEMENTED — PENDING CI | OPEN | Added an executable BERI independence boundary and regression tests. BERI may consume shared source evidence but cannot consume sibling EBI decision outputs. Fresh CI verification is required before closure. |
-| 17 CDQ independence | IMPLEMENTED — PENDING CI | OPEN | Added an executable CDQ independence boundary and regression tests. CDQ may consume source availability/validity metadata but cannot consume EBI engine decision outputs. Fresh CI verification is required before closure. |
-| 18–24 external engine independence | IMPLEMENTED — PENDING CI | OPEN | Added an executable version-pinned DATA_ONLY boundary and negative tests covering Rotation, TIE, RSE/DCS, OCE, Theme, Shariah and Stock Score. External engines cannot hold decision authority over EBI. Fresh CI verification is required before closure. |
-| 26 Circular dependency prevention | IMPLEMENTED — PENDING CI | OPEN | Added an executable directed integration-graph cycle detector with direct/multi-node/shared-dependency regression tests. Fresh CI verification is required before closure. |
-| 28 Restatement handling | IMPLEMENTED — PENDING CI | OPEN | Added deterministic restatement-chain validation and fail-closed terminal-version selection, with regression tests for missing links, self-supersession, period mismatch and ambiguity. Fresh CI verification is required before closure. |
-| 29 No-fabrication | IMPLEMENTED — PENDING CI | OPEN | Added an executable evidence/provenance boundary requiring source evidence, rejecting SOURCE_REQUIRED evidence for final conclusions, and requiring formula versions for derived evidence. Regression tests added; fresh CI verification is required before closure. |
-| 31 Output contract | IMPLEMENTED — PENDING CI | OPEN | Hardened OEP validation for evidence, 0–100 coverage bounds, source presence, and timestamp validity while preserving explicit nulls for unavailable optional fields. Regression tests added; fresh CI verification is required before closure. |
-| 32 Governance | IMPLEMENTED — PENDING CI | BLOCKING | Added fail-closed executable governance gate: all severity counts must be zero, mandatory tests/checkpoints must pass, unexplained/checkpoint failures must be zero, and explicit user confirmation is required. Fresh CI verification and final audit/certificate remain required. |
+| 14 BNI/CPI separation | PASS — CI VERIFIED | CLOSED | Executable sibling-engine independence boundary and regression tests verified by CI #182. |
+| 15 GVI/ECI separation | PASS — CI VERIFIED | CLOSED | Executable sibling-engine independence boundary and regression tests verified by CI #182. |
+| 16 BERI independence | PASS — CI VERIFIED | CLOSED | Executable BERI independence boundary and regression tests verified by CI #182. |
+| 17 CDQ independence | PASS — CI VERIFIED | CLOSED | Executable CDQ independence boundary and regression tests verified by CI #182. |
+| 18–24 external engine independence | PASS — CI VERIFIED | CLOSED | Version-pinned DATA_ONLY boundary and negative tests verified by CI #182. |
+| 26 Circular dependency prevention | PASS — CI VERIFIED | CLOSED | Directed cycle detector and regression tests verified by CI #182. |
+| 28 Restatement handling | PASS — CI VERIFIED | CLOSED | Deterministic restatement-chain validation and fail-closed terminal selection verified by CI #182. |
+| 29 No-fabrication | PASS — CI VERIFIED | CLOSED | Evidence/provenance boundary and regression tests verified by CI #182. |
+| 31 Output contract | PASS — CI VERIFIED | CLOSED | Hardened OEP output contract and regression tests verified by CI #182. |
+| 32 Governance | PASS — CI VERIFIED | CLOSED FOR IMPLEMENTATION | Fail-closed governance gate and regression tests verified by CI #182. Final lock still requires clean 32-checkpoint audit and explicit user confirmation. |
 
 ## Already closed implementation finding
 
@@ -49,6 +49,20 @@ Therefore CI #129 being green is necessary evidence, but it does not by itself s
 The items above are not being relabeled as defects without evidence. They are **open lock-gate gaps** because the current implementation audit explicitly marks the corresponding mandatory checkpoints PARTIAL or CONTRACT ONLY, while the authoritative v1.3 lock rule requires all mandatory checkpoints to pass.
 
 No locked baseline is changed by this register.
+
+## CI #182 verification evidence
+
+- Run: **#182**
+- Run ID: `36235493472`
+- Head commit: `ebde7cfe349c419e16a9491449e419e81648fe56`
+- Conclusion: **success**
+- Typecheck: PASS
+- Test suite: PASS
+- Prisma validate: PASS
+- Protected-engine verification: PASS
+- Test log: **398 passed, 0 failed**
+
+This run verifies the newly implemented checkpoint boundaries on the current implementation branch.
 
 ## Current decision
 
