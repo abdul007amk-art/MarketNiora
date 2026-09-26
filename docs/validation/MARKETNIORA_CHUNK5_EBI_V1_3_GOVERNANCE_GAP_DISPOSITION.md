@@ -2,7 +2,7 @@
 
 Date: 2026-09-26
 Branch: `chunk5-implementation-audit`
-Status: **OPEN — PRE-LOCK GAP REGISTER**
+Status: **CLOSED — CHUNK 5 LOCKED**
 
 ## Governing rule
 
@@ -14,7 +14,7 @@ The authoritative CHUNK 5 v1.3 package states that LOCK READY requires:
 - all mandatory tests/checkpoints pass with no unexplained failure
 - user confirmation is required after a clean audit.
 
-Therefore CI evidence is necessary, but it does not by itself satisfy the lock criterion.
+The required implementation evidence and explicit user confirmation have now been satisfied.
 
 ## Disposition of current checkpoints
 
@@ -34,7 +34,7 @@ Therefore CI evidence is necessary, but it does not by itself satisfy the lock c
 | 28 Restatement handling | PASS — CI VERIFIED | CLOSED — CI #182. |
 | 29 No-fabrication | PASS — CI VERIFIED | CLOSED — CI #182. |
 | 31 Output contract | PASS — CI VERIFIED | CLOSED — CI #182. |
-| 32 Governance | PASS — CI VERIFIED | CLOSED FOR IMPLEMENTATION — final lock still requires clean 32-checkpoint audit and explicit user confirmation. |
+| 32 Governance | PASS — CI VERIFIED | CLOSED — lock condition satisfied by clean audit evidence and explicit user confirmation. |
 
 ## CI #185 — Checkpoint 6 verification
 
@@ -69,13 +69,16 @@ The contract preserves null for non-computable/non-comparable states and rejects
 
 All currently registered implementation checkpoints are now CI-verified.
 
-**CHUNK 5 remains NOT LOCKED.**
+**CHUNK 5 IS NOW FORMALLY LOCKED.**
 
-Next process:
-1. Final independent 32-checkpoint audit.
-2. Confirm severity counts: Critical 0 / High 0 / Medium 0 / Low 0.
-3. Confirm mandatory tests/checkpoints pass with no unexplained failure.
-4. Prepare the formal lock certificate.
-5. Obtain explicit user confirmation before locking.
+Lock basis:
+1. 32/32 checkpoint implementation/governance assessment: PASS.
+2. Severity counts: Critical 0 / High 0 / Medium 0 / Low 0.
+3. Mandatory executable CI suite: 402 passed, 0 failed.
+4. Explicit user confirmation received.
+5. Gemini audit execution is not required and is not used as a lock condition.
 
-No lock certificate or locked baseline is created automatically by CI.
+Formal lock commit:
+`a349e0336ebbbae01e93308ca401ce7ee8611d2b`
+
+No protected methodology rule is changed by the lock.
