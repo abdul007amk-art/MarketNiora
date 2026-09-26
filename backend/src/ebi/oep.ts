@@ -36,11 +36,6 @@ export function isEbiTruthState(value: string): value is EbiTruthState {
   return (EBI_TRUTH_STATES as readonly string[]).includes(value);
 }
 
-/**
- * A multi-input derived output cannot have a stronger truth state than
- * its weakest required input. The returned state is therefore the
- * maximum rank (weakest state) among the supplied inputs.
- */
 export function resolveDerivedTruthState(states: EbiTruthState[]): EbiTruthState {
   if (states.length === 0) {
     throw new Error('at least one truth state is required');
@@ -64,13 +59,27 @@ export interface OepOutput {
 
 export function validateOepOutput(o: OepOutput): string[] {
   const errors: string[] = [];
+
   if (!o.title.trim()) errors.push('title is required');
-  if (!isEbiTruthState(o.truthState)) errors.push('truthState is not an authoritative CHUNK 0 truth state');
+  if (!isEbiTruthState(o.truthState)) {
+    errors.push('truthState is not an authoritative CHUNK 0 truth state');
+  }
+  if (!Array.isArray(o.keyEvidence)) {
+    errors.push('keyEvidence must be an array');
+  } else if (o.keyEvidence.some((e) => typeof e !== 'string' || !e.trim())) {
+    errors.push('keyEvidence entries must be non-empty strings');
+  }
   if (
     o.dataCoverage !== null &&
-    (!Number.isFinite(o.dataCoverage) || o.dataCoverage < 0)
+    (!Number.isFinite(o.dataCoverage) || o.dataCoverage < 0 || o.dataCoverage > 100)
   ) {
-    errors.push('dataCoverage must be null or a non-negative finite value');
+    errors.push('dataCoverage must be null or a finite percentage from 0 to 100');
+  }
+  if (o.source !== null && !o.source.trim()) {
+    errors.push('source must be null or a non-empty string');
+  }
+  if (o.lastUpdated !== null && Number.isNaN(Date.parse(o.lastUpdated))) {
+    errors.push('lastUpdated must be null or a valid date-time string');
   }
   return errors;
 }
