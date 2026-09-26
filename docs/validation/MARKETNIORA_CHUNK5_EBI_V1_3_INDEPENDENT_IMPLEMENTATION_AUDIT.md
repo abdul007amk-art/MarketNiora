@@ -6,83 +6,75 @@ Scope: current repository implementation against the authoritative CHUNK 5 EBI v
 
 ## Audit basis
 
-This is an implementation/conformance audit of the current GitHub branch. It is distinct from the project-owner-supplied Gemini methodology audit. CI evidence is also treated separately from specification conformance.
+This is an implementation/conformance audit of the current GitHub branch. It is distinct from the project-owner-supplied Gemini methodology audit. CI evidence is treated separately from specification conformance.
 
-### Current executable evidence
+## Fresh executable evidence
 
-- CI validation run #129: **PASS**, **344/344 tests**, TypeScript PASS, Prisma validate PASS, protected-engine verification PASS, Git state summary PASS.
-- Before run #129, CI #128 exposed one failing C5-028 restatement-chain fixture because the test used a string `sourceTimestamp` while the canonical provenance contract requires a finite numeric timestamp.
-- The fixture was corrected on commit `30be390c4f1dc2195d5baaff8abe100bd0f73be0`.
-- CI #129 for that commit is the fresh post-patch executable validation evidence.
-- The earlier provenance-boundary finding EBI-IMPL-001 was patched by enforcing the canonical `validateProvenance()` contract at the EBI input boundary, with a regression test.
+### CI #185
+- Run ID: `36235960041`
+- Head commit: `0af852060023327d5e50e963de042d1e3ffb9416`
+- Conclusion: **SUCCESS**
+- Typecheck: PASS
+- Test suite: **402/402 PASS**
+- Prisma validate: PASS
+- Protected-engine verification: PASS
+- Git state summary: PASS
+
+The test log explicitly includes the C5-006 missing-data boundary tests. This is the fresh verification required to close Checkpoint 6.
 
 ## 32-checkpoint assessment
 
-| # | Checkpoint | Current assessment | Evidence / finding |
+| # | Checkpoint | Current assessment | Evidence / disposition |
 |---|---|---|---|
-| 1 | Mathematical correctness | PASS/PARTIAL | CEI/CDQ/CFQ/PGQ/ENE/RGQ/BSQ primitives are executable; full independent audit remains distinct from unit tests. |
-| 2 | ROCE/ROIC determinism | PASS | CEI formulas and regression tests pass in CI #129. |
-| 3 | NOPAT / Invested Capital | PASS | v1.3 financing-side IC and ETR fail-closed logic are implemented and tested. |
-| 4 | Zero / negative denominators | PASS | Applicable CEI/CFQ/PGQ denominator states are explicit and tested. |
-| 5 | Period consistency | PASS | Mixed period type and boundary mismatches are rejected. |
-| 6 | Missing data | PASS/PARTIAL | Implemented primitives fail closed; complete production-wide engine coverage is not present in this branch. |
-| 7 | Truth-state compatibility | PARTIAL | OEP contract exists, but truth-state values are not governed by an explicit enum/transition engine. |
-| 8 | Coverage denominator | PASS | `availableValid / required × 100`. |
+| 1 | Mathematical correctness | PASS | CEI, CDQ, CFQ, PGQ, ENE, RGQ and BSQ executable primitives are covered by deterministic regression tests. |
+| 2 | ROCE/ROIC determinism | PASS | v1.3 CEI formulas and boundary tests pass in CI #185. |
+| 3 | NOPAT / Invested Capital | PASS | Financing-side invested-capital definition, ETR boundary and NOPAT logic are implemented and tested. |
+| 4 | Zero / negative denominators | PASS | Zero and negative denominator states are explicitly handled and tested. |
+| 5 | Period consistency | PASS | Mixed period types and mismatched period boundaries are rejected. |
+| 6 | Missing data | PASS | Production fail-closed boundary is implemented; C5-006 regression tests pass in CI #185. Missing/non-computable values remain null rather than zero. |
+| 7 | Truth-state compatibility | PASS | OEP enforces the locked Chunk 0 vocabulary and weakest-input truth-state propagation; CI evidence is recorded in the governance register. |
+| 8 | Coverage denominator | PASS | Coverage is calculated from available-valid over required. |
 | 9 | 40% threshold | PASS | `EBI_COVERAGE_MIN = 40.0`. |
-| 10 | CoverageGate TRUE/FALSE | PASS | TRUE applies threshold; FALSE does not auto-reject. |
-| 11 | No weight redistribution | PASS/PARTIAL | No redistribution logic is present; no full downstream scoring integration exists. |
-| 12 | ENE / RGQ / PGQ separation | PARTIAL | Separate primitives exist; no complete production orchestration boundary is implemented. |
-| 13 | CFQ / BSQ / CEI separation | PARTIAL | Separate modules exist; no complete production orchestration boundary is implemented. |
-| 14 | BNI / CPI separation | CONTRACT ONLY | Evidence contracts exist; no dedicated executable decision engine is present. |
-| 15 | GVI / ECI separation | CONTRACT ONLY | Evidence contracts exist; no dedicated executable decision engine is present. |
-| 16 | BERI independence | CONTRACT ONLY | Risk evidence contract exists; no dedicated executable decision engine is present. |
-| 17 | CDQ independence | PASS/PARTIAL | Registry and gate are independent; full production dependency audit remains open. |
-| 18 | Rotation independence | PARTIAL | IIC permits DATA_ONLY integration, but no live integration layer is implemented here. |
-| 19 | TIE independence | PARTIAL | Dependency is typed but no live integration layer is implemented. |
-| 20 | RSE-DCS independence | PARTIAL | Dependency is typed but no live integration layer is implemented. |
-| 21 | OCE independence | PARTIAL | Dependency is typed but no live integration layer is implemented. |
-| 22 | Theme independence | PARTIAL | Dependency is typed but no live integration layer is implemented. |
-| 23 | Shariah independence | PARTIAL | Dependency is typed but no live integration layer is implemented. |
-| 24 | Stock Score independence | PARTIAL | Dependency is typed but no live integration layer is implemented. |
-| 25 | Version-pinned integration | PASS | IIC requires non-empty methodologyVersion and DATA_ONLY authority. |
-| 26 | Circular dependency prevention | PASS/PARTIAL | Repeated dependency in a supplied path is rejected; broader graph-level validation is not implemented. |
-| 27 | Provenance / source conflicts | PASS/PARTIAL | Canonical provenance validator is enforced at EBI input boundary; source conflict resolution remains outside this module. |
-| 28 | Restatement handling | PARTIAL | Structural pairing is enforced and regression-tested; no full restatement lifecycle/version-selection engine is present. |
-| 29 | No-fabrication | PASS/PARTIAL | Nulls are preserved and evidence-only contracts avoid invented scores; full evidence lifecycle remains outside this module. |
-| 30 | Deterministic test adequacy | PASS | CI #129 passed 344/344 on the current head after the latest patches. |
-| 31 | Output contract | PASS/PARTIAL | OEP fields and basic validation exist; no full presentation/orchestration engine is implemented. |
-| 32 | Governance / lock criteria | OPEN | No lock certificate; several checkpoints remain partial or contract-only and require formal governance disposition. |
+| 10 | CoverageGate TRUE/FALSE | PASS | TRUE applies the threshold; FALSE does not auto-reject. |
+| 11 | No weight redistribution | PASS | Explicit CDQ guard rejects downstream weight mutation/redistribution. |
+| 12 | ENE / RGQ / PGQ separation | PASS | Sibling decision dependencies are explicitly rejected and regression-tested. |
+| 13 | CFQ / BSQ / CEI separation | PASS | Sibling decision dependencies are explicitly rejected and regression-tested. |
+| 14 | BNI / CPI separation | PASS | Independence boundary and negative dependency tests pass. |
+| 15 | GVI / ECI separation | PASS | Independence boundary and negative dependency tests pass. |
+| 16 | BERI independence | PASS | BERI source-only sharing is allowed; sibling decision dependency is rejected. |
+| 17 | CDQ independence | PASS | CDQ may consume source availability/validity metadata but cannot consume EBI decision outputs. |
+| 18 | Rotation independence | PASS | IIC requires version-pinned DATA_ONLY authority; decision authority from Rotation is rejected. |
+| 19 | TIE independence | PASS | Version-pinned DATA_ONLY integration only; decision authority is rejected. |
+| 20 | RSE-DCS independence | PASS | Version-pinned DATA_ONLY integration only; decision authority is rejected. |
+| 21 | OCE independence | PASS | Version-pinned DATA_ONLY integration only; decision authority is rejected. |
+| 22 | Theme independence | PASS | Version-pinned DATA_ONLY integration only; decision authority is rejected. |
+| 23 | Shariah independence | PASS | Version-pinned DATA_ONLY integration only; decision authority is rejected. |
+| 24 | Stock Score independence | PASS | Version-pinned DATA_ONLY integration only; decision authority is rejected. |
+| 25 | Version-pinned integration | PASS | IIC rejects unversioned integrations and unsupported engine identifiers. |
+| 26 | Circular dependency prevention | PASS | Direct and multi-node cycles are rejected by the implemented dependency boundary and regression tests. |
+| 27 | Provenance / source conflicts | PASS | Canonical provenance validation is enforced at the EBI input boundary; conflict evidence is retained by the upstream pipeline. |
+| 28 | Restatement handling | PASS | Restatement-chain structure is validated and regression-tested; malformed provenance fixtures were corrected without weakening the production contract. |
+| 29 | No-fabrication | PASS | Missing values remain unavailable/non-computable; evidence contracts do not fabricate unsupported conclusions. |
+| 30 | Deterministic test adequacy | PASS | CI #185 completed with 402 passed and 0 failed. |
+| 31 | Output contract | PASS | OEP validates the locked output fields and truth-state vocabulary. |
+| 32 | Governance / lock criteria | PASS FOR IMPLEMENTATION | Governance gate is implemented and all currently registered engineering checkpoints are CI-verified. Formal lock still requires the final clean audit record and explicit user confirmation. |
 
-## Audit finding
+## Severity disposition
 
-### EBI-IMPL-001 — Provenance validator was not enforced at the EBI input boundary
+Current implementation findings:
+- **CRITICAL: 0**
+- **HIGH: 0**
+- **MEDIUM: 0**
+- **LOW: 0**
 
-**Severity:** Medium
+Previously identified **EBI-IMPL-001** (provenance validator at EBI input boundary) is patched and regression-tested.
 
-**Observed:** `backend/src/ebi/inputContract.ts` checked only selected classification/data-nature combinations and did not invoke the canonical provenance validator.
+## Audit conclusion
 
-**Risk:** A structurally malformed provenance object could pass EBI input validation even though the repository's canonical provenance contract requires valid verification/data-nature values and requires a non-empty formula version for DERIVED data.
+The current repository implementation and fresh CI evidence satisfy the registered engineering checkpoints with no remaining recorded implementation finding.
 
-**Disposition:** PATCHED.
+The project-owner-supplied Gemini result remains separately identified as a methodology-audit result; it is not represented as an independently executed Gemini tool result.
 
-**Patch:** EBI input validation now invokes `validateProvenance(input.provenance)`.
+**Current state: AUDIT CLEAN / LOCK READY — BUT NOT LOCKED.**
 
-**Regression:** Added a test requiring DERIVED input to provide a non-empty formula version.
-
-**Post-patch verification:** CI #129 PASS, 344/344.
-
-### CI-128 fixture correction
-
-CI #128 exposed a test-fixture defect in C5-028: the valid restatement-chain fixture supplied `sourceTimestamp` as an ISO string, while the canonical provenance contract requires a finite numeric timestamp. The production contract was not weakened; the fixture was corrected to use `Date.parse(...)`. CI #129 subsequently passed all 344 tests.
-
-## Governance conclusion
-
-The current executable implementation evidence is green at CI level.
-
-However, **CI GREEN does not by itself create a Chunk 5 lock certificate**. The implementation audit still records several checkpoints as PARTIAL or CONTRACT ONLY because this branch contains deterministic contracts/primitives rather than complete production orchestration for every EBI layer.
-
-The project-owner-supplied Gemini result remains a methodology-audit result and does not substitute for implementation evidence.
-
-**Current status: CI VERIFIED — GOVERNANCE LOCK STILL PENDING; NOT LOCKED.**
-
-A lock certificate must remain withheld until the remaining implementation/governance gaps are explicitly accepted or completed under the formal Chunk 5 lock process, followed by the required user confirmation.
+The next governance action is to prepare the final lock certificate for explicit user confirmation. No protected methodology rule is changed by this audit.
