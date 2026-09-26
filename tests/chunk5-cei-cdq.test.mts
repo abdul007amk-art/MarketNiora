@@ -7,6 +7,7 @@ import {
   calculateCoverage,
   applyCoverageGate,
   missingMandatoryProductionEngines,
+  validateNoWeightRedistribution,
 } from '../backend/src/ebi/cdq.ts';
 
 function base(overrides: Partial<CeiInputs> = {}): CeiInputs {
@@ -112,4 +113,21 @@ test('CDQ production registry exactly matches the v1.3 mandatory flags', () => {
     BERI: false,
   });
   assert.deepEqual(missingMandatoryProductionEngines(['ENE', 'RGQ', 'PGQ', 'CFQ', 'BSQ', 'CEI']), []);
+});
+
+
+test('CDQ-011: coverage never redistributes downstream weights', () => {
+  const original = { ENE: 0.25, RGQ: 0.25, PGQ: 0.25, CEI: 0.25 };
+  assert.deepEqual(validateNoWeightRedistribution(original, { ...original }), []);
+  assert.ok(
+    validateNoWeightRedistribution(original, { ENE: 1 / 3, RGQ: 1 / 3, PGQ: 1 / 3, CEI: 0 })
+      .includes('automatic weight redistribution detected for ENE'),
+  );
+});
+
+test('CDQ-011: invalid weight inputs fail closed', () => {
+  assert.ok(
+    validateNoWeightRedistribution({ ENE: 0.25 }, { ENE: Number.NaN })
+      .includes('weight for ENE must be finite'),
+  );
 });
