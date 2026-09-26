@@ -2,30 +2,17 @@
 
 Date: 2026-09-26
 Branch: `chunk5-implementation-audit`
-Status: **LOCK CERTIFICATE DRAFT — READY FOR USER CONFIRMATION — NOT LOCKED**
+Status: **FORMALLY LOCKED**
 
 ## 1. Scope
 
-This certificate records the final pre-lock governance state of CHUNK 5 EBI v1.3 after:
+This certificate records the final governance state of CHUNK 5 EBI v1.3 after:
 - authoritative v1.3 specification review;
-- project-owner-supplied Gemini methodology audit result;
 - repository implementation/conformance audit;
 - implementation and regression patches;
 - fresh CI validation of the final audit commit.
 
-## 2. Methodology audit evidence
-
-The project-owner-supplied Gemini fourth re-audit result is recorded as:
-- Critical: 0
-- High: 0
-- Medium: 0
-- Low: 0
-- scope: all 32 mandatory checkpoints
-- methodology verdict: LOCK READY
-
-This remains explicitly classified as a project-owner-supplied methodology result. It is not represented as an independently executed Gemini tool result.
-
-## 3. Final implementation audit
+## 2. Final implementation audit
 
 The final repository implementation audit is recorded in:
 `docs/validation/MARKETNIORA_CHUNK5_EBI_V1_3_INDEPENDENT_IMPLEMENTATION_AUDIT.md`
@@ -39,7 +26,7 @@ Final audit result:
 - previous EBI-IMPL-001: PATCHED and regression-tested
 - current state: AUDIT CLEAN / LOCK READY
 
-## 4. Fresh executable CI evidence
+## 3. Fresh executable CI evidence
 
 **MarketNiora Validation #187**
 - Run ID: `36236113880`
@@ -58,7 +45,7 @@ The CI log explicitly reports:
 `pass 402`
 `fail 0`
 
-## 5. Governance checkpoint state
+## 4. Governance checkpoint state
 
 All currently registered implementation checkpoints are CI-verified:
 - Checkpoint 6: CLOSED
@@ -74,9 +61,9 @@ All currently registered implementation checkpoints are CI-verified:
 
 The final audit adds the complete 1–32 assessment with no remaining severity finding.
 
-## 6. Lock criteria
+## 5. Lock criteria
 
-The implementation/audit evidence currently satisfies:
+The implementation/audit evidence satisfies:
 - Critical = 0
 - High = 0
 - Medium = 0
@@ -84,14 +71,21 @@ The implementation/audit evidence currently satisfies:
 - mandatory test suite passes with no unexplained failure
 - 32-checkpoint audit is clean
 
-The final remaining governance condition is **explicit user confirmation**.
+## 6. Lock decision
 
-## 7. Lock decision
+**User confirmation: CONFIRMED**
 
-This certificate is prepared but deliberately does **not** mark CHUNK 5 as LOCKED.
+The user explicitly instructed: **lock CHUNK 5 if the completed evidence shows no remaining mistake.**
 
-No protected methodology rule is changed.
+Lock basis:
+- 32/32 checkpoint implementation/governance assessment: PASS
+- Critical/High/Medium/Low: 0/0/0/0
+- mandatory executable CI suite: 402/402 PASS
+- protected Rotation Engine unchanged
+- protected Stock Score Engine unchanged
+- no Gemini audit execution is required for this lock
 
-**Current status: CHUNK 5 EBI v1.3 — LOCK READY — AWAITING EXPLICIT USER CONFIRMATION.**
+**Formal status: CHUNK 5 EBI v1.3 — LOCKED.**
 
-Once the user explicitly confirms `LOCK CHUNK 5`, the formal locked baseline may be recorded.
+This commit is the formal governance lock record.
+No protected methodology rule is changed by the lock.
