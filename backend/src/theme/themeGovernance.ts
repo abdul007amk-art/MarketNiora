@@ -1,48 +1,13 @@
 /** CHUNK 7 — TIE-GOV-1.0 governance, audit and lock gate. */
-export const TIE_GOV_METHODOLOGY_VERSION = 'TIE-GOV-1.0';
-
-export type AuditSeverity = 'CRITICAL' | 'HIGH' | 'MEDIUM' | 'LOW';
-
-export interface ThemeAuditFinding {
-  findingId: string;
-  severity: AuditSeverity;
-  part: string;
-  rule: string;
-  rationale: string;
-  patchRequired: string;
+export const TIE_GOV_METHODOLOGY_VERSION='TIE-GOV-1.0';
+export type AuditSeverity='CRITICAL'|'HIGH'|'MEDIUM'|'LOW';
+export interface ThemeAuditFinding{findingId:string;severity:AuditSeverity;part:string;rule:string;rationale:string;patchRequired:string;}
+export interface ThemeAuditResult{findings:ThemeAuditFinding[];counts:Record<AuditSeverity,number>;verdict:'LOCK READY'|'PATCH REQUIRED';}
+export function evaluateThemeAudit(findings:ThemeAuditFinding[]):ThemeAuditResult{
+ const counts:Record<AuditSeverity,number>={CRITICAL:0,HIGH:0,MEDIUM:0,LOW:0};for(const f of findings)counts[f.severity]++;
+ return {findings:[...findings],counts,verdict:Object.values(counts).every(v=>v===0)?'LOCK READY':'PATCH REQUIRED'};
 }
-
-export interface ThemeAuditResult {
-  findings: ThemeAuditFinding[];
-  verdict: 'LOCK READY' | 'PATCH REQUIRED';
-}
-
-export function evaluateThemeAudit(findings: ThemeAuditFinding[]): ThemeAuditResult {
-  return {
-    findings: [...findings],
-    verdict: findings.length === 0 ? 'LOCK READY' : 'PATCH REQUIRED',
-  };
-}
-
-/** Locking requires an independent audit with zero findings at every severity. */
-export function isLockReadyAfterIndependentAudit(
-  findings: ThemeAuditFinding[],
-  independentAuditCompleted: boolean,
-): boolean {
-  return independentAuditCompleted && findings.length === 0;
-}
-
-/** Individual Parts must not be treated as locked before the integrated audit. */
-export function individualPartCanBeLockedBeforeIntegratedAudit(): boolean {
-  return false;
-}
-
-/** Locked methodology changes require a new methodology version. */
-export function methodologyChangeRequiresNewVersion(): boolean {
-  return true;
-}
-
-/** Governance preserves no-silent-overwrite and no-fabrication requirements. */
-export function governanceRequiresNoSilentOverwriteAndNoFabrication(): boolean {
-  return true;
-}
+export function isLockReadyAfterIndependentAudit(findings:ThemeAuditFinding[],independentAuditCompleted:boolean):boolean{const r=evaluateThemeAudit(findings);return independentAuditCompleted&&r.counts.CRITICAL===0&&r.counts.HIGH===0&&r.counts.MEDIUM===0&&r.counts.LOW===0;}
+export function individualPartCanBeLockedBeforeIntegratedAudit():boolean{return false;}
+export function methodologyChangeRequiresNewVersion():boolean{return true;}
+export function governanceRequiresNoSilentOverwriteAndNoFabrication():boolean{return true;}
