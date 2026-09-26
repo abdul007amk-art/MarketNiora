@@ -1,38 +1,6 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import {
-  TIE_GOV_METHODOLOGY_VERSION,
-  evaluateThemeAudit,
-  isLockReadyAfterIndependentAudit,
-  individualPartCanBeLockedBeforeIntegratedAudit,
-  methodologyChangeRequiresNewVersion,
-  governanceRequiresNoSilentOverwriteAndNoFabrication,
-} from '../backend/src/theme/themeGovernance.ts';
-
-test('TIE-GOV-001 audit is LOCK READY only with zero findings and independent audit complete',()=>{
-  assert.equal(TIE_GOV_METHODOLOGY_VERSION,'TIE-GOV-1.0');
-  assert.deepEqual(evaluateThemeAudit([]),{findings:[],verdict:'LOCK READY'});
-  assert.equal(isLockReadyAfterIndependentAudit([],true),true);
-  assert.equal(isLockReadyAfterIndependentAudit([],false),false);
-});
-
-test('TIE-GOV-002 any finding requires PATCH REQUIRED',()=>{
-  const finding={
-    findingId:'F-1',severity:'HIGH' as const,part:'Part 1',rule:'hierarchy',
-    rationale:'test finding',patchRequired:'test patch',
-  };
-  assert.deepEqual(evaluateThemeAudit([finding]),{findings:[finding],verdict:'PATCH REQUIRED'});
-  assert.equal(isLockReadyAfterIndependentAudit([finding],true),false);
-});
-
-test('TIE-GOV-003 individual Parts cannot be locked before integrated audit',()=>{
-  assert.equal(individualPartCanBeLockedBeforeIntegratedAudit(),false);
-});
-
-test('TIE-GOV-004 methodology changes require new version',()=>{
-  assert.equal(methodologyChangeRequiresNewVersion(),true);
-});
-
-test('TIE-GOV-005 governance requires no silent overwrite and no fabrication',()=>{
-  assert.equal(governanceRequiresNoSilentOverwriteAndNoFabrication(),true);
-});
+import test from 'node:test';import assert from 'node:assert/strict';import {TIE_GOV_METHODOLOGY_VERSION,evaluateThemeAudit,isLockReadyAfterIndependentAudit,individualPartCanBeLockedBeforeIntegratedAudit,methodologyChangeRequiresNewVersion,governanceRequiresNoSilentOverwriteAndNoFabrication} from '../backend/src/theme/themeGovernance.ts';
+test('TIE-GOV-001 audit is LOCK READY only with zero findings and independent audit complete',()=>{assert.equal(TIE_GOV_METHODOLOGY_VERSION,'TIE-GOV-1.0');assert.deepEqual(evaluateThemeAudit([]),{findings:[],counts:{CRITICAL:0,HIGH:0,MEDIUM:0,LOW:0},verdict:'LOCK READY'});assert.equal(isLockReadyAfterIndependentAudit([],true),true);assert.equal(isLockReadyAfterIndependentAudit([],false),false);});
+test('TIE-GOV-002 any finding requires PATCH REQUIRED',()=>{const finding={findingId:'F-1',severity:'HIGH' as const,part:'Part 1',rule:'hierarchy',rationale:'test finding',patchRequired:'test patch'};assert.deepEqual(evaluateThemeAudit([finding]).counts,{CRITICAL:0,HIGH:1,MEDIUM:0,LOW:0});assert.equal(evaluateThemeAudit([finding]).verdict,'PATCH REQUIRED');assert.equal(isLockReadyAfterIndependentAudit([finding],true),false);});
+test('TIE-GOV-003 individual Parts cannot be locked before integrated audit',()=>assert.equal(individualPartCanBeLockedBeforeIntegratedAudit(),false));
+test('TIE-GOV-004 methodology changes require new version',()=>assert.equal(methodologyChangeRequiresNewVersion(),true));
+test('TIE-GOV-005 governance requires no silent overwrite and no fabrication',()=>assert.equal(governanceRequiresNoSilentOverwriteAndNoFabrication(),true));
