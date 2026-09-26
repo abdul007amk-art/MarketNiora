@@ -24,7 +24,7 @@ Therefore CI #129 being green is necessary evidence, but it does not by itself s
 | 7 Truth-state compatibility | PASS — CI VERIFIED | CLOSED | OEP enforces the locked CHUNK 0 truth-state vocabulary and resolves multi-input derived truth state to the weakest required input. CI #136 passed with 345/345 tests, including the new C5-007 regression tests. Full 32-checkpoint governance remains open. |
 | 11 No weight redistribution | PASS — CI VERIFIED | CLOSED | Executable CDQ boundary guard and regression tests prove coverage does not mutate downstream weights. CI #142 passed with 347/347 tests. |
 | 12 ENE/RGQ/PGQ separation | PASS — CI VERIFIED | CLOSED | Executable sibling-engine independence boundary and regression tests passed. ENE, RGQ and PGQ may share source data but cannot consume sibling-engine decisions. CI #146 passed with 350/350 tests. |
-| 13 CFQ/BSQ/CEI separation | IMPLEMENTED — PENDING CI | OPEN | Added an executable sibling-engine independence boundary and regression tests. CFQ, BSQ and CEI may share source data but cannot consume sibling-engine decisions. Fresh CI verification is required before closure. |
+| 13 CFQ/BSQ/CEI separation | PASS — CI VERIFIED | CLOSED | Executable sibling-engine independence boundary and regression tests passed. CFQ, BSQ and CEI may share source data but cannot consume sibling-engine decisions. CI #150 completed successfully with Typecheck, Test suite, Prisma validate, and protected-engine verification all green. |
 | 14 BNI/CPI separation | CONTRACT ONLY | OPEN | Either implement required executable decision/evidence boundary or formally document why contract-only is sufficient for the v1.3 production scope. |
 | 15 GVI/ECI separation | CONTRACT ONLY | OPEN | Same disposition requirement. |
 | 16 BERI independence | CONTRACT ONLY | OPEN | Same disposition requirement. |
@@ -54,4 +54,4 @@ No locked baseline is changed by this register.
 
 **CHUNK 5 remains NOT LOCKED.**
 
-The next engineering process is to resolve the applicable open checkpoint gaps, beginning with the smallest deterministic governance contracts and their tests, then re-run the complete validation suite and update the 32-checkpoint audit. Checkpoint 7 is the first implementation pass; it is not yet marked PASS until fresh CI and re-audit evidence are recorded.
+The next engineering process is to resolve the applicable open checkpoint gaps, beginning with the smallest deterministic governance contracts and their tests, then re-run the complete validation suite and update the 32-checkpoint audit. Checkpoints 7, 11, 12, and 13 are now CI-verified and closed; the remaining listed checkpoints stay open until their required evidence is implemented or formally scoped.
