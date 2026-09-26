@@ -5,60 +5,54 @@ Branch: `chunk6-oce-implementation`
 Status: **IN PROGRESS — NOT LOCKED**
 
 ## Authoritative source
-
-Primary source:
 `MarketNiora_CHUNK_6_OCE_Audit_Package.pdf`
 
-The package is a consolidated Parts 1–18 OCE-1.0 draft and explicitly requires a full 32-checkpoint audit before formal lock.
+The package is a consolidated Parts 1–18 OCE-1.0 draft and requires a full 32-checkpoint audit before formal lock.
 
 No Gemini audit execution is being used for this process.
 
 ## Locked dependency boundaries
-
-CHUNK 0–5 remain protected. In particular:
+- CHUNK 0–5 remain protected.
 - CHUNK 5 EBI v1.3 remains formally locked.
 - OCE may consume EBI evidence but cannot alter EBI or Stock Score.
 - OCE must not depend on Rotation, Stock Score, Theme or Shariah decision authority.
-- Required external integration is DATA_ONLY and version-pinned.
+- External integration is DATA_ONLY and version-pinned.
 - Missing data is never converted to zero.
 - Provenance and truth-state requirements are inherited from the locked baseline.
 
 ## Current implementation status
-
-| Area | Source methodology | Current status |
-|---|---|---|
-| Input & Evidence Contract | OCE-INPUT-1.1 | **FOUNDATION IMPLEMENTED** |
-| Opportunity Identification | OIE-1.0 | **FOUNDATION IMPLEMENTED** |
-| Catalyst Mapping | COM-1.0 | **FOUNDATION IMPLEMENTED** |
-| Earnings Re-rating | ERO-1.0 | **EVIDENCE CONTRACT IMPLEMENTED** |
-| Valuation Re-rating | VRO-1.0 | **EVIDENCE CONTRACT IMPLEMENTED** |
-| Business & Capacity | BCO-1.0 | **EVIDENCE CONTRACT IMPLEMENTED** |
-| Industry & Cycle | ICO-1.0 | **EVIDENCE CONTRACT IMPLEMENTED** |
-| Market Share & Competitive | MCO-1.0 | **EVIDENCE CONTRACT IMPLEMENTED** |
-| Order Book & Visibility | OVO-1.0 | **EVIDENCE CONTRACT IMPLEMENTED** |
-| Operating Leverage | OLO-1.0 | **EVIDENCE CONTRACT IMPLEMENTED** |
-| Balance Sheet & Cash Flow | BCF-1.0 | **FOUNDATION IMPLEMENTED** |
-| Corporate/Strategic | CSO-1.0 | **EVIDENCE CONTRACT IMPLEMENTED** |
-| Risk vs Opportunity | ROS-1.0 | **FOUNDATION IMPLEMENTED** |
-| Strength/Quality/Confidence | OSEQC-1.0 | **FOUNDATION IMPLEMENTED** |
-| Lifecycle & Aging | OLA-1.0 | **FOUNDATION IMPLEMENTED** |
-| Aggregation & Output | OAO-1.0 | **FOUNDATION IMPLEMENTED** |
-| Deterministic Tests | OCE-TEST-1.0 | **FOUNDATION TESTS IMPLEMENTED** |
-| Governance | OCE-GOV-1.0 | **NOT LOCKED** |
+- OCE-INPUT-1.1: FOUNDATION IMPLEMENTED
+- OIE-1.0: FOUNDATION IMPLEMENTED
+- COM-1.0: FOUNDATION IMPLEMENTED
+- ERO-1.0: EVIDENCE CONTRACT IMPLEMENTED
+- VRO-1.0: EVIDENCE CONTRACT IMPLEMENTED
+- BCO-1.0: EVIDENCE CONTRACT IMPLEMENTED
+- ICO-1.0: EVIDENCE CONTRACT IMPLEMENTED
+- MCO-1.0: EVIDENCE CONTRACT IMPLEMENTED
+- OVO-1.0: EVIDENCE CONTRACT IMPLEMENTED
+- OLO-1.0: EVIDENCE CONTRACT IMPLEMENTED
+- BCF-1.0: FOUNDATION IMPLEMENTED
+- CSO-1.0: EVIDENCE CONTRACT IMPLEMENTED
+- ROS-1.0: FOUNDATION IMPLEMENTED
+- OSEQC-1.0: FOUNDATION IMPLEMENTED
+- OLA-1.0: FOUNDATION IMPLEMENTED
+- OAO-1.0: FOUNDATION IMPLEMENTED
+- Truth-state governance: IMPLEMENTED
+- No-fabrication boundary: IMPLEMENTED
+- Circular dependency/version-pinning guard: IMPLEMENTED
+- OCE lock gate: IMPLEMENTED, fail-closed, NOT USED TO LOCK
+- Deterministic tests: FOUNDATION + GOVERNANCE TESTS IMPLEMENTED
 
 These are implementation statuses, not audit-pass claims.
 
 ## Explicit source gaps preserved
+The source requires deterministic lifecycle transitions but does not provide a complete transition matrix. The implementation therefore enforces only the explicit no-reactivation rules for COMPLETED, INVALIDATED and CANCELLED; it does not invent additional transitions.
 
-The authoritative draft requires lifecycle transitions to be deterministic, but the package does not provide a complete transition matrix. The implementation therefore enforces only the explicit rule that COMPLETED, INVALIDATED and CANCELLED opportunities cannot be silently reopened/reactivated. No additional transition rules are invented.
+The source does not provide a universal numerical opportunity score. No opportunity score is invented.
 
-Likewise, the package specifies opportunity categories and required separation rules but does not provide a universal numerical opportunity score. No score is being invented.
-
-The specialized opportunity modules currently establish evidence boundaries only. They do not fabricate formulas for ERO/VRO/BCO/ICO/MCO/OVO/OLO/CSO where the authoritative draft does not provide a complete numerical formula.
+The specialized opportunity modules establish evidence boundaries only where the source does not provide a complete numerical formula. No unsupported formula has been introduced.
 
 ## 32-checkpoint gate
-
-The 32 checkpoints remain the formal audit gate:
 1. Architecture/internal consistency
 2. Input contract/provenance
 3. Evidence classification/independence
@@ -92,8 +86,6 @@ The 32 checkpoints remain the formal audit gate:
 31. Regression consistency with CHUNK 0–5
 32. Final lock criteria
 
-**Current verdict: NOT LOCK READY — implementation and audit evidence are incomplete.**
+**Current verdict: NOT LOCK READY — CI and full repository audit evidence are still required.**
 
-Next: complete the deterministic boundary tests, truth-state/no-fabrication/provenance regression coverage, cross-OCE isolation/circular-dependency checks, then run CI and perform the full 32-checkpoint repository audit.
-
-No lock certificate is created at this stage.
+Next gate: run CI on the current PR head, inspect typecheck/test/Prisma/protected-engine results, then map actual repository evidence to all 32 checkpoints. No lock certificate is created at this stage.
