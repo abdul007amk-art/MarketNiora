@@ -26,7 +26,7 @@ Therefore CI #129 being green is necessary evidence, but it does not by itself s
 | 12 ENE/RGQ/PGQ separation | PASS — CI VERIFIED | CLOSED | Executable sibling-engine independence boundary and regression tests passed. ENE, RGQ and PGQ may share source data but cannot consume sibling-engine decisions. CI #146 passed with 350/350 tests. |
 | 13 CFQ/BSQ/CEI separation | PASS — CI VERIFIED | CLOSED | Executable sibling-engine independence boundary and regression tests passed. CFQ, BSQ and CEI may share source data but cannot consume sibling-engine decisions. CI #150 completed successfully with Typecheck, Test suite, Prisma validate, and protected-engine verification all green. |
 | 14 BNI/CPI separation | IMPLEMENTED — PENDING CI | OPEN | Added an executable sibling-engine independence boundary and regression tests. BNI and CPI may share source evidence but cannot consume sibling-engine decisions. Fresh CI verification is required before closure. |
-| 15 GVI/ECI separation | CONTRACT ONLY | OPEN | Same disposition requirement. |
+| 15 GVI/ECI separation | IMPLEMENTED — PENDING CI | OPEN | Added an executable sibling-engine independence boundary and regression tests. GVI and ECI may share source evidence but cannot consume sibling-engine decisions. Fresh CI verification is required before closure. |
 | 16 BERI independence | CONTRACT ONLY | OPEN | Same disposition requirement. |
 | 17 CDQ independence | PASS/PARTIAL | OPEN | Add production dependency/integration verification. |
 | 18–24 external engine independence | PARTIAL | OPEN | Add executable DATA_ONLY integration boundaries and negative tests showing Rotation, TIE, RSE/DCS, OCE, Theme, Shariah and Stock Score cannot alter EBI decisions. |
