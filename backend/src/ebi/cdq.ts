@@ -70,3 +70,29 @@ export function missingMandatoryProductionEngines(implementedEngines: string[]):
     .map(([name]) => name)
     .filter((name) => !actual.has(name));
 }
+
+
+/**
+ * v1.3 governance guard: CDQ coverage must never mutate downstream weights.
+ * Missing coverage is represented by the gate state; weighting policy remains
+ * the responsibility of the downstream engine and must be version-pinned there.
+ */
+export function validateNoWeightRedistribution(
+  originalWeights: Record<string, number>,
+  appliedWeights: Record<string, number>,
+): string[] {
+  const errors: string[] = [];
+  const keys = new Set([...Object.keys(originalWeights), ...Object.keys(appliedWeights)]);
+  for (const key of keys) {
+    const original = originalWeights[key];
+    const applied = appliedWeights[key];
+    if (!Number.isFinite(original) || !Number.isFinite(applied)) {
+      errors.push(`weight for ${key} must be finite`);
+      continue;
+    }
+    if (original !== applied) {
+      errors.push(`automatic weight redistribution detected for ${key}`);
+    }
+  }
+  return errors;
+}
