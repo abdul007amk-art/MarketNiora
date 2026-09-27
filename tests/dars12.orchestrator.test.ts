@@ -18,6 +18,8 @@ test('production orchestration: provider -> DARS -> durable evidence -> durable 
       create: async ({ data }) => { calls.push(['run.create', data]); return data; },
       update: async ({ data }) => { calls.push(['run.update', data]); return data; }
     },
+    appAuditLog: { create: async ({ data }) => { calls.push(['audit.create', data]); return data; } },
+    darsHealthReport: { create: async ({ data }) => { calls.push(['health.create', data]); return data; } },
     darsEvidence: {
       findUnique: async () => null,
       create: async ({ data }) => { calls.push(['evidence.create', data]); return data; }
@@ -77,6 +79,8 @@ test('production orchestration: durable evidence failure fails the run instead o
       create: async ({ data }) => { calls.push(['run.create', data]); return data; },
       update: async ({ data }) => { calls.push(['run.update', data]); return data; }
     },
+    appAuditLog: { create: async () => { throw new Error('must not write audit'); } },
+    darsHealthReport: { create: async () => { throw new Error('must not write health report'); } },
     darsEvidence: {
       findUnique: async () => null,
       create: async () => { throw new Error('evidence db unavailable'); }
