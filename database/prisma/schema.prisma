@@ -701,3 +701,18 @@ model Master4187Staging {
 // governance_layer.v_* views and governance_layer.resolve_identity_conflict()
 // are intentionally SQL migration-only because the deployed DB owns these
 // executable database artifacts and their security posture.
+
+
+model DarsHealthReport {
+  reportId       String   @id @map("report_id")
+  runId          String   @map("run_id")
+  knowledgeTime  DateTime @db.Timestamptz(6) @map("knowledge_time")
+  status         String
+  report         Json
+  createdAt      DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  @@unique([runId])
+  @@index([knowledgeTime])
+  @@map("dars_health_report")
+  @@schema("governance_layer")
+}
