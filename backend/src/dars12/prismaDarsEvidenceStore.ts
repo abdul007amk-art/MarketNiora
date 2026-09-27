@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client';
+import type { Prisma, PrismaClient } from '@prisma/client';
 import type { DarsEvidence } from './dars12Engine.ts';
 
 function dateFromEpoch(ms: number): Date {
@@ -14,7 +14,11 @@ export class PrismaDarsEvidenceStore {
   constructor(prisma: PrismaClient) { this.prisma = prisma; }
 
   async upsertEvidence(e: DarsEvidence): Promise<boolean> {
-    const existing = await this.prisma.darsEvidence.findUnique({ where: { sourceEventId: e.sourceEventId } });
+    return this.upsertEvidenceWithClient(this.prisma, e);
+  }
+
+  async upsertEvidenceWithClient(client: PrismaClient | Prisma.TransactionClient, e: DarsEvidence): Promise<boolean> {
+    const existing = await client.darsEvidence.findUnique({ where: { sourceEventId: e.sourceEventId } });
     if (existing) {
       const samePayload =
         existing.source === e.source &&
@@ -28,14 +32,14 @@ export class PrismaDarsEvidenceStore {
         existing.formulaVersion === e.formulaVersion &&
         existing.origin === (e.origin ?? null);
       if (!samePayload) throw new Error('conflicting source_event_id replay rejected');
-      await this.prisma.darsEvidence.update({
+      await client.darsEvidence.update({
         where: { sourceEventId: e.sourceEventId },
         data: { refreshedAt: dateFromEpoch(e.refreshedAt), truthState: 'CURRENT' },
       });
       return false;
     }
 
-    await this.prisma.darsEvidence.create({
+    await client.darsEvidence.create({
       data: {
         sourceEventId: e.sourceEventId,
         evidenceKey: e.evidenceKey,
