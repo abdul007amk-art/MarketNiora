@@ -48,14 +48,16 @@ export async function runDars12Production(
       formula: input.formula,
     });
 
-    if (result.healthy && result.ready) {
-      for (const evidence of result.evidence) {
-        await evidenceStore.upsertEvidence(evidence);
+    const persistedEvidence = result.healthy && result.ready ? result.evidence.length : 0;
+    await prisma.$transaction(async (tx) => {
+      if (result.healthy && result.ready) {
+        for (const evidence of result.evidence) {
+          await evidenceStore.upsertEvidenceWithClient(tx, evidence);
+        }
       }
-    }
-
-    await runStore.complete(result, Date.now());
-    return { result, persistedEvidence: result.healthy && result.ready ? result.evidence.length : 0 };
+      await runStore.completeWithClient(tx, result, Date.now());
+    });
+    return { result, persistedEvidence };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown orchestration failure';
     const failed: Dars12RunResult = {
