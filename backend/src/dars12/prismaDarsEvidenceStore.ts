@@ -63,6 +63,7 @@ export class PrismaDarsEvidenceStore {
     });
     const selected = new Map<string, DarsEvidence>();
     for (const row of rows) {
+      if (epochFromDate(row.knowledgeTime) > asOfKnowledgeTime) continue;
       if (selected.has(row.evidenceKey)) continue;
       selected.set(row.evidenceKey, {
         evidenceKey: row.evidenceKey,
