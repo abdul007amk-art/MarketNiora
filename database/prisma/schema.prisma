@@ -284,6 +284,31 @@ model SourceHealth {
   @@schema("governance_layer")
 }
 
+model DarsEvidence {
+  evidenceId          String   @id @default(uuid()) @db.Uuid @map("evidence_id")
+  sourceEventId       String   @unique @map("source_event_id")
+  evidenceKey         String   @map("evidence_key")
+  source              String
+  symbol              String
+  value               String
+  sourceTimestamp     DateTime @db.Timestamptz(6) @map("source_timestamp")
+  effectiveTime       DateTime @db.Timestamptz(6) @map("effective_time")
+  knowledgeTime       DateTime @db.Timestamptz(6) @map("knowledge_time")
+  verificationStatus  String   @map("verification_status")
+  dataNature          String   @map("data_nature")
+  formulaVersion      String?  @map("formula_version")
+  origin              String?
+  refreshedAt         DateTime @db.Timestamptz(6) @map("refreshed_at")
+  truthState          String   @map("truth_state")
+  createdAt           DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  @@unique([evidenceKey, knowledgeTime])
+  @@index([evidenceKey, knowledgeTime])
+  @@index([knowledgeTime])
+  @@map("dars_evidence")
+  @@schema("governance_layer")
+}
+
 model SourceEvidence {
   evidenceId  String            @id @default(uuid()) @db.Uuid @map("evidence_id")
   batchId     String?           @db.Uuid @map("batch_id")
