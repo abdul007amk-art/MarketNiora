@@ -13,6 +13,7 @@ const provider = {
 test('production orchestration: provider -> DARS -> durable evidence -> durable run', async () => {
   const calls = [];
   const prisma = {
+    $transaction: async (fn) => fn(prisma),
     darsRun: {
       create: async ({ data }) => { calls.push(['run.create', data]); return data; },
       update: async ({ data }) => { calls.push(['run.update', data]); return data; }
@@ -41,6 +42,7 @@ test('production orchestration: provider -> DARS -> durable evidence -> durable 
 test('production orchestration: provider outage is persisted as blocked run without synthetic evidence', async () => {
   const calls = [];
   const prisma = {
+    $transaction: async (fn) => fn(prisma),
     darsRun: {
       create: async ({ data }) => { calls.push(['run.create', data]); return data; },
       update: async ({ data }) => { calls.push(['run.update', data]); return data; }
@@ -70,6 +72,7 @@ test('production orchestration: provider outage is persisted as blocked run with
 test('production orchestration: durable evidence failure fails the run instead of reporting success', async () => {
   const calls = [];
   const prisma = {
+    $transaction: async (fn) => fn(prisma),
     darsRun: {
       create: async ({ data }) => { calls.push(['run.create', data]); return data; },
       update: async ({ data }) => { calls.push(['run.update', data]); return data; }
@@ -89,4 +92,46 @@ test('production orchestration: durable evidence failure fails the run instead o
   );
   assert.equal(calls.at(-1)[1].status, 'FAILURE');
   assert.equal(calls.at(-1)[1].truthState, 'BLOCKED');
+});
+
+
+test('production orchestration: evidence persistence is transactional with final run completion', async () => {
+  const committed = [];
+  const txCalls = [];
+  let inTransaction = false;
+  const prisma = {
+    $transaction: async (fn) => {
+      inTransaction = true;
+      const tx = {
+        darsEvidence: {
+          findUnique: async () => null,
+          create: async ({ data }) => { txCalls.push(['evidence.create', data]); return data; }
+        },
+        darsRun: {
+          update: async ({ data }) => { txCalls.push(['run.update', data]); return data; }
+        }
+      };
+      try {
+        const out = await fn(tx);
+        committed.push(...txCalls);
+        return out;
+      } finally { inTransaction = false; }
+    },
+    darsRun: {
+      create: async ({ data }) => { committed.push(['run.create', data]); return data; },
+      update: async ({ data }) => { committed.push(['run.failure', data]); return data; }
+    },
+    darsEvidence: {
+      findUnique: async () => null,
+      create: async () => { throw new Error('must use transaction client'); }
+    }
+  };
+  const r = await runDars12Production(prisma, {
+    provider, symbols: ['AAA', 'BBB'], runKnowledgeTime: 2000,
+    expectedCoverage: 2, formulaVersion: 'F-1', formula: (evidence) => evidence.map(e => e.value).join('+')
+  });
+  assert.equal(inTransaction, false);
+  assert.equal(r.persistedEvidence, 2);
+  assert.equal(committed.filter(x => x[0] === 'evidence.create').length, 2);
+  assert.equal(committed.at(-1)[0], 'run.update');
 });
