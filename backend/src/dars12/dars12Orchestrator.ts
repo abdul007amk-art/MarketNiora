@@ -3,6 +3,8 @@ import { Dars12Engine, type Dars12RunResult } from './dars12Engine.ts';
 import { fetchDarsEvents } from './providerDarsBoundary.ts';
 import { PrismaDarsEvidenceStore } from './prismaDarsEvidenceStore.ts';
 import { PrismaDarsRunStore } from './prismaDarsRunStore.ts';
+import { PrismaDarsHealthReportStore } from './prismaDarsHealthReportStore.ts';
+import { buildAuditEntry, PrismaAuditLogStore } from '../security/auditLogger.ts';
 
 export interface Dars12OrchestrationInput {
   provider: MarketDataProvider;
@@ -31,6 +33,8 @@ export async function runDars12Production(
   const fetch = await fetchDarsEvents(input.provider, input.symbols, input.runKnowledgeTime);
   const runStore = new PrismaDarsRunStore(prisma);
   const evidenceStore = new PrismaDarsEvidenceStore(prisma);
+  const healthStore = new PrismaDarsHealthReportStore(prisma);
+  const auditStore = new PrismaAuditLogStore(prisma);
 
   await runStore.start({
     runId: `DARS12-${input.runKnowledgeTime}`,
@@ -58,7 +62,6 @@ export async function runDars12Production(
     const fwhy = await input.fwhyDiagnostics(result.evidence);
     const provenance = await input.provenanceAudit(result.evidence);
     const health = await input.healthReport(result, fwhy);
-    const enrichedResult = { ...result, stageEvents: result.stageEvents.map((event) => ({ ...event })), errors: result.errors };
     const persistedEvidence = result.healthy && result.ready ? result.evidence.length : 0;
     await prisma.$transaction(async (tx) => {
       if (result.healthy && result.ready) {
@@ -66,7 +69,15 @@ export async function runDars12Production(
           await evidenceStore.upsertEvidenceWithClient(tx, evidence);
         }
       }
-      await runStore.completeWithClient(tx, { ...enrichedResult, errors: [...enrichedResult.errors, `FWHY_DIAGNOSTICS:${JSON.stringify(fwhy)}`, `PROVENANCE_AUDIT:${JSON.stringify(provenance)}`, `HEALTH_REPORT:${JSON.stringify(health)}`] }, Date.now());
+      await auditStore.append(buildAuditEntry('SYSTEM', null, 'DARS12_PROVENANCE_AUDIT', result.runId, provenance));
+      await healthStore.writeWithClient(tx, {
+        reportId: `HEALTH-${result.runId}`,
+        runId: result.runId,
+        knowledgeTime: input.runKnowledgeTime,
+        status: result.healthy ? 'HEALTHY' : 'BLOCKED',
+        report: { ...health, fwhyDiagnostics: fwhy },
+      });
+      await runStore.completeWithClient(tx, result, Date.now());
     });
     return { result, persistedEvidence };
   } catch (error) {
