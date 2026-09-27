@@ -12,6 +12,9 @@ export interface Dars12OrchestrationInput {
   formulaVersion: string;
   formula: (evidence: readonly import('./dars12Engine.ts').DarsEvidence[]) => string;
   evidenceRefreshSucceeded?: boolean;
+  fwhyDiagnostics?: (evidence: readonly import('./dars12Engine.ts').DarsEvidence[]) => Promise<Record<string, unknown>> | Record<string, unknown>;
+  provenanceAudit?: (evidence: readonly import('./dars12Engine.ts').DarsEvidence[]) => Promise<Record<string, unknown>> | Record<string, unknown>;
+  healthReport?: (result: Dars12RunResult, diagnostics: Record<string, unknown>) => Promise<Record<string, unknown>> | Record<string, unknown>;
 }
 
 export interface Dars12OrchestrationResult {
@@ -38,6 +41,10 @@ export async function runDars12Production(
 
   let result: Dars12RunResult;
   try {
+    if (!input.fwhyDiagnostics || !input.provenanceAudit || !input.healthReport) {
+      throw new Error('DARS production integrations are not fully configured: FWHY diagnostics, provenance audit, and health report are required');
+    }
+
     result = engine.run({
       runKnowledgeTime: input.runKnowledgeTime,
       providerHealthy: fetch.providerHealthy,
@@ -48,6 +55,10 @@ export async function runDars12Production(
       formula: input.formula,
     });
 
+    const fwhy = await input.fwhyDiagnostics(result.evidence);
+    const provenance = await input.provenanceAudit(result.evidence);
+    const health = await input.healthReport(result, fwhy);
+    const enrichedResult = { ...result, stageEvents: result.stageEvents.map((event) => ({ ...event })), errors: result.errors };
     const persistedEvidence = result.healthy && result.ready ? result.evidence.length : 0;
     await prisma.$transaction(async (tx) => {
       if (result.healthy && result.ready) {
@@ -55,7 +66,7 @@ export async function runDars12Production(
           await evidenceStore.upsertEvidenceWithClient(tx, evidence);
         }
       }
-      await runStore.completeWithClient(tx, result, Date.now());
+      await runStore.completeWithClient(tx, { ...enrichedResult, errors: [...enrichedResult.errors, `FWHY_DIAGNOSTICS:${JSON.stringify(fwhy)}`, `PROVENANCE_AUDIT:${JSON.stringify(provenance)}`, `HEALTH_REPORT:${JSON.stringify(health)}`] }, Date.now());
     });
     return { result, persistedEvidence };
   } catch (error) {
