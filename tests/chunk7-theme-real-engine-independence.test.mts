@@ -97,3 +97,14 @@ test('TIE-TEST-INDEPENDENCE-002 changing Theme data does not change real Stock S
   assert.deepEqual(calculateStockScore(input), calculateStockScore(input));
   assert.notDeepEqual(themeA, themeB);
 });
+
+
+test('TIE-TEST-INDEPENDENCE-003 protected engines have no Theme dependency boundary', () => {
+  const fs = require('node:fs') as typeof import('node:fs');
+  const rotationSource = fs.readFileSync(new URL('../backend/src/protected/rotationEngine.ts', import.meta.url), 'utf8');
+  const stockScoreSource = fs.readFileSync(new URL('../backend/src/protected/stockScoreEngine.ts', import.meta.url), 'utf8');
+  assert.equal(/from ['"].*theme\//.test(rotationSource), false);
+  assert.equal(/from ['"].*theme\//.test(stockScoreSource), false);
+  assert.equal(rotationSource.includes('themeTestSuite'), false);
+  assert.equal(stockScoreSource.includes('themeTestSuite'), false);
+});
