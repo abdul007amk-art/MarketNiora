@@ -36,7 +36,7 @@ export interface Dars12RunResult {
   truthState:TruthState; ready:boolean; healthy:boolean; errors:string[];
 }
 
-const evidenceKey=(e:RawDarsEvent)=>[e.sourceEventId,e.source,e.symbol].join('|');
+const evidenceKey=(e:RawDarsEvent)=>[e.source,e.symbol].join('|');
 
 function scaledDecimal(value:string, digits=6):bigint {
   const m=/^(-?)(\d+)(?:\.(\d+))?$/.exec(value.trim());
