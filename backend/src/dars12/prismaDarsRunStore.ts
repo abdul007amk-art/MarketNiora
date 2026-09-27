@@ -51,7 +51,11 @@ export class PrismaDarsRunStore {
   }
 
   async complete(result: Dars12RunResult, completedAt: number): Promise<void> {
-    await this.prisma.darsRun.update({
+    return this.completeWithClient(this.prisma, result, completedAt);
+  }
+
+  async completeWithClient(client: PrismaClient | Prisma.TransactionClient, result: Dars12RunResult, completedAt: number): Promise<void> {
+    await client.darsRun.update({
       where: { runId: result.runId },
       data: {
         status: result.healthy ? 'SUCCESS' : (result.ready ? 'PARTIAL' : 'FAILURE'),
