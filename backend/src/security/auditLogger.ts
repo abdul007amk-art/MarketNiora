@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client';
+import { type PrismaClient, type Prisma } from '@prisma/client';
 
 export type ActorType = 'OWNER' | 'ADMIN' | 'USER' | 'AI_AGENT' | 'SYSTEM';
 
@@ -51,7 +51,7 @@ export class PrismaAuditLogStore implements AuditLogStore {
         action: persisted.action,
         targetType: null,
         targetId: persisted.target,
-        metadata: persisted.detail ?? undefined,
+        metadata: persisted.detail === null ? undefined : (persisted.detail as Prisma.InputJsonValue),
       },
     });
   }
