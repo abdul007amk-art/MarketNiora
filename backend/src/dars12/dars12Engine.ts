@@ -40,7 +40,7 @@ const evidenceKey=(e:RawDarsEvent)=>[e.sourceEventId,e.source,e.symbol].join('|'
 
 function scaledDecimal(value:string, digits=6):bigint {
   const m=/^(-?)(\d+)(?:\.(\d+))?$/.exec(value.trim());
-  if(!m) throw new Error(\`invalid decimal: \${value}\`);
+  if(!m) throw new Error(`invalid decimal: ${value}`);
   const sign=m[1]==='-'?-1n:1n;
   const frac=(m[3]??'').padEnd(digits,'0').slice(0,digits);
   return sign*(BigInt(m[2])*10n**BigInt(digits)+BigInt(frac||'0'));
@@ -51,7 +51,7 @@ export function addDecimalStrings(values:readonly string[],digits=6):string {
   const sign=total<0n?'-':'', abs=total<0n?-total:total;
   const whole=abs/scale;
   const frac=(abs%scale).toString().padStart(digits,'0').replace(/0+$/,'');
-  return frac?\`\${sign}\${whole}.\${frac}\`:\`\${sign}\${whole}\`;
+  return frac?`${sign}${whole}.${frac}`:`${sign}${whole}`;
 }
 
 export class Dars12Store {
@@ -94,7 +94,7 @@ export class Dars12Engine {
   getStore(){return this.store;}
 
   run(input:Dars12RunInput):Dars12RunResult {
-    const runId=\`DARS12-\${input.runKnowledgeTime}\`, events:Dars12StageEvent[]=[], errors:string[]=[];
+    const runId=`DARS12-${input.runKnowledgeTime}`, events:Dars12StageEvent[]=[], errors:string[]=[];
     let seq=0; const mark=(stage:Dars12Stage,status:Dars12StageEvent['status'])=>events.push({sequence:++seq,stage,status});
     const fail=(e:string)=>errors.push(e);
 
@@ -121,12 +121,12 @@ export class Dars12Engine {
     mark('VALIDATION','STARTED');
     const ve:string[]=[];
     for(const e of input.rawEvents){
-      if(![e.sourceTimestamp,e.effectiveTime,e.knowledgeTime].every(Number.isFinite))ve.push(\`\${e.sourceEventId}: temporal fields must be finite\`);
-      if(e.knowledgeTime<e.sourceTimestamp)ve.push(\`\${e.sourceEventId}: knowledgeTime cannot precede sourceTimestamp\`);
-      if(e.knowledgeTime>input.runKnowledgeTime)ve.push(\`\${e.sourceEventId}: knowledgeTime cannot be in the future of the run\`);
-      if(e.dataNature==='DERIVED'&&!e.formulaVersion)ve.push(\`\${e.sourceEventId}: DERIVED evidence requires formulaVersion\`);
-      if(e.dataNature==='DERIVED'&&e.formulaVersion!==input.formulaVersion)ve.push(\`\${e.sourceEventId}: DERIVED formulaVersion must match the run formulaVersion\`);
-      if(e.dataNature!=='DERIVED'&&e.formulaVersion!==null)ve.push(\`\${e.sourceEventId}: formulaVersion must be null unless DERIVED\`);
+      if(![e.sourceTimestamp,e.effectiveTime,e.knowledgeTime].every(Number.isFinite))ve.push(`${e.sourceEventId}: temporal fields must be finite`);
+      if(e.knowledgeTime<e.sourceTimestamp)ve.push(`${e.sourceEventId}: knowledgeTime cannot precede sourceTimestamp`);
+      if(e.knowledgeTime>input.runKnowledgeTime)ve.push(`${e.sourceEventId}: knowledgeTime cannot be in the future of the run`);
+      if(e.dataNature==='DERIVED'&&!e.formulaVersion)ve.push(`${e.sourceEventId}: DERIVED evidence requires formulaVersion`);
+      if(e.dataNature==='DERIVED'&&e.formulaVersion!==input.formulaVersion)ve.push(`${e.sourceEventId}: DERIVED formulaVersion must match the run formulaVersion`);
+      if(e.dataNature!=='DERIVED'&&e.formulaVersion!==null)ve.push(`${e.sourceEventId}: formulaVersion must be null unless DERIVED`);
     }
     if(ve.length){
       mark('VALIDATION','FAILED'); ve.forEach(fail);
@@ -185,7 +185,7 @@ export class Dars12Engine {
     mark('COVERAGE','STARTED');
     const expected=input.expectedCoverage??0;
     if(refreshed.length<expected){
-      mark('COVERAGE','FAILED'); fail(\`coverage \${refreshed.length} below expected \${expected}\`);
+      mark('COVERAGE','FAILED'); fail(`coverage ${refreshed.length} below expected ${expected}`);
       for(const s of DARS12_STAGES.slice(9))mark(s,'SKIPPED');
       return this.out(runId,events,refreshed,null,false,duplicates,'BLOCKED',false,false,errors);
     }
