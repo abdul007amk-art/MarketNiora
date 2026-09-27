@@ -56,7 +56,7 @@ test('DARS12 adversarial: formula callback receives only current as-of evidence'
   const s=new Dars12Store(), e=new Dars12Engine(s);
   e.run({runKnowledgeTime:200,providerHealthy:true,rawEvents:[base()],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
   let received=[];
-  const r=e.run({runKnowledgeTime:300,providerHealthy:true,rawEvents:[base({sourceEventId:'evt-2',symbol:'BBB',knowledgeTime:300})],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:ev=>{received=ev.map(x=>x.evidenceKey); return 'ok';}});
+  const r=e.run({runKnowledgeTime:300,providerHealthy:true,rawEvents:[base(),base({sourceEventId:'evt-2',symbol:'BBB',knowledgeTime:300})],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:ev=>{received=ev.map(x=>x.evidenceKey); return 'ok';}});
   assert.equal(r.formulaExecuted,true);
   assert.deepEqual(received,['SOURCE_A|AAA','SOURCE_A|BBB']);
 });
