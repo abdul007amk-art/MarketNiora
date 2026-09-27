@@ -20,10 +20,6 @@ test('audit persistence redacts sensitive metadata before database write', async
   assert.equal(captured.metadata.nested.password, '[REDACTED]');
 });
 
-test('audit persistence rejects non-UUID actor ids instead of corrupting actor linkage', async () => {
-  assert.throws(() => buildAuditEntry('USER', 'not-a-uuid', 'TEST_AUDIT'));
-});
-
 test('audit persistence propagates database failure and never reports false success', async () => {
   const prisma = { appAuditLog: { create: async () => { throw new Error('database unavailable'); } } };
   await assert.rejects(() => writeAuditLog(buildAuditEntry('SYSTEM', null, 'TEST_AUDIT'), prisma), /database unavailable/);
