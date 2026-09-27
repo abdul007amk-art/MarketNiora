@@ -3,6 +3,11 @@ import { validateProvenance, type Provenance } from '../contracts/provenance.ts'
 
 export const TEE_METHODOLOGY_VERSION = 'TEE-1.0';
 
+const VALID_LEVELS = new Set<EvidenceLevel>(['CONFIRMED','SUPPORTED','INDICATED','UNKNOWN']);
+const VALID_TYPES = new Set<EvidenceType>(['PRIMARY','INDEPENDENT_SECONDARY','DERIVED','DUPLICATIVE','UNKNOWN']);
+const VALID_NATURES = new Set<EvidenceNature>(['REPORTED','DERIVED','ESTIMATED','INFERRED']);
+const VALID_TRUTH_STATES = new Set<EvidenceTruthState>(['VERIFIED','REVIEW','CONFLICT','UNKNOWN']);
+
 export type EvidenceLevel = 'CONFIRMED' | 'SUPPORTED' | 'INDICATED' | 'UNKNOWN';
 export type EvidenceType = 'PRIMARY' | 'INDEPENDENT_SECONDARY' | 'DERIVED' | 'DUPLICATIVE' | 'UNKNOWN';
 export type EvidenceNature = 'REPORTED' | 'DERIVED' | 'ESTIMATED' | 'INFERRED';
@@ -27,6 +32,10 @@ export function validateThemeEvidence(evidence: ThemeEvidence): string[] {
   if (!evidence.claim.trim()) errors.push('claim is required');
   if (!evidence.source.trim()) errors.push('source is required');
   if (evidence.date !== null && !evidence.date.trim()) errors.push('date must be null or non-empty');
+  if (!VALID_LEVELS.has(evidence.level)) errors.push('invalid evidence level');
+  if (!VALID_TYPES.has(evidence.type)) errors.push('invalid evidence type');
+  if (!VALID_NATURES.has(evidence.nature)) errors.push('invalid evidence nature');
+  if (!VALID_TRUTH_STATES.has(evidence.truthState)) errors.push('invalid evidence truth state');
   if (evidence.methodologyVersion !== TEE_METHODOLOGY_VERSION) errors.push('TEE methodologyVersion mismatch');
 
   const provenance = validateProvenance(evidence.provenance);
@@ -57,5 +66,9 @@ export function hasIndependentEvidence(evidence: readonly ThemeEvidence[]): bool
 export function hasCompleteEvidenceChain(evidence: ThemeEvidence): boolean {
   return evidence.claim.trim().length > 0 &&
     evidence.source.trim().length > 0 &&
-    evidence.provenance.source.trim().length > 0;
+    evidence.provenance.source.trim().length > 0 &&
+    VALID_LEVELS.has(evidence.level) &&
+    VALID_TYPES.has(evidence.type) &&
+    VALID_NATURES.has(evidence.nature) &&
+    VALID_TRUTH_STATES.has(evidence.truthState);
 }
