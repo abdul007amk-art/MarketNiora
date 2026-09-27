@@ -31,6 +31,8 @@ test('TIE-TEST-003 independence executes the supplied builders',()=>{
   assert.equal(shariahChangeMustNotChangeThemeIntelligence(buildThemeShariah,{value:1},{value:2}),true);
   assert.equal(rotationChangeMustNotChangeThemeIntelligence(buildThemeUsingRotation,{value:1},{value:2}),false);
   const buildExternal=({theme}:{theme:{value:number}})=>({score:0});
+  const buildExternalUsingTheme=({theme}:{theme:{value:number}})=>({score:theme.value});
   assert.equal(themeChangeMustNotChangeStockScoreOrRotation(buildExternal,{value:1},{value:2}),true);
+  assert.equal(themeChangeMustNotChangeStockScoreOrRotation(buildExternalUsingTheme,{value:1},{value:2}),false);
 });
 test('TIE-TEST-004 missing provenance is rejected',()=>{assert.ok(validateThemeTestFixture({...fixture,provenance:[]}).length>0);});
