@@ -39,8 +39,8 @@ export function buildAuditEntry(
 export interface AuditLogStore { append(entry: AuditEntry): Promise<void>; }
 
 export class PrismaAuditLogStore implements AuditLogStore {
-  private readonly prisma: PrismaClient;
-  constructor(prisma: PrismaClient) { this.prisma = prisma; }
+  private readonly prisma: PrismaClient | Prisma.TransactionClient;
+  constructor(prisma: PrismaClient | Prisma.TransactionClient) { this.prisma = prisma; }
   async append(entry: AuditEntry): Promise<void> {
     const persisted = buildAuditEntry(entry.actor_type, entry.actor_id, entry.action, entry.target, entry.detail);
     await this.prisma.appAuditLog.create({
@@ -56,7 +56,7 @@ export class PrismaAuditLogStore implements AuditLogStore {
   }
 }
 
-export async function writeAuditLog(entry: AuditEntry, prisma?: PrismaClient): Promise<void> {
+export async function writeAuditLog(entry: AuditEntry, prisma?: PrismaClient | Prisma.TransactionClient): Promise<void> {
   if (!prisma) {
     throw new Error('writeAuditLog is not wired to a database client yet. Do not catch-and-ignore this error — it exists to prevent silently-missing audit trails.');
   }
