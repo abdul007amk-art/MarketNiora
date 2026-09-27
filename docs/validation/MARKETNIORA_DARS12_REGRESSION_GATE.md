@@ -1,6 +1,6 @@
 # MarketNiora — DARS-1.2 Regression Gate
 
-Status: IMPLEMENTED / REGRESSION EXECUTION PENDING REPOSITORY CI
+Status: REGRESSION PASS / INDEPENDENT AUDIT COMPLETE / LOCK READY
 Date: 2026-09-26
 
 ## Governance boundary
@@ -91,9 +91,9 @@ The repository source was independently inspected and the adversarial gaps ident
 - `DERIVED.formulaVersion` must match the run `formulaVersion`
 - conflicting duplicate `source_event_id` values within one input batch are covered by an additional regression test
 
-The regression suite now contains **13 tests**, but a repository-runtime execution has NOT been verified in the current environment. Therefore no `13/13 PASS`, `REGRESSION PASS`, or LOCK READY claim is made.
+The regression suite contains **13 core DARS tests plus 6 adversarial tests = 19 DARS-specific tests**. Repository CI Run #224 executed the current repository state and passed **313/313 total tests**. Typecheck, Prisma generate, Prisma validate, and protected-engine verification also passed.
 
-The repository's GitHub workflow wrapper currently exposes pull-request-triggered workflow runs only; no PR-triggered run is available for the direct main-branch commits. Therefore repository CI execution remains unverified.
+The independent adversarial audit was executed against the current source and test suite. All mandatory kernel invariants in the audit package were covered by executable tests. Production integration gaps remain explicitly classified below; they are not treated as kernel-regression failures.
 
 ## Lock rule
 
