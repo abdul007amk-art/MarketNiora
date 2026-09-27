@@ -11,7 +11,6 @@ export interface AuditEntry {
 }
 
 const SENSITIVE_KEY_PATTERN = /pass(word)?|secret|token|api[_-]?key|authoriz(e|ation)|cookie|session[_-]?id|otp|pin\b|card[_-]?number|cvv|recovery|totp/i;
-const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 function redactDetail(detail: Record<string, unknown> | null, depth = 0): Record<string, unknown> | null {
   if (detail === null) return null;
@@ -34,7 +33,6 @@ export function buildAuditEntry(
   detail: Record<string, unknown> | null = null
 ): AuditEntry {
   if (!action || action.trim().length === 0) throw new Error('audit action cannot be empty — silent/unlabeled audit events are not permitted');
-  if (actorId !== null && !UUID_PATTERN.test(actorId)) throw new Error('audit actor_id must be a UUID when supplied');
   return { actor_type: actorType, actor_id: actorId, action: action.trim(), target, detail: redactDetail(detail) };
 }
 
@@ -58,6 +56,9 @@ export class PrismaAuditLogStore implements AuditLogStore {
   }
 }
 
-export async function writeAuditLog(entry: AuditEntry, prisma: PrismaClient): Promise<void> {
+export async function writeAuditLog(entry: AuditEntry, prisma?: PrismaClient): Promise<void> {
+  if (!prisma) {
+    throw new Error('writeAuditLog is not wired to a database client yet. Do not catch-and-ignore this error — it exists to prevent silently-missing audit trails.');
+  }
   await new PrismaAuditLogStore(prisma).append(entry);
 }
