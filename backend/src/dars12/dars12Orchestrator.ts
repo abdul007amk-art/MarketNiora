@@ -34,7 +34,6 @@ export async function runDars12Production(
   const runStore = new PrismaDarsRunStore(prisma);
   const evidenceStore = new PrismaDarsEvidenceStore(prisma);
   const healthStore = new PrismaDarsHealthReportStore(prisma);
-  const auditStore = new PrismaAuditLogStore(prisma);
 
   await runStore.start({
     runId: `DARS12-${input.runKnowledgeTime}`,
@@ -69,7 +68,7 @@ export async function runDars12Production(
           await evidenceStore.upsertEvidenceWithClient(tx, evidence);
         }
       }
-      await auditStore.append(buildAuditEntry('SYSTEM', null, 'DARS12_PROVENANCE_AUDIT', result.runId, provenance));
+      await new PrismaAuditLogStore(tx).append(buildAuditEntry('SYSTEM', null, 'DARS12_PROVENANCE_AUDIT', result.runId, provenance));
       await healthStore.writeWithClient(tx, {
         reportId: `HEALTH-${result.runId}`,
         runId: result.runId,
