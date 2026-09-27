@@ -20,6 +20,7 @@ const common = {
   evidenceIds: ['EV-POCL'],
   provenance: [provenance],
 };
+const evidenceProvenance = provenance;
 
 test('TIE-TEST-POCL-001 executes the representative Theme chain through real validators', () => {
   const nodes = [
@@ -56,7 +57,7 @@ test('TIE-TEST-POCL-001 executes the representative Theme chain through real val
 
   assert.deepEqual(validateThemeEvidence({
     evidenceId:'EV-POCL', claim:'Representative documented Theme claim',
-    source:'POCL primary source', date:'2026-09-27', ...common,
+    source:'POCL primary source', date:'2026-09-27', provenance:evidenceProvenance,
     level:'CONFIRMED', type:'PRIMARY', nature:'REPORTED', truthState:'VERIFIED',
     methodologyVersion:'TEE-1.0' as const,
   }), []);
