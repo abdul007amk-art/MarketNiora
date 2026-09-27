@@ -41,7 +41,8 @@ export function buildAuditEntry(
 export interface AuditLogStore { append(entry: AuditEntry): Promise<void>; }
 
 export class PrismaAuditLogStore implements AuditLogStore {
-  constructor(private readonly prisma: PrismaClient) {}
+  private readonly prisma: PrismaClient;
+  constructor(prisma: PrismaClient) { this.prisma = prisma; }
   async append(entry: AuditEntry): Promise<void> {
     const persisted = buildAuditEntry(entry.actor_type, entry.actor_id, entry.action, entry.target, entry.detail);
     await this.prisma.appAuditLog.create({
