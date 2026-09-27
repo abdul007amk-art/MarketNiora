@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { calculateRotation } from '../backend/src/protected/rotationEngine.ts';
 import { calculateStockScore } from '../backend/src/protected/stockScoreEngine.ts';
 import { validateThemeNode } from '../backend/src/theme/inputContract.ts';
@@ -100,9 +101,8 @@ test('TIE-TEST-INDEPENDENCE-002 changing Theme data does not change real Stock S
 
 
 test('TIE-TEST-INDEPENDENCE-003 protected engines have no Theme dependency boundary', () => {
-  const fs = require('node:fs') as typeof import('node:fs');
-  const rotationSource = fs.readFileSync(new URL('../backend/src/protected/rotationEngine.ts', import.meta.url), 'utf8');
-  const stockScoreSource = fs.readFileSync(new URL('../backend/src/protected/stockScoreEngine.ts', import.meta.url), 'utf8');
+  const rotationSource = readFileSync(new URL('../backend/src/protected/rotationEngine.ts', import.meta.url), 'utf8');
+  const stockScoreSource = readFileSync(new URL('../backend/src/protected/stockScoreEngine.ts', import.meta.url), 'utf8');
   assert.equal(/from ['"].*theme\//.test(rotationSource), false);
   assert.equal(/from ['"].*theme\//.test(stockScoreSource), false);
   assert.equal(rotationSource.includes('themeTestSuite'), false);
