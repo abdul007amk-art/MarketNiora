@@ -309,6 +309,28 @@ model DarsEvidence {
   @@schema("governance_layer")
 }
 
+model DarsRun {
+  runId              String    @id @map("run_id")
+  knowledgeTime      DateTime  @db.Timestamptz(6) @map("knowledge_time")
+  status             String
+  providerHealthy    Boolean   @map("provider_healthy")
+  ready              Boolean
+  healthy            Boolean
+  truthState         String    @map("truth_state")
+  formulaExecuted    Boolean   @map("formula_executed")
+  startedAt          DateTime  @db.Timestamptz(6) @map("started_at")
+  completedAt        DateTime? @db.Timestamptz(6) @map("completed_at")
+  stageEvents        Json      @map("stage_events")
+  errors             Json
+  duplicateSourceEventIds Json @map("duplicate_source_event_ids")
+  createdAt          DateTime  @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  @@index([knowledgeTime])
+  @@index([status, startedAt])
+  @@map("dars_run")
+  @@schema("governance_layer")
+}
+
 model SourceEvidence {
   evidenceId  String            @id @default(uuid()) @db.Uuid @map("evidence_id")
   batchId     String?           @db.Uuid @map("batch_id")
