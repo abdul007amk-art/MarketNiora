@@ -26,3 +26,12 @@ test('FWHY diagnostics blocks unverified evidence and emits a question instead o
   assert.equal(out.cases[0].status, 'INCOMPLETE');
   assert.match(out.cases[0].questions.join(' '), /verified source/i);
 });
+
+
+test('FWHY diagnostics blocks empty evidence instead of reporting a current state', () => {
+  const out = runFwhyDiagnostics([]);
+  assert.equal(out.truthState, 'BLOCKED');
+  assert.equal(out.supportedCases, 0);
+  assert.equal(out.incompleteCases, 0);
+  assert.deepEqual(out.cases, []);
+});
