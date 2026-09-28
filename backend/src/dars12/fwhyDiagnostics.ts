@@ -46,7 +46,7 @@ export function runFwhyDiagnostics(evidence: readonly DarsEvidence[]): FwhyDiagn
 
   return {
     engine: 'FWHY-DIAGNOSTICS-1.0',
-    truthState: cases.some(c => c.status === 'INCOMPLETE') ? 'BLOCKED' : 'CURRENT',
+    truthState: evidence.length === 0 || cases.some(c => c.status === 'INCOMPLETE') ? 'BLOCKED' : 'CURRENT',
     cases,
     supportedCases: cases.filter(c => c.status === 'SUPPORTED').length,
     incompleteCases: cases.filter(c => c.status === 'INCOMPLETE').length,
