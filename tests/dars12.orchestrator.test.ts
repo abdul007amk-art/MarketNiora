@@ -49,6 +49,8 @@ test('production orchestration: provider outage is persisted as blocked run with
       create: async ({ data }) => { calls.push(['run.create', data]); return data; },
       update: async ({ data }) => { calls.push(['run.update', data]); return data; }
     },
+    appAuditLog: { create: async ({ data }) => { calls.push(['audit.create', data]); return data; } },
+    darsHealthReport: { create: async ({ data }) => { calls.push(['health.create', data]); return data; } },
     darsEvidence: {
       findUnique: async () => { throw new Error('must not persist evidence'); }
     }
@@ -113,6 +115,12 @@ test('production orchestration: evidence persistence is transactional with final
         },
         darsRun: {
           update: async ({ data }) => { txCalls.push(['run.update', data]); return data; }
+        },
+        appAuditLog: {
+          create: async ({ data }) => { txCalls.push(['audit.create', data]); return data; }
+        },
+        darsHealthReport: {
+          create: async ({ data }) => { txCalls.push(['health.create', data]); return data; }
         }
       };
       try {
