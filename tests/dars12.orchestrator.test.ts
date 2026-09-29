@@ -70,7 +70,8 @@ test('production orchestration: provider outage is persisted as blocked run with
   assert.equal(r.result.truthState, 'BLOCKED');
   assert.equal(r.persistedEvidence, 0);
   assert.equal(calls[0][1].providerHealthy, false);
-  assert.equal(calls[1][1].status, 'FAILURE');
+  const finalRunUpdate = calls.filter(x => x[0] === 'run.update').at(-1);
+  assert.equal(finalRunUpdate?.[1].status, 'FAILURE');
 });
 
 test('production orchestration: durable evidence failure fails the run instead of reporting success', async () => {
