@@ -24,6 +24,8 @@ jobs:
         run: npx prisma generate --schema database/prisma/schema.prisma
 
       - name: Prisma validate
+        env:
+          DATABASE_URL: postgresql://ci:ci@localhost:5432/marketniora_ci
         run: npx prisma validate --schema database/prisma/schema.prisma
 
       - name: Typecheck
