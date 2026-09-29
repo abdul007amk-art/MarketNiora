@@ -15,8 +15,23 @@ permissions:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: marketniora_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d marketniora_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+
     env:
-      DATABASE_URL: postgresql://user:password@localhost:5432/postgres
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/marketniora_ci
 
     steps:
       - name: Checkout
@@ -34,6 +49,15 @@ jobs:
 
       - name: Prisma generate
         run: npx prisma generate --schema database/prisma/schema.prisma
+
+      - name: Bootstrap CI database
+        run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/dars12-ci-bootstrap.sql
+
+      - name: Apply DARS-1.2 migrations
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/20260927_dars_evidence.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/20260927_dars_run.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/20260928_dars_health_report.sql
 
       - name: Typecheck
         run: npm run typecheck
