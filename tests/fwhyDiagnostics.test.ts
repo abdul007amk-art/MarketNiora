@@ -1,6 +1,6 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import { runFwhyDiagnostics } from '../backend/src/dars12/fwhyDiagnostics.ts';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const { runFwhyDiagnostics } = require('../backend/src/dars12/fwhyDiagnostics.ts');
 
 const base = {
   sourceEventId: 'evt-1', source: 'TEST', symbol: 'AAA', value: '10',
