@@ -26,6 +26,8 @@ export interface Dars12RunInput {
   runKnowledgeTime:number; providerHealthy:boolean; rawEvents:RawDarsEvent[];
   evidenceRefreshSucceeded:boolean; expectedCoverage?:number; formulaVersion:string;
   formula:(evidence:readonly DarsEvidence[])=>string;
+  /** Synchronous fail-closed gate. The formula must not execute unless FWHY diagnostics are CURRENT. */
+  fwhyGate?:(evidence:readonly DarsEvidence[])=>{truthState:'CURRENT'|'BLOCKED'};
 }
 export interface Dars12StageEvent {
   sequence:number; stage:Dars12Stage; status:'STARTED'|'SUCCEEDED'|'SKIPPED'|'FAILED';
@@ -202,8 +204,29 @@ export class Dars12Engine {
     }
     mark('EVIDENCE_REFRESH','SUCCEEDED');
 
-    mark('FORMULA_RECALCULATION','STARTED');
     const formulaEvidence=this.store.currentEvidence(input.runKnowledgeTime);
+    mark('FWHY_DIAGNOSTICS','STARTED');
+    const fwhy = (input.fwhyGate ?? ((evidence:readonly DarsEvidence[]) => {
+      const groups = new Map<string, DarsEvidence[]>();
+      for (const row of evidence) groups.set(row.evidenceKey, [...(groups.get(row.evidenceKey) ?? []), row]);
+      const blocked = evidence.length === 0 || [...groups.values()].some(rows => rows.some(row =>
+        row.verificationStatus !== 'VERIFIED' ||
+        (row.dataNature === 'DERIVED' && !row.formulaVersion) ||
+        row.truthState !== 'CURRENT'
+      ));
+      return {truthState:blocked ? 'BLOCKED' : 'CURRENT' as const};
+    }))(formulaEvidence);
+    if (fwhy.truthState !== 'CURRENT') {
+      mark('FWHY_DIAGNOSTICS','FAILED');
+      fail('FWHY diagnostics blocked formula recalculation');
+      mark('FORMULA_RECALCULATION','SKIPPED');
+      mark('PROVENANCE_AUDIT','SKIPPED');
+      mark('HEALTH_REPORT','SKIPPED');
+      return this.out(runId,events,formulaEvidence,null,false,duplicates,'BLOCKED',false,false,errors);
+    }
+    mark('FWHY_DIAGNOSTICS','SUCCEEDED');
+
+    mark('FORMULA_RECALCULATION','STARTED');
     if(formulaEvidence.some(e=>e.refreshedAt!==input.runKnowledgeTime)){
       mark('FORMULA_RECALCULATION','FAILED'); fail('formula recalculation blocked by stale evidence');
       for(const s of DARS12_STAGES.slice(12))mark(s,'SKIPPED');
@@ -212,7 +235,6 @@ export class Dars12Engine {
     const formulaOutput=input.formula([...formulaEvidence].sort((a,b)=>a.evidenceKey.localeCompare(b.evidenceKey)));
     mark('FORMULA_RECALCULATION','SUCCEEDED');
 
-    mark('FWHY_DIAGNOSTICS','STARTED'); mark('FWHY_DIAGNOSTICS','SUCCEEDED');
     mark('PROVENANCE_AUDIT','STARTED'); mark('PROVENANCE_AUDIT','SUCCEEDED');
     mark('HEALTH_REPORT','STARTED'); mark('HEALTH_REPORT','SUCCEEDED');
     return this.out(runId,events,formulaEvidence,formulaOutput,true,duplicates,'CURRENT',true,true,errors);
