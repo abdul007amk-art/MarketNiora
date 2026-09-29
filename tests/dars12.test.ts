@@ -74,3 +74,24 @@ test('DARS12 adversarial: conflicting duplicate source_event_id inside one batch
  assert.match(r.errors[0],/conflicting source_event_id values within input batch rejected/);
  assert.equal(s.allEvidence().length,0);
 });
+
+
+test('DARS12 adversarial: FWHY BLOCKED prevents formula execution',()=>{
+ let executed=false;
+ const r=new Dars12Engine().run({runKnowledgeTime:200,providerHealthy:true,rawEvents:[base({verificationStatus:'UNVERIFIED'})],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:()=>{executed=true; return 'SHOULD-NOT-RUN';}});
+ assert.equal(executed,false);
+ assert.equal(r.formulaExecuted,false);
+ assert.equal(r.formulaOutput,null);
+ assert.equal(r.truthState,'BLOCKED');
+ assert.ok(idx(r,'FWHY_DIAGNOSTICS','FAILED')>=0);
+ assert.ok(idx(r,'FWHY_DIAGNOSTICS','FAILED')<idx(r,'FORMULA_RECALCULATION','SKIPPED'));
+});
+
+test('DARS12 adversarial: FWHY gate runs before formula and custom BLOCKED gate is honored',()=>{
+ const order=[];
+ const r=new Dars12Engine().run({runKnowledgeTime:200,providerHealthy:true,rawEvents:[base()],evidenceRefreshSucceeded:true,formulaVersion:'F1',fwhyGate:()=>{order.push('fwhy'); return {truthState:'BLOCKED'};},formula:()=>{order.push('formula'); return 'SHOULD-NOT-RUN';}});
+ assert.deepEqual(order,['fwhy']);
+ assert.equal(r.formulaExecuted,false);
+ assert.equal(r.formulaOutput,null);
+ assert.equal(r.truthState,'BLOCKED');
+});
