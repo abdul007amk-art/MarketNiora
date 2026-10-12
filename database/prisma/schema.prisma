@@ -435,7 +435,7 @@ model CanonicalStock {
 
 model RawStockObservation {
   observationId       String                @id @default(uuid()) @db.Uuid @map("observation_id")
-  stockId             String?               @db.Uuid @map("stock_id")
+  stockId             String               @db.Uuid @map("stock_id")
   source              String
   sourceTimestamp     DateTime?             @db.Timestamptz(6) @map("source_timestamp")
   reportedDate        DateTime?             @db.Date @map("reported_date")
@@ -452,7 +452,7 @@ model RawStockObservation {
   configurationSnapshot Json?               @map("configuration_snapshot")
   formulaVersionId    String?               @db.Uuid @map("formula_version_id")
 
-  stock               CanonicalStock?       @relation(fields: [stockId], references: [stockId], onDelete: Restrict)
+  stock               CanonicalStock       @relation(fields: [stockId], references: [stockId], onDelete: Restrict)
   formulaVersionRef   FormulaVersion?       @relation(fields: [formulaVersionId], references: [formulaVersionId], onDelete: Restrict)
 
   @@index([stockId])
