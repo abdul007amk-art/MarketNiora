@@ -4,6 +4,7 @@ const {
   UpstoxLtpProvider,
   isValidNseEquityInstrumentKey,
   resolveVerifiedNseInstrumentKey,
+  VerifiedNseInstrumentKeyResolver,
 } = require('../backend/src/providers/upstoxLtpProvider.ts');
 
 const MAPPING = {
@@ -141,4 +142,24 @@ test('provider requires a non-empty token and a verified instrument resolver', (
     accessToken: 'test-token',
     instrumentResolver: null,
   }), /instrument-key resolver is required/);
+});
+
+
+test('VerifiedNseInstrumentKeyResolver keeps an immutable snapshot of the validated mapping rows', () => {
+  const records = [MAPPING];
+  const resolver = new VerifiedNseInstrumentKeyResolver(records);
+  records[0].instrumentKey = 'NSE_EQ|CHANGED';
+  assert.equal(resolver.resolve('RELIANCE'), MAPPING.instrumentKey);
+});
+
+test('malformed upstream payload leaves health DEGRADED, not HEALTHY', async () => {
+  const provider = new UpstoxLtpProvider({
+    accessToken: 'test-token',
+    instrumentResolver: { resolve: () => MAPPING.instrumentKey },
+    fetcher: async () => jsonResponse({ status: 'success', data: {} }),
+  });
+  const quote = await provider.getQuote('RELIANCE', 7000);
+  assert.equal(quote.price, null);
+  assert.equal(quote.status, 'NOT_INTERPRETABLE');
+  assert.equal((await provider.healthCheck(7001)).status, 'DEGRADED');
 });
