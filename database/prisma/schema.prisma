@@ -206,12 +206,35 @@ model MasterImportBatch {
   ownerAuthorizedAt DateTime?            @db.Timestamptz(6) @map("owner_authorized_at")
   createdAt         DateTime             @default(now()) @db.Timestamptz(6) @map("created_at")
 
-  identityConflicts IdentityConflict[]
-  sourceEvidence    SourceEvidence[]
-  classificationReviews ClassificationReview[]
+  identityConflicts       IdentityConflict[]
+  sourceEvidence          SourceEvidence[]
+  classificationReviews   ClassificationReview[]
+  stagedRows              Master4187Staging[]
 
   @@map("master_import_batch")
   @@schema("governance_layer")
+}
+
+model Master4187Staging {
+  stagingRowId        BigInt   @id @default(autoincrement()) @map("staging_row_id")
+  batchId             String?  @db.Uuid @map("batch_id")
+  sourceRowNumber     Int?     @map("source_row_number")
+  name                String
+  symbol              String
+  exchange            String
+  sector              String?
+  subSector           String?  @map("sub_sector")
+  shariahStatus       String?  @map("shariah_status")
+  googleFinanceTicker String?  @map("google_finance_ticker")
+  identityStatus      String   @default("PENDING") @map("identity_status")
+  createdAt           DateTime @default(now()) @db.Timestamptz(6) @map("created_at")
+
+  batch               MasterImportBatch? @relation(fields: [batchId], references: [batchId], onDelete: Restrict)
+
+  @@unique([batchId, sourceRowNumber])
+  @@index([exchange, symbol])
+  @@map("master_4187_staging")
+  @@schema("staging_enrichment")
 }
 
 model IdentityConflict {
