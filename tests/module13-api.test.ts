@@ -552,10 +552,10 @@ test('production runtime launch is blocked until production integration gates pa
 test('GET /market-data/provider-health preserves UNKNOWN when a configured provider has not been verified', async () => {
   const { server, baseUrl, deps } = await startServer();
   deps.marketDataProvider = {
-    name: 'UPSTOX_LTP_V3',
-    getQuote: async (symbol) => ({ symbol, price: null, status: 'SOURCE_REQUIRED', asOf: null, source: 'UPSTOX_LTP_V3' }),
+    name: 'UPSTOX_FULL_MARKET_QUOTES_V3',
+    getQuote: async (symbol) => ({ symbol, price: null, status: 'SOURCE_REQUIRED', asOf: null, source: 'UPSTOX_FULL_MARKET_QUOTES_V3' }),
     healthCheck: async () => ({
-      providerName: 'UPSTOX_LTP_V3',
+      providerName: 'UPSTOX_FULL_MARKET_QUOTES_V3',
       status: 'UNKNOWN',
       lastCheckedAt: 1234,
       detail: 'A successful, recent provider request is needed to verify API health.'
