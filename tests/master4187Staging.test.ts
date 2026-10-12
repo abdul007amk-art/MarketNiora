@@ -1,10 +1,10 @@
-import test from 'node:test';
-import assert from 'node:assert/strict';
-import {
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const {
   MASTER_4187_HEADERS,
   parseCsv,
   validateMaster4187Csv,
-} from '../backend/src/data/master4187Staging.ts';
+} = require('../backend/src/data/master4187Staging.ts');
 
 function csv(rows: string[][]): string {
   return rows.map((row) => row.map((value) => {
