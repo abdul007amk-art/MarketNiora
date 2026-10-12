@@ -118,9 +118,9 @@ test('real PostgreSQL: identical knowledgeTime collision is fail-closed and leav
 
 test('real PostgreSQL: identical provider-event replay preserves original knowledge time and conflicting replay cannot overwrite it', async () => {
   const asOf = Date.now() - 1000;
-  const firstKnowledgeTime = Date.now() + 3000;
-  const secondKnowledgeTime = firstKnowledgeTime + 3000;
-  const conflictKnowledgeTime = secondKnowledgeTime + 3000;
+  const firstKnowledgeTime = Date.now() + 86_400_000;
+  const secondKnowledgeTime = firstKnowledgeTime + 30_000;
+  const conflictKnowledgeTime = secondKnowledgeTime + 30_000;
   const stableProvider = (price) => ({
     name: 'REPLAY_INTEGRATION_PROVIDER',
     healthCheck: async () => ({ providerName: 'REPLAY_INTEGRATION_PROVIDER', status: 'HEALTHY', lastCheckedAt: Date.now() }),
