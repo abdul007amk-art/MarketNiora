@@ -15,6 +15,7 @@
  * Reference: Upstox LTP Quotes V3 and Instruments JSON documentation.
  */
 
+import { gunzipSync } from 'node:zlib';
 import type { DataStatus, ProviderHealth } from './sourceHealth.ts';
 import type { MarketDataProvider, Quote } from './marketDataProvider.ts';
 
@@ -145,9 +146,24 @@ export class UpstoxInstrumentDirectory implements InstrumentKeyResolver {
     }
     if (!response.ok) throw new Error('Upstox instrument directory request rejected.');
 
+    const declaredLength = Number(response.headers.get('content-length'));
+    if (Number.isFinite(declaredLength) && declaredLength > 100 * 1024 * 1024) {
+      throw new Error('Upstox instrument directory exceeds the configured size limit.');
+    }
+
     let payload: unknown;
     try {
-      payload = await response.json();
+      const compressedOrPlain = Buffer.from(await response.arrayBuffer());
+      if (compressedOrPlain.length === 0 || compressedOrPlain.length > 100 * 1024 * 1024) {
+        throw new Error('instrument file size is outside the accepted range');
+      }
+      const jsonBytes = this.url.pathname.toLowerCase().endsWith('.gz')
+        ? gunzipSync(compressedOrPlain, { maxOutputLength: 512 * 1024 * 1024 })
+        : compressedOrPlain;
+      if (jsonBytes.length > 512 * 1024 * 1024) {
+        throw new Error('instrument JSON expansion is outside the accepted range');
+      }
+      payload = JSON.parse(jsonBytes.toString('utf8'));
     } catch {
       throw new Error('Upstox instrument directory response unavailable.');
     }
