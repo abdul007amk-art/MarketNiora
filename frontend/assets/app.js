@@ -64,8 +64,17 @@
       if (indicator) indicator.className = "source-indicator healthy";
       return;
     }
+    if (body && body.status === "UNKNOWN") {
+      setText("provider-status-title", "Provider configured · health not verified");
+      setText("provider-status-detail", body.detail || "A successful, recent provider request is needed to verify API health.");
+      setText("sidebar-source-title", "Health unverified");
+      setText("sidebar-source-subtitle", "No current market reading is implied");
+      if (pulse) pulse.className = "status-pulse warn";
+      if (indicator) indicator.className = "source-indicator warn";
+      return;
+    }
     setText("provider-status-title", "Configured provider unavailable");
-    setText("provider-status-detail", "Quotes remain unavailable until the source recovers and passes freshness checks.");
+    setText("provider-status-detail", body && body.detail ? body.detail : "Quotes remain unavailable until the source recovers and passes freshness checks.");
     setText("sidebar-source-title", "Provider unavailable");
     setText("sidebar-source-subtitle", "No current reading is claimed");
     if (pulse) pulse.className = "status-pulse warn";
