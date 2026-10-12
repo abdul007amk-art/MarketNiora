@@ -404,3 +404,98 @@ test('unexpected internal error is sanitized to a generic 500, never leaks detai
     await stopServer(server);
   }
 });
+
+
+// ================= MARKET DATA TRUTH API =================
+
+test('GET /market-data/provider-health reports NOT_CONFIGURED instead of claiming a live feed', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const res = await fetch(`${baseUrl}/market-data/provider-health`);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.configured, false);
+    assert.equal(body.status, 'DOWN');
+    assert.equal(body.truthState, 'NOT_CONFIGURED');
+    assert.equal(body.provider, 'NONE_CONFIGURED_MARKET_DATA');
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('GET /market-data/quote/:symbol returns null plus SOURCE_REQUIRED when no provider is configured', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const res = await fetch(`${baseUrl}/market-data/quote/RELIANCE`);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.symbol, 'RELIANCE');
+    assert.equal(body.price, null);
+    assert.equal(body.dataStatus, 'SOURCE_REQUIRED');
+    assert.equal(body.truthState, 'NOT_CONFIGURED');
+    assert.equal(body.asOf, null);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('GET /market-data/quote validates symbol path values before provider access', async () => {
+  const { server, baseUrl, deps } = await startServer();
+  let called = false;
+  deps.marketDataProvider = {
+    name: 'TEST_PROVIDER',
+    getQuote: async () => { called = true; return { symbol: 'BAD', price: 1, status: 'LIVE', asOf: Date.now(), source: 'TEST_PROVIDER' }; },
+    healthCheck: async () => ({ providerName: 'TEST_PROVIDER', status: 'HEALTHY', lastCheckedAt: Date.now() })
+  };
+  try {
+    const res = await fetch(`${baseUrl}/market-data/quote/RELIANCE%3BDROP`);
+    assert.equal(res.status, 400);
+    assert.equal(called, false);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('GET /market-data/quote passes through configured provider truth and its actual timestamp', async () => {
+  const { server, baseUrl, deps } = await startServer();
+  deps.marketDataProvider = {
+    name: 'TEST_PROVIDER',
+    getQuote: async (symbol) => ({ symbol, price: 123.45, status: 'DELAYED', asOf: 1000, source: 'TEST_PROVIDER' }),
+    healthCheck: async () => ({ providerName: 'TEST_PROVIDER', status: 'HEALTHY', lastCheckedAt: 2000 })
+  };
+  try {
+    const res = await fetch(`${baseUrl}/market-data/quote/INFY`);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.price, 123.45);
+    assert.equal(body.dataStatus, 'DELAYED');
+    assert.equal(body.source, 'TEST_PROVIDER');
+    assert.equal(body.asOf, 1000);
+    assert.equal(body.truthState, 'DELAYED');
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('market-data provider failures are fail-closed and do not expose raw error details', async () => {
+  const { server, baseUrl, deps } = await startServer();
+  deps.marketDataProvider = {
+    name: 'TEST_PROVIDER',
+    getQuote: async () => { throw new Error('token=super-secret'); },
+    healthCheck: async () => { throw new Error('token=super-secret'); }
+  };
+  try {
+    const quote = await fetch(`${baseUrl}/market-data/quote/INFY`);
+    assert.equal(quote.status, 503);
+    const quoteBody = await quote.text();
+    assert.equal(quoteBody.includes('super-secret'), false);
+    assert.equal(quoteBody.includes('token='), false);
+
+    const health = await fetch(`${baseUrl}/market-data/provider-health`);
+    assert.equal(health.status, 503);
+    const healthBody = await health.text();
+    assert.equal(healthBody.includes('super-secret'), false);
+  } finally {
+    await stopServer(server);
+  }
+});
