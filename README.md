@@ -27,7 +27,7 @@ Do not change locked business rules, hierarchy, scoring formulas or governance c
 | Company, theme and value chain | Contracts and validation/resolve endpoints; research workbooks contain evidence-linked records | Full canonical DB load, complete explorer API and runtime coverage remain unverified |
 | Authentication | Google OIDC, owner TOTP/MFA, session and authorization modules | DB-backed auth is selectable for NON_PROD; clone CRUD integration script still must pass against the approved clone |
 | Security & CI | RBAC, CSRF, security headers, rate limiting, audit components, Prisma migrations and tests | Main-branch CI is green; CI is not the same as production runtime validation |
-| Broker / notifications | Provider interfaces and config contracts exist | Upstox access token/instrument mapping and Telegram delivery are not claimed as configured |
+| Broker / notifications | Upstox LTP V3 adapter and verified-symbol resolver contract now have tests | Not activated: no canonical instrument-mapping table/resolver, approved token provisioning or source-timestamp rule; Telegram delivery is also not configured |
 | Deployment | Server and frontend can be served same-origin | No verified production deployment/runtime evidence is recorded |
 
 ## Data truth rules
@@ -87,9 +87,9 @@ The documented script is `npx tsx scripts/integrationTest.ts`. It must be run on
 
 ## Remaining release gates
 
-1. Configure and verify an approved market-data provider, then persist raw and canonical observations in PostgreSQL with provenance, freshness, symbol mapping and conflict controls.
+1. Finalize the canonical Upstox instrument-mapping storage contract, reconcile mappings against official instrument JSON, provision the short-lived access token, approve the source-time/freshness policy, then activate the tested LTP V3 adapter and persist raw/canonical observations in PostgreSQL with provenance and conflict controls.
 2. Populate the immutable stock master in the approved database only after import row/column validation and quarantine checks pass.
-3. Wire verified observations into hierarchical Rotation and approved feature data into Stock Score without modifying the locked engines.
+3. Wire verified observations into hierarchical Rotation and approved feature data into Stock Score without modifying the locked engines. The Upstox adapter intentionally keeps `asOf: null` / `UNKNOWN` until source timestamp and freshness semantics are explicitly approved.
 4. Finish canonical company/theme/value-chain/fundamental reads and ensure every visible value has a source/date/truth state.
 5. Run the NON_PROD authentication CRUD integration test and a backup/restore rehearsal.
 6. Configure approved OIDC, key management, secrets, monitoring, deployment and security boundaries; prove the deployed runtime with integration tests before calling the product production-ready.
