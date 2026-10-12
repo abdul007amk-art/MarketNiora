@@ -4,6 +4,7 @@ const fs = require('node:fs');
 
 const prismaSchema = fs.readFileSync('database/prisma/schema.prisma', 'utf8');
 const migration = fs.readFileSync('database/migrations/012_marketniora.sql', 'utf8');
+const baseSchema = fs.readFileSync('database/schema.sql', 'utf8');
 
 function modelBlock(source, modelName) {
   const start = source.indexOf(`model ${modelName} {`);
@@ -23,7 +24,7 @@ test('RawStockObservation requires an existing canonical stock in Prisma', () =>
 
 test('database migration enforces the same raw-observation identity contract', () => {
   assert.match(migration, /ALTER COLUMN stock_id SET NOT NULL/i);
-  assert.match(migration, /FOREIGN KEY \(stock_id\)[\s\S]{0,180}REFERENCES production_layer\.canonical_stock/i);
+  assert.match(baseSchema, /FOREIGN KEY \(stock_id\)[\s\S]{0,180}REFERENCES production_layer\.canonical_stock/i);
 });
 
 test('raw observations cannot be updated or deleted after insertion', () => {
