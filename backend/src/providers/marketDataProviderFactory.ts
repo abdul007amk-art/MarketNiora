@@ -6,8 +6,8 @@
  * supplied. Partial configuration is a startup error (no silent fallback).
  *
  * This factory does not persist observations or approve LIVE freshness. The
- * current LTP adapter leaves asOf=null/status=UNKNOWN until the data contract
- * can justify a source timestamp.
+ * Full Market Quotes V3 adapter preserves source snapshot time but keeps quote
+ * status UNKNOWN until the data contract approves freshness semantics.
  */
 
 import type { MarketDataProvider } from './marketDataProvider.ts';
