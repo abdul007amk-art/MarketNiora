@@ -70,15 +70,16 @@ Weights remain Momentum 22%, Relative Strength 10%, Trend Quality 8%, Volume Con
 
 ## Local development
 
-Install dependencies and run the checks:
+Install dependencies, run the checks, and start a **non-production** local server:
 
 ```bash
 npm install
 npm run typecheck
 npm test
+npm start
 ```
 
-Start the API/server from the repository root using your deployment runner or the approved local runner. The static frontend is resolved from the repository root's `frontend/` directory. The repo's CI validates typecheck, tests, Prisma/schema validation and protected-engine integrity.
+The server serves the same-origin dashboard at `/` and its whitelisted assets under `/assets/`. The non-production server binds to `HOST` (default `0.0.0.0`) and `PORT` (default `3000`). **A `NODE_ENV=production` launch is intentionally blocked** while production auth/KMS, durable market-data persistence/provider integration and runtime release gates remain unverified. Do not bypass that guard merely to publish the interface.
 
 ### NON_PROD authentication integration
 
