@@ -63,6 +63,23 @@ export function resolveVerifiedNseInstrumentKey(
   return keys.length === 1 ? keys[0] : null;
 }
 
+/**
+ * Immutable resolver snapshot built from rows fetched from an approved
+ * canonical instrument-mapping source. Refresh only from that source after
+ * its mapping status and source evidence have been validated.
+ */
+export class VerifiedNseInstrumentKeyResolver implements InstrumentKeyResolver {
+  private readonly records: InstrumentMappingRecord[];
+
+  constructor(records: InstrumentMappingRecord[]) {
+    this.records = records.map((row) => ({ ...row }));
+  }
+
+  resolve(symbol: string): string | null {
+    return resolveVerifiedNseInstrumentKey(symbol, this.records);
+  }
+}
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value)
     ? value as Record<string, unknown>
