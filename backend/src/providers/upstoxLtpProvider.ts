@@ -32,8 +32,8 @@ export interface InstrumentKeyResolver {
 
 export type UpstoxFetch = typeof fetch;
 
-const SOURCE = 'UPSTOX_LTP_V3';
-const LTP_ENDPOINT = 'https://api.upstox.com/v3/market-quote/ltp';
+const SOURCE = 'UPSTOX_FULL_MARKET_QUOTES_V3';
+const FULL_QUOTE_ENDPOINT = 'https://api.upstox.com/v3/market-quote/quotes';
 const PROFILE_LABEL = 'Upstox API status is based on the most recent quote request; it is not a freshness guarantee.';
 const HEALTH_MAX_AGE_MS = 60_000;
 const INSTRUMENT_KEY_PATTERN = /^NSE_EQ\|[A-Z0-9]+$/;
@@ -199,13 +199,20 @@ export class UpstoxInstrumentDirectory implements InstrumentKeyResolver {
   }
 }
 
-function lastPriceForInstrument(payload: unknown, instrumentKey: string): number | null {
+interface ParsedFullMarketQuote {
+  lastPrice: number;
+  responseTimestamp: number | null;
+}
+
+function fullMarketQuoteForInstrument(payload: unknown, instrumentKey: string): ParsedFullMarketQuote | null {
   const envelope = asRecord(payload);
   if (!envelope || envelope.status !== 'success') return null;
 
   const data = asRecord(envelope.data);
   if (!data) return null;
 
+  // Full-quote responses are keyed by EXCHANGE:TRADING_SYMBOL or by the
+  // instrument key with '|' replaced by ':'. Always validate instrument_token.
   const normalizedKey = instrumentKey.replace('|', ':');
   let quote: Record<string, unknown> | null = null;
 
@@ -216,12 +223,9 @@ function lastPriceForInstrument(payload: unknown, instrumentKey: string): number
     const entryMatches = entryKey === normalizedKey || entryKey === instrumentKey;
     const embeddedKeyPresent = typeof embeddedKey === 'string' && embeddedKey.length > 0;
 
-    // A response object cannot be trusted when its map key selects the requested
-    // instrument but its own identity field contradicts that mapping.
     if (entryMatches && embeddedKeyPresent && embeddedKey !== instrumentKey) return null;
-
     if (entryMatches || embeddedKey === instrumentKey) {
-      if (quote) return null; // ambiguous response is rejected
+      if (quote) return null;
       quote = candidate;
     }
   }
@@ -229,10 +233,23 @@ function lastPriceForInstrument(payload: unknown, instrumentKey: string): number
   if (!quote) return null;
   const lastPrice = quote.last_price;
   if (typeof lastPrice !== 'number' || !Number.isFinite(lastPrice) || lastPrice <= 0) return null;
-  return lastPrice;
+
+  // Upstox documents data.timestamp as the time the response snapshot was
+  // generated; it is not the last trade time. Preserve that distinction.
+  const responseTimeRaw = quote.timestamp;
+  const responseTimestamp = typeof responseTimeRaw === 'string'
+    ? Date.parse(responseTimeRaw)
+    : typeof responseTimeRaw === 'number' && Number.isFinite(responseTimeRaw)
+      ? responseTimeRaw
+      : Number.NaN;
+
+  return {
+    lastPrice,
+    responseTimestamp: Number.isFinite(responseTimestamp) ? responseTimestamp : null,
+  };
 }
 
-export class UpstoxLtpProvider implements MarketDataProvider {
+export class UpstoxFullMarketQuoteProvider implements MarketDataProvider {
   public readonly name = SOURCE;
   private readonly accessToken: string;
   private readonly resolver: InstrumentKeyResolver;
@@ -275,7 +292,7 @@ export class UpstoxLtpProvider implements MarketDataProvider {
       return this.unavailable(normalizedSymbol, 'SOURCE_REQUIRED');
     }
 
-    const url = new URL(LTP_ENDPOINT);
+    const url = new URL(FULL_QUOTE_ENDPOINT);
     url.searchParams.set('instrument_key', instrumentKey);
 
     let response: Response;
@@ -308,8 +325,8 @@ export class UpstoxLtpProvider implements MarketDataProvider {
       throw new Error('Upstox quote response unavailable.');
     }
 
-    const price = lastPriceForInstrument(payload, instrumentKey);
-    if (price === null) {
+    const parsedQuote = fullMarketQuoteForInstrument(payload, instrumentKey);
+    if (parsedQuote === null) {
       // Successful HTTP transport does not make malformed/unmatched quote
       // content verified. Keep the provider degraded and return no number.
       this.markProviderFailure(now, 'Upstox response did not contain a verifiable price for the resolved instrument.');
@@ -323,9 +340,9 @@ export class UpstoxLtpProvider implements MarketDataProvider {
     const status: DataStatus = 'UNKNOWN';
     return {
       symbol: normalizedSymbol,
-      price,
+      price: parsedQuote.lastPrice,
       status,
-      asOf: null, // intentionally not synthesized from request time
+      asOf: parsedQuote.responseTimestamp,
       source: this.name,
     };
   }
