@@ -229,3 +229,26 @@ test('Upstox instrument directory fails closed on non-JSON or empty instrument f
     await assert.rejects(() => directory.resolve('RELIANCE'), /unexpected structure|no usable NSE equity records/);
   }
 });
+
+
+test('configured provider selection defaults to Null, blocks partial config, and activates only with both settings', () => {
+  const { createConfiguredMarketDataProvider } = require('../backend/src/providers/marketDataProviderFactory.ts');
+  const previousToken = process.env.UPSTOX_ACCESS_TOKEN;
+  const previousUrl = process.env.UPSTOX_INSTRUMENTS_JSON_URL;
+  try {
+    delete process.env.UPSTOX_ACCESS_TOKEN;
+    delete process.env.UPSTOX_INSTRUMENTS_JSON_URL;
+    assert.equal(createConfiguredMarketDataProvider().name, 'NONE_CONFIGURED_MARKET_DATA');
+
+    process.env.UPSTOX_ACCESS_TOKEN = 'non-secret-test-fixture';
+    assert.throws(() => createConfiguredMarketDataProvider(), /requires both UPSTOX_ACCESS_TOKEN and UPSTOX_INSTRUMENTS_JSON_URL/);
+
+    process.env.UPSTOX_INSTRUMENTS_JSON_URL = INSTRUMENT_FEED_URL;
+    assert.equal(createConfiguredMarketDataProvider().name, 'UPSTOX_LTP_V3');
+  } finally {
+    if (previousToken === undefined) delete process.env.UPSTOX_ACCESS_TOKEN;
+    else process.env.UPSTOX_ACCESS_TOKEN = previousToken;
+    if (previousUrl === undefined) delete process.env.UPSTOX_INSTRUMENTS_JSON_URL;
+    else process.env.UPSTOX_INSTRUMENTS_JSON_URL = previousUrl;
+  }
+});
