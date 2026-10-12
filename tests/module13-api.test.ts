@@ -404,3 +404,146 @@ test('unexpected internal error is sanitized to a generic 500, never leaks detai
     await stopServer(server);
   }
 });
+
+
+// ================= MARKET DATA TRUTH API =================
+
+test('GET /market-data/provider-health reports NOT_CONFIGURED instead of claiming a live feed', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const res = await fetch(`${baseUrl}/market-data/provider-health`);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.configured, false);
+    assert.equal(body.status, 'DOWN');
+    assert.equal(body.truthState, 'NOT_CONFIGURED');
+    assert.equal(body.provider, 'NONE_CONFIGURED_MARKET_DATA');
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('GET /market-data/quote/:symbol returns null plus SOURCE_REQUIRED when no provider is configured', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const res = await fetch(`${baseUrl}/market-data/quote/RELIANCE`);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.symbol, 'RELIANCE');
+    assert.equal(body.price, null);
+    assert.equal(body.dataStatus, 'SOURCE_REQUIRED');
+    assert.equal(body.truthState, 'NOT_CONFIGURED');
+    assert.equal(body.asOf, null);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('GET /market-data/quote validates symbol path values before provider access', async () => {
+  const { server, baseUrl, deps } = await startServer();
+  let called = false;
+  deps.marketDataProvider = {
+    name: 'TEST_PROVIDER',
+    getQuote: async () => { called = true; return { symbol: 'BAD', price: 1, status: 'LIVE', asOf: Date.now(), source: 'TEST_PROVIDER' }; },
+    healthCheck: async () => ({ providerName: 'TEST_PROVIDER', status: 'HEALTHY', lastCheckedAt: Date.now() })
+  };
+  try {
+    const res = await fetch(`${baseUrl}/market-data/quote/RELIANCE%3BDROP`);
+    assert.equal(res.status, 400);
+    assert.equal(called, false);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('GET /market-data/quote passes through configured provider truth and its actual timestamp', async () => {
+  const { server, baseUrl, deps } = await startServer();
+  deps.marketDataProvider = {
+    name: 'TEST_PROVIDER',
+    getQuote: async (symbol) => ({ symbol, price: 123.45, status: 'DELAYED', asOf: 1000, source: 'TEST_PROVIDER' }),
+    healthCheck: async () => ({ providerName: 'TEST_PROVIDER', status: 'HEALTHY', lastCheckedAt: 2000 })
+  };
+  try {
+    const res = await fetch(`${baseUrl}/market-data/quote/INFY`);
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.price, 123.45);
+    assert.equal(body.dataStatus, 'DELAYED');
+    assert.equal(body.source, 'TEST_PROVIDER');
+    assert.equal(body.asOf, 1000);
+    assert.equal(body.truthState, 'DELAYED');
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('market-data provider failures are fail-closed and do not expose raw error details', async () => {
+  const { server, baseUrl, deps } = await startServer();
+  deps.marketDataProvider = {
+    name: 'TEST_PROVIDER',
+    getQuote: async () => { throw new Error('token=super-secret'); },
+    healthCheck: async () => { throw new Error('token=super-secret'); }
+  };
+  try {
+    const quote = await fetch(`${baseUrl}/market-data/quote/INFY`);
+    assert.equal(quote.status, 503);
+    const quoteBody = await quote.text();
+    assert.equal(quoteBody.includes('super-secret'), false);
+    assert.equal(quoteBody.includes('token='), false);
+
+    const health = await fetch(`${baseUrl}/market-data/provider-health`);
+    assert.equal(health.status, 503);
+    const healthBody = await health.text();
+    assert.equal(healthBody.includes('super-secret'), false);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+
+// ================= SAME-ORIGIN FRONTEND =================
+
+test('GET / serves the MarketNiora dashboard with the correct content type', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const res = await fetch(`${baseUrl}/`);
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get('content-type'), /text\/html/);
+    const body = await res.text();
+    assert.match(body, /MarketNiora/);
+    assert.match(body, /4,187/);
+    assert.match(body, /runtime count unverified/);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('GET /assets/app.js and /assets/styles.css serve only the whitelisted frontend assets', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const js = await fetch(`${baseUrl}/assets/app.js`);
+    assert.equal(js.status, 200);
+    assert.match(js.headers.get('content-type'), /javascript/);
+    assert.match(await js.text(), /market-data\/provider-health/);
+
+    const css = await fetch(`${baseUrl}/assets/styles.css`);
+    assert.equal(css.status, 200);
+    assert.match(css.headers.get('content-type'), /text\/css/);
+    assert.match(await css.text(), /\.app-shell/);
+
+    const traversal = await fetch(`${baseUrl}/assets/..%2F..%2F.env`);
+    assert.equal(traversal.status, 404);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+
+// ================= RUNTIME STARTUP GATE =================
+
+test('production runtime launch is blocked until production integration gates pass', () => {
+  const { productionRuntimeBlockReason } = require('../backend/src/api/runtimeGuard.ts');
+  assert.equal(productionRuntimeBlockReason({ NODE_ENV: 'development' }), null);
+  assert.equal(productionRuntimeBlockReason({ NODE_ENV: 'test' }), null);
+  assert.match(productionRuntimeBlockReason({ NODE_ENV: 'production' }), /persistent production auth\/KMS/);
+});

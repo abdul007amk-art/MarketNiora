@@ -6,14 +6,14 @@
  * Built entirely on Node's built-in `http` module — no Express/Fastify —
  * consistent with this repo's zero-network-install-dependency approach.
  *
- * BOUNDARY (see docs/API_LAYER.md): this is a genuinely running,
- * genuinely tested HTTP server. What it is NOT: connected to a real
- * Postgres database or a real Upstox/Telegram network call. All state
- * lives in the in-memory stores from dependencies.ts. No claim of
- * production readiness — see README's standing "not production ready" note.
+ * BOUNDARY: serves the same-origin static frontend and HTTP API. This
+ * does NOT prove production database connectivity or a configured market-data
+ * provider. Runtime readiness is reported separately by the provider endpoints.
  */
 
 import { createServer } from 'http';
+import { readFile } from 'node:fs/promises';
+import { resolve } from 'node:path';
 import type { IncomingMessage, ServerResponse, Server } from 'http';
 import { securityHeaders } from '../security/securityHeaders.ts';
 import { matchRoute } from './router.ts';
@@ -22,6 +22,13 @@ import { parseCookies } from './cookies.ts';
 import type { AppDependencies } from './dependencies.ts';
 
 const MAX_BODY_BYTES = 1024 * 1024; // 1MB — a request body beyond this is refused, not silently truncated
+
+// Exact whitelist only: do not map arbitrary URL paths to filesystem paths.
+const STATIC_FILES: Record<string, { path: string; contentType: string }> = {
+  '/': { path: 'frontend/index.html', contentType: 'text/html; charset=utf-8' },
+  '/assets/app.js': { path: 'frontend/assets/app.js', contentType: 'text/javascript; charset=utf-8' },
+  '/assets/styles.css': { path: 'frontend/assets/styles.css', contentType: 'text/css; charset=utf-8' },
+};
 
 async function readBody(req: IncomingMessage): Promise<string> {
   let data = '';
@@ -48,6 +55,24 @@ export function createApp(routes: Route<AppDependencies>[], deps: AppDependencie
     try {
       const url = new URL(req.url ?? '/', 'http://localhost');
       const method = req.method ?? 'GET';
+
+      // Serve only the three whitelisted same-origin frontend paths. Static
+      // files use explicit MIME types and can never be selected by user path input.
+      const staticFile = method === 'GET' ? STATIC_FILES[url.pathname] : undefined;
+      if (staticFile) {
+        try {
+          const bytes = await readFile(resolve(process.cwd(), staticFile.path));
+          res.statusCode = 200;
+          res.setHeader('Content-Type', staticFile.contentType);
+          res.setHeader('Cache-Control', 'no-cache');
+          res.end(bytes);
+        } catch {
+          res.statusCode = 503;
+          res.setHeader('Content-Type', 'application/json');
+          res.end(JSON.stringify({ error: 'frontend asset unavailable' }));
+        }
+        return;
+      }
 
       // Fast path: reject an oversized body via Content-Length BEFORE
       // reading anything, so we never buffer a huge payload into memory

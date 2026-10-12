@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#102a43">
+  <meta name="description" content="MarketNiora is a source-aware market research and intelligence platform.">
+  <title>MarketNiora — Market Intelligence</title>
+  <link rel="stylesheet" href="/assets/styles.css">
+  <script src="/assets/app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Main navigation">
+      <a class="brand" href="#overview" aria-label="MarketNiora overview">
+        <span class="brand-mark" aria-hidden="true"><i></i><i></i><i></i><b></b></span>
+        <span class="brand-copy"><strong>MarketNiora</strong><small>MARKET INTELLIGENCE</small></span>
+      </a>
+      <div class="sidebar-caption">WORKSPACE</div>
+      <nav class="primary-nav">
+        <a href="#overview" data-view="overview" class="nav-item active"><span class="nav-icon">◫</span><span>Overview</span></a>
+        <a href="#rotation" data-view="rotation" class="nav-item"><span class="nav-icon">↗</span><span>Sector Rotation</span><em>01</em></a>
+        <a href="#stocks" data-view="stocks" class="nav-item"><span class="nav-icon">▦</span><span>Stock Explorer</span></a>
+        <a href="#themes" data-view="themes" class="nav-item"><span class="nav-icon">◎</span><span>Theme Explorer</span></a>
+        <a href="#value-chain" data-view="value-chain" class="nav-item"><span class="nav-icon">⇄</span><span>Business Value Chain</span></a>
+        <a href="#fundamentals" data-view="fundamentals" class="nav-item"><span class="nav-icon">⌁</span><span>Fundamentals</span></a>
+        <a href="#research" data-view="research" class="nav-item"><span class="nav-icon">⌕</span><span>Research & Evidence</span></a>
+        <a href="#portfolio" data-view="portfolio" class="nav-item"><span class="nav-icon">▤</span><span>Portfolio</span></a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="source-card">
+          <span class="source-indicator" id="sidebar-source-indicator"></span>
+          <div><strong id="sidebar-source-title">Checking data source</strong><small id="sidebar-source-subtitle">Verifying provider truth</small></div>
+        </div>
+        <div class="sidebar-footer"><span>Build status</span><strong>Interface preview · API-linked</strong></div>
+      </div>
+    </aside>
+
+    <main class="main-area">
+      <header class="topbar">
+        <div class="breadcrumbs"><span>MARKETNIORA</span><span class="crumb-divider">/</span><span id="current-section">OVERVIEW</span></div>
+        <div class="topbar-right"><span class="environment-pill">SOURCE-AWARE</span><button class="icon-button" id="refresh-button" aria-label="Refresh data status" title="Refresh data status">↻</button></div>
+      </header>
+
+      <section class="page-view active-view" data-page="overview" id="overview">
+        <section class="hero">
+          <div class="hero-copy">
+            <div class="eyebrow"><span class="eyebrow-line"></span>READ THE MARKET BENEATH THE MOVE</div>
+            <h1>Follow the rotation.<br><span>Trace the value chain.</span></h1>
+            <p>Connect market movement to sectors, themes and company-level evidence — with data status visible at every step.</p>
+            <form class="search-bar" id="quote-form">
+              <span class="search-symbol" aria-hidden="true">⌕</span>
+              <label class="visually-hidden" for="quote-symbol">Search an NSE symbol</label>
+              <input id="quote-symbol" name="symbol" maxlength="25" autocomplete="off" placeholder="Search a stock symbol, e.g. INFY" required>
+              <button type="submit">Check quote <span aria-hidden="true">→</span></button>
+            </form>
+            <p class="search-help">Search results are returned only when an approved market-data provider is configured. No placeholder prices.</p>
+          </div>
+          <div class="hero-art" aria-label="Market layers illustration" role="img">
+            <div class="orbit orbit-one"></div><div class="orbit orbit-two"></div><div class="orbit orbit-three"></div>
+            <div class="orbit-core"><span class="core-dot"></span><strong>MN</strong><small>MARKET SIGNALS</small></div>
+            <div class="orbit-label label-sector">SECTOR</div><div class="orbit-label label-theme">THEME</div><div class="orbit-label label-stock">STOCK</div>
+            <div class="orbit-line"></div><div class="orbit-dot dot-one"></div><div class="orbit-dot dot-two"></div><div class="orbit-dot dot-three"></div>
+          </div>
+        </section>
+
+        <section class="status-strip" aria-live="polite">
+          <div class="status-main"><span class="status-pulse" id="provider-pulse"></span><div><strong id="provider-status-title">Checking market data provider…</strong><small id="provider-status-detail">Provider connectivity is distinct from API uptime.</small></div></div>
+          <div class="status-meta"><span>PROVIDER</span><strong id="provider-name">CHECKING</strong></div>
+          <div class="status-meta"><span>LAST CHECK</span><strong id="provider-checked-at">—</strong></div>
+          <button class="text-button" id="provider-refresh">Recheck <span aria-hidden="true">↗</span></button>
+        </section>
+
+        <section class="section-heading"><div><span class="section-kicker">PLATFORM MAP</span><h2>Intelligence layers</h2></div><span class="section-note">Specification targets are not live record counts.</span></section>
+        <section class="metric-grid">
+          <article class="metric-card universe-card"><div class="metric-top"><span>Stock universe</span><span class="metric-icon">▦</span></div><strong class="metric-value">4,187</strong><div class="metric-foot"><span class="soft-dot"></span>Canonical seed target <span class="foot-separator">·</span> runtime count unverified</div><div class="metric-line"><span style="width:76%"></span></div></article>
+          <article class="metric-card"><div class="metric-top"><span>Market rotation</span><span class="metric-icon">↗</span></div><strong class="metric-value compact">ROTATION v1.2</strong><div class="metric-foot"><span class="status-tag locked">LOCKED</span> <span>hierarchical model</span></div><div class="mini-hierarchy"><span>STOCK GROUP</span><i>→</i><span>SUB-SECTOR</span><i>→</i><span>SECTOR</span></div></article>
+          <article class="metric-card"><div class="metric-top"><span>Stock Score</span><span class="metric-icon">⌁</span></div><strong class="metric-value">SS-1.0-R3</strong><div class="metric-foot"><span class="status-tag locked">LOCKED</span> <span>independent score engine</span></div><div class="metric-progress"><span style="width:100%"></span></div></article>
+          <article class="metric-card"><div class="metric-top"><span>Theme intelligence</span><span class="metric-icon">◎</span></div><strong class="metric-value compact">INDEPENDENT LAYER</strong><div class="metric-foot"><span class="soft-dot"></span>Theme membership does not drive rotation math</div><div class="mini-hierarchy"><span>THEME</span><i>→</i><span>SUB-THEME</span><i>→</i><span>INDUSTRY</span><i>→</i><span>STOCK</span></div></article>
+        </section>
+
+        <section class="workspace-grid">
+          <article class="panel rotation-panel">
+            <div class="panel-heading"><div><span class="section-kicker">MARKET BREADTH</span><h2>Sector rotation</h2></div><a href="#rotation" data-view-link="rotation" class="panel-link">Explore model <span>→</span></a></div>
+            <div class="rotation-empty">
+              <div class="empty-chart" aria-hidden="true"><div class="chart-grid"></div><svg viewBox="0 0 520 150" preserveAspectRatio="none"><path d="M0 122 C35 115 42 128 70 103 S111 98 137 104 S174 55 207 75 S245 100 267 81 S309 88 335 55 S374 67 394 45 S432 66 453 28 S491 38 520 10" fill="none" stroke="#8aa6bf" stroke-width="2" stroke-dasharray="5 6" opacity=".7"/></svg><span class="chart-overlay">Awaiting verified observations</span></div>
+              <div class="empty-state"><span class="empty-icon">◌</span><div><strong id="rotation-empty-title">Rotation not calculated</strong><p>Sector strength will appear after current stock observations pass coverage, freshness and evidence gates.</p></div></div>
+            </div>
+            <div class="panel-footnote"><span class="status-tag pending">DATA UNAVAILABLE</span><span>Index breadth has zero role in the locked Rotation Score.</span></div>
+          </article>
+
+          <article class="panel quote-panel">
+            <div class="panel-heading"><div><span class="section-kicker">STOCK 360° ENTRY POINT</span><h2>Quote lookup</h2></div><span class="neutral-chip">Provider truth</span></div>
+            <div class="quote-result placeholder" id="quote-result" aria-live="polite">
+              <div class="quote-empty-icon">⌕</div><strong>Look up a stock symbol</strong><p>Price and timestamp will only be shown if the configured source returns them.</p>
+            </div>
+            <div class="quote-details" id="quote-details" hidden>
+              <div class="quote-value-block"><span id="quote-symbol-label">SYMBOL</span><strong id="quote-price">XX</strong><small id="quote-currency">INR</small></div>
+              <div class="quote-facts"><div><span>DATA STATUS</span><strong id="quote-data-status">UNKNOWN</strong></div><div><span>SOURCE</span><strong id="quote-source">—</strong></div><div><span>OBSERVED AT</span><strong id="quote-asof">—</strong></div></div>
+            </div>
+            <div class="quote-footer"><span class="soft-dot"></span><span>Unknown, stale or unavailable values are never converted to zero.</span></div>
+          </article>
+        </section>
+
+        <section class="section-heading lower-heading"><div><span class="section-kicker">RESEARCH WORKSPACE</span><h2>Move from signal to evidence</h2></div></section>
+        <section class="feature-grid">
+          <a href="#themes" data-view-link="themes" class="feature-card"><span class="feature-icon theme-icon">◎</span><div><h3>Theme Explorer</h3><p>Explore the independent theme → sub-theme → industry → stock structure.</p><span class="feature-status">SOURCE LINK REQUIRED <b>→</b></span></div></a>
+          <a href="#value-chain" data-view-link="value-chain" class="feature-card"><span class="feature-icon chain-icon">⇄</span><div><h3>Business Value Chain</h3><p>Trace company-specific inputs, operations, outputs, customers and end-use evidence.</p><span class="feature-status">EVIDENCE-GATED <b>→</b></span></div></a>
+          <a href="#fundamentals" data-view-link="fundamentals" class="feature-card"><span class="feature-icon fundamental-icon">⌁</span><div><h3>Fundamental Intelligence</h3><p>Separate actuals, estimates and forecasts; missing required data remains XX.</p><span class="feature-status">CONTRACT DEFINED <b>→</b></span></div></a>
+          <a href="#research" data-view-link="research" class="feature-card"><span class="feature-icon research-icon">⌕</span><div><h3>Research & Evidence</h3><p>Keep source, date, provenance, verification status and unresolved gaps visible.</p><span class="feature-status">AUDIT TRAIL REQUIRED <b>→</b></span></div></a>
+        </section>
+      </section>
+
+      <section class="page-view secondary-view" data-page="rotation" id="rotation">
+        <div class="page-title"><span class="section-kicker">LOCKED ENGINE</span><h1>Sector Rotation</h1><p>Raw stock observations → Stock Group Rotation → Sub-sector Rotation → Sector Rotation.</p></div>
+        <div class="panel rule-panel"><h2>Rotation Phase 2 v1.2</h2><div class="weight-grid"><div><strong>40%</strong><span>Median return</span></div><div><strong>30%</strong><span>Participation</span></div><div><strong>20%</strong><span>Equal-weighted capped return</span></div><div><strong>10%</strong><span>IQR consistency</span></div></div><div class="rule-note">Caps: 1D 8% · 1W 12% · 1M 20% · 3M 30% · CONF_MIN 30 · N_REF 20. External-index breadth has ZERO ROLE.</div><div class="truth-panel"><span class="status-tag pending">RUNTIME UNKNOWN</span><p>The calculation engine is implemented, but this screen has no persisted, verified observation snapshot to rank. No sector leaders or laggards are invented.</p></div></div>
+      </section>
+
+      <section class="page-view secondary-view" data-page="stocks" id="stocks">
+        <div class="page-title"><span class="section-kicker">STOCK INTELLIGENCE</span><h1>Stock Explorer</h1><p>Search and examine listed companies with clear identity, source and freshness states.</p></div>
+        <div class="panel"><h2>Universe status</h2><div class="truth-panel"><span class="status-tag pending">REGISTRY COUNT UNVERIFIED</span><p>The immutable seed target is 4,187 rows. The current database/runtime count must be validated before the explorer can claim complete coverage.</p></div><div class="inline-search"><input aria-label="Stock symbol" id="secondary-symbol" maxlength="25" placeholder="Enter NSE symbol"><button id="secondary-search">Check quote</button></div></div>
+      </section>
+
+      <section class="page-view secondary-view" data-page="themes" id="themes">
+        <div class="page-title"><span class="section-kicker">INDEPENDENT CLASSIFICATION</span><h1>Theme Explorer</h1><p>THEME → SUB-THEME → INDUSTRY → STOCK. A stock may belong to multiple themes.</p></div>
+        <div class="panel truth-panel"><span class="status-tag pending">MAPPING RUNTIME UNVERIFIED</span><p>The structural contract exists in the repository. Verified theme membership will appear once approved master mappings are loaded and reconciled. Theme classification never changes Rotation or Stock Score mathematics.</p></div>
+      </section>
+
+      <section class="page-view secondary-view" data-page="value-chain" id="value-chain">
+        <div class="page-title"><span class="section-kicker">STOCK 360° · BUSINESS DETAILS</span><h1>Business Value Chain</h1><p>Company-specific facts only. Generic industry knowledge is never silently promoted to a company fact.</p></div>
+        <div class="feature-grid"><article class="panel"><h2>Upstream inputs</h2><p>Raw materials, procurement and suppliers are only confirmed with attributable evidence.</p><span class="status-tag pending">SOURCE-GATED</span></article><article class="panel"><h2>Process & capacity</h2><p>Process steps, capacity, utilisation and capex need source-defined meanings and dates.</p><span class="status-tag pending">SOURCE-GATED</span></article><article class="panel"><h2>Products & customers</h2><p>Named customers and suppliers remain unverified unless direct evidence supports the relationship.</p><span class="status-tag pending">SOURCE-GATED</span></article><article class="panel"><h2>End-use & “Why?”</h2><p>Causal explanations must be evidence-supported; otherwise label inferred, uncertain or XX.</p><span class="status-tag pending">SOURCE-GATED</span></article></div>
+      </section>
+
+      <section class="page-view secondary-view" data-page="fundamentals" id="fundamentals">
+        <div class="page-title"><span class="section-kicker">FUNDAMENTAL INTELLIGENCE v1.1</span><h1>Fundamentals</h1><p>Metric → value/XX → definition → period → trend → interpretation → source → provenance.</p></div>
+        <div class="panel"><h2>Interpretation guardrails</h2><div class="guardrail-grid"><div><b>0</b><span>Actual, verified numeric zero</span></div><div><b>XX</b><span>Missing, unavailable or unverified required value</span></div><div><b>ACTUAL</b><span>Never silently mixed with estimates or forecasts</span></div><div><b>NO SCORE</b><span>No Fundamental Score unless separately approved</span></div></div><div class="truth-panel"><span class="status-tag pending">DATA RUNTIME UNKNOWN</span><p>The metric contract is defined, but a live, source-linked fundamental record set has not been verified in this app session.</p></div></div>
+      </section>
+
+      <section class="page-view secondary-view" data-page="research" id="research">
+        <div class="page-title"><span class="section-kicker">PROVENANCE & GOVERNANCE</span><h1>Research & Evidence</h1><p>Research is useful only when the evidence trail and gaps are visible.</p></div>
+        <div class="panel"><h2>Evidence contract</h2><div class="evidence-list"><div><span>01</span><div><b>Source & publication date</b><p>Every material fact needs an attributable source and data date.</p></div></div><div><span>02</span><div><b>Verification status</b><p>Verified, pending, conflicting or unavailable must remain distinct.</p></div></div><div><span>03</span><div><b>History & replay safety</b><p>Immutable source events preserve first-seen identity and knowledge time.</p></div></div><div><span>04</span><div><b>Audit & review gate</b><p>AI-discovered research is not automatically an approved company fact.</p></div></div></div></div>
+      </section>
+
+      <section class="page-view secondary-view" data-page="portfolio" id="portfolio">
+        <div class="page-title"><span class="section-kicker">PRIVATE USER DATA</span><h1>Portfolio</h1><p>Personal holdings are private to the authenticated user and must not be inferred or demo-filled.</p></div>
+        <div class="panel truth-panel"><span class="status-tag pending">BROKER SYNC NOT VERIFIED</span><p>Portfolio endpoints are implemented, but broker connection and persisted holdings are not verified here. No positions or P&amp;L are invented.</p></div>
+      </section>
+
+      <footer class="app-footer"><span>MarketNiora · Source-aware market intelligence</span><span>Specification ≠ Implementation ≠ Runtime</span></footer>
+    </main>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+</body>
+</html>
