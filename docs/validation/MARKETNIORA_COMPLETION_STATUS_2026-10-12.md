@@ -8,7 +8,9 @@
 
 - The guarded Upstox Full Market Quotes V3 provider candidate was merged in PR #35. Its latest branch CI run passed. It deliberately remains non-default: provider-selection decision D-001, canonical instrument identity mapping, approved timestamp/freshness policy, server-side token provisioning, durable ingestion and deployed-runtime checks are still required.
 - The guarded MASTER_4187 staging loader was merged in PR #36. Main CI passed after merge, including Prisma generate/validate, typecheck, tests, PostgreSQL integration tests and the protected-engine integrity check.
-- A regression test was added in PR #37 to align the Prisma schema with the SQL contract for raw observations: `stock_id` is non-null, must reference a canonical stock, and rows are append-only. Merge only after its CI passes.
+- PR #37 aligned Prisma `RawStockObservation.stockId` with the SQL contract: `stock_id` is non-null, must reference a canonical stock, and rows are append-only. It was merged after the full CI passed.
+- PR #38 added an append-only Prisma raw-quote writer. It persists source/retrieval timestamps and explicit freshness/workflow states, keeps verification at `UNKNOWN`, and fails before insert unless a resolver supplies one canonical stock UUID plus HTTPS mapping evidence. The writer is merged but not wired into the default API runtime; canonical identity resolution, provider approval and persisted-pipeline integration remain release gates.
+- Latest full CI passed on raw-writer branch head `2eecf72e73d27a483386b20b0be3fbf87fedad75`; main-branch CI should still be checked after the merge commit.
 
 ## MASTER_4187 staging result
 
