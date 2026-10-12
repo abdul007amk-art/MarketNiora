@@ -60,3 +60,29 @@ test('PrismaDarsEvidenceStore: currentEvidence selects latest knowledge_time per
   assert.equal((await store.currentEvidence(250))[0].value, '1.25');
   assert.equal((await store.currentEvidence(350))[0].value, '2.50');
 });
+
+
+test('PrismaDarsEvidenceStore: hydrates every durable event version for point-in-time reconstruction', async () => {
+  const rows = [
+    {
+      evidenceKey: 'SOURCE_A|AAA', sourceEventId: 'evt-1', source: 'SOURCE_A', symbol: 'AAA', value: '1.25',
+      sourceTimestamp: new Date(100), effectiveTime: new Date(100), knowledgeTime: new Date(100),
+      verificationStatus: 'VERIFIED', dataNature: 'RAW', formulaVersion: null, origin: null,
+      refreshedAt: new Date(200), truthState: 'CURRENT'
+    },
+    {
+      evidenceKey: 'SOURCE_A|AAA', sourceEventId: 'evt-2', source: 'SOURCE_A', symbol: 'AAA', value: '2.50',
+      sourceTimestamp: new Date(200), effectiveTime: new Date(200), knowledgeTime: new Date(300),
+      verificationStatus: 'VERIFIED', dataNature: 'RAW', formulaVersion: null, origin: null,
+      refreshedAt: new Date(400), truthState: 'CURRENT'
+    }
+  ];
+  const prisma = { darsEvidence: { findMany: async () => rows } };
+  const store = new PrismaDarsEvidenceStore(prisma);
+  const all = await store.allEvidence();
+
+  assert.equal(all.length, 2);
+  assert.deepEqual(all.map((row) => row.sourceEventId), ['evt-1', 'evt-2']);
+  assert.deepEqual(all.map((row) => row.knowledgeTime), [100, 300]);
+  assert.deepEqual(all.map((row) => row.value), ['1.25', '2.50']);
+});
