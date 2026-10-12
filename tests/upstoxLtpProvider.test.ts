@@ -5,6 +5,7 @@ const {
   isValidNseEquityInstrumentKey,
   resolveVerifiedNseInstrumentKey,
   VerifiedNseInstrumentKeyResolver,
+  UpstoxInstrumentDirectory,
 } = require('../backend/src/providers/upstoxLtpProvider.ts');
 
 const MAPPING = {
@@ -163,4 +164,68 @@ test('malformed upstream payload leaves health DEGRADED, not HEALTHY', async () 
   assert.equal(quote.price, null);
   assert.equal(quote.status, 'NOT_INTERPRETABLE');
   assert.equal((await provider.healthCheck(7001)).status, 'DEGRADED');
+});
+
+
+const INSTRUMENT_FEED_URL = 'https://assets.upstox.com/market-quote/instruments/exchange/complete.json.gz';
+const instrumentRows = [
+  { segment: 'NSE_EQ', exchange: 'NSE', instrument_type: 'EQ', trading_symbol: 'RELIANCE', instrument_key: 'NSE_EQ|INE002A01018' },
+  { segment: 'BSE_EQ', exchange: 'BSE', instrument_type: 'EQ', trading_symbol: 'RELIANCE', instrument_key: 'BSE_EQ|500325' },
+  { segment: 'NSE_FO', exchange: 'NSE', instrument_type: 'FUT', trading_symbol: 'RELIANCE', instrument_key: 'NSE_FO|RELIANCE-FUT' },
+  { segment: 'NSE_EQ', exchange: 'NSE', instrument_type: 'EQ', trading_symbol: 'INFY', instrument_key: 'NSE_EQ|INE009A01021' },
+];
+
+test('Upstox instrument directory accepts only NSE_EQ / NSE / EQ mappings', async () => {
+  const directory = new UpstoxInstrumentDirectory({
+    instrumentsJsonUrl: INSTRUMENT_FEED_URL,
+    fetcher: async () => jsonResponse(instrumentRows),
+  });
+  assert.equal(await directory.resolve('reliance'), 'NSE_EQ|INE002A01018');
+  assert.equal(await directory.resolve('INFY'), 'NSE_EQ|INE009A01021');
+  assert.equal(await directory.resolve('NOT_LISTED'), null);
+});
+
+test('Upstox instrument directory blocks conflicting NSE mappings instead of choosing the first', async () => {
+  const directory = new UpstoxInstrumentDirectory({
+    instrumentsJsonUrl: INSTRUMENT_FEED_URL,
+    fetcher: async () => jsonResponse([
+      ...instrumentRows,
+      { segment: 'NSE_EQ', exchange: 'NSE', instrument_type: 'EQ', trading_symbol: 'RELIANCE', instrument_key: 'NSE_EQ|DIFFERENTKEY' },
+    ]),
+  });
+  assert.equal(await directory.resolve('RELIANCE'), null);
+  assert.equal(await directory.resolve('INFY'), 'NSE_EQ|INE009A01021');
+});
+
+test('Upstox instrument directory caches a validated snapshot within its configured TTL', async () => {
+  let calls = 0;
+  const directory = new UpstoxInstrumentDirectory({
+    instrumentsJsonUrl: INSTRUMENT_FEED_URL,
+    fetcher: async () => { calls += 1; return jsonResponse(instrumentRows); },
+  });
+  await directory.resolve('RELIANCE');
+  await directory.resolve('INFY');
+  assert.equal(calls, 1);
+});
+
+test('Upstox instrument directory rejects arbitrary hosts, HTTP and non-JSON paths', () => {
+  assert.throws(() => new UpstoxInstrumentDirectory({
+    instrumentsJsonUrl: 'https://example.com/instruments.json',
+  }), /assets.upstox.com/);
+  assert.throws(() => new UpstoxInstrumentDirectory({
+    instrumentsJsonUrl: 'http://assets.upstox.com/instruments.json',
+  }), /HTTPS JSON file/);
+  assert.throws(() => new UpstoxInstrumentDirectory({
+    instrumentsJsonUrl: 'https://assets.upstox.com/instruments.csv',
+  }), /HTTPS JSON file/);
+});
+
+test('Upstox instrument directory fails closed on non-JSON or empty instrument feeds', async () => {
+  for (const payload of [{ data: instrumentRows }, [], [{ segment: 'BSE_EQ', exchange: 'BSE', instrument_type: 'EQ', trading_symbol: 'RELIANCE', instrument_key: 'BSE_EQ|500325' }]]) {
+    const directory = new UpstoxInstrumentDirectory({
+      instrumentsJsonUrl: INSTRUMENT_FEED_URL,
+      fetcher: async () => jsonResponse(payload),
+    });
+    await assert.rejects(() => directory.resolve('RELIANCE'), /unexpected structure|no usable NSE equity records/);
+  }
 });
