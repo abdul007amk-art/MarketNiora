@@ -31,3 +31,20 @@ export function loadUpstoxConfig(): UpstoxConfig {
     apiSecret: requireSecret('UPSTOX_API_SECRET'),
   };
 }
+
+
+/**
+ * Short-lived Upstox API access token for read-only quote requests.
+ * Obtain it through the approved Upstox OAuth authorization-code flow and
+ * inject it through the server secret store. Do not put it in frontend code,
+ * logs, source files, or a committed .env file. Upstox tokens expire at 03:30
+ * IST the following day; automated refresh/reauthorization is not implemented
+ * by this loader.
+ */
+export interface UpstoxAccessTokenConfig {
+  accessToken: string;
+}
+
+export function loadUpstoxAccessTokenConfig(): UpstoxAccessTokenConfig {
+  return { accessToken: requireSecret('UPSTOX_ACCESS_TOKEN') };
+}
