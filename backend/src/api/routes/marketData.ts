@@ -37,9 +37,9 @@ export async function marketDataProviderHealthHandler(
         configured,
         status: health.status,
         lastCheckedAt: health.lastCheckedAt,
-        truthState: !configured ? 'NOT_CONFIGURED' : health.status === 'HEALTHY' ? 'CURRENT' : 'UNAVAILABLE',
-        // Never return provider errors, tokens or credential/configuration detail.
-        detail: !configured ? 'No market-data provider is configured.' : undefined,
+        truthState: !configured ? 'NOT_CONFIGURED' : health.status === 'HEALTHY' ? 'CURRENT' : health.status === 'UNKNOWN' ? 'UNKNOWN' : 'UNAVAILABLE',
+        // Provider implementations must keep this detail generic and credential-free.
+        detail: !configured ? 'No market-data provider is configured.' : health.detail,
       },
     };
   } catch {
