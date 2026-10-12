@@ -2,7 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { gzipSync } = require('node:zlib');
 const {
-  UpstoxLtpProvider,
+  UpstoxFullMarketQuoteProvider,
   isValidNseEquityInstrumentKey,
   resolveVerifiedNseInstrumentKey,
   VerifiedNseInstrumentKeyResolver,
@@ -20,6 +20,7 @@ const quoteEnvelope = (price = 2950.25) => ({
   data: {
     'NSE_EQ:INE002A01018': {
       last_price: price,
+      timestamp: '2026-10-12T14:00:00.000+05:30',
       instrument_token: 'NSE_EQ|INE002A01018',
       ltq: 1,
       volume: 125000,
@@ -65,10 +66,10 @@ test('resolver blocks missing, unverified, and conflicting mappings instead of t
   assert.equal(resolveVerifiedNseInstrumentKey('../../etc/passwd', [MAPPING]), null);
 });
 
-test('provider sends the bearer token server-side, selects the resolved instrument, and keeps source time UNKNOWN', async () => {
+test('provider sends the bearer token server-side, selects the resolved instrument, and preserves the source snapshot timestamp', async () => {
   let calledUrl = '';
   let sentAuthorization = '';
-  const provider = new UpstoxLtpProvider({
+  const provider = new UpstoxFullMarketQuoteProvider({
     accessToken: 'test-token-not-a-real-credential',
     instrumentResolver: { resolve: (symbol) => symbol === 'RELIANCE' ? MAPPING.instrumentKey : null },
     fetcher: async (url, init) => {
@@ -82,9 +83,9 @@ test('provider sends the bearer token server-side, selects the resolved instrume
   assert.equal(quote.symbol, 'RELIANCE');
   assert.equal(quote.price, 2950.25);
   assert.equal(quote.status, 'UNKNOWN');
-  assert.equal(quote.asOf, null);
-  assert.equal(quote.source, 'UPSTOX_LTP_V3');
-  assert.equal(calledUrl, 'https://api.upstox.com/v3/market-quote/ltp?instrument_key=NSE_EQ%7CINE002A01018');
+  assert.equal(quote.asOf, Date.parse('2026-10-12T14:00:00.000+05:30'));
+  assert.equal(quote.source, 'UPSTOX_FULL_MARKET_QUOTES_V3');
+  assert.equal(calledUrl, 'https://api.upstox.com/v3/market-quote/quotes?instrument_key=NSE_EQ%7CINE002A01018');
   assert.equal(sentAuthorization, 'Bearer test-token-not-a-real-credential');
 
   const health = await provider.healthCheck(5010);
@@ -93,7 +94,7 @@ test('provider sends the bearer token server-side, selects the resolved instrume
 
 test('provider never calls Upstox or returns a placeholder price for an unresolved mapping', async () => {
   let called = false;
-  const provider = new UpstoxLtpProvider({
+  const provider = new UpstoxFullMarketQuoteProvider({
     accessToken: 'test-token',
     instrumentResolver: { resolve: () => null },
     fetcher: async () => { called = true; return jsonResponse(quoteEnvelope()); },
@@ -113,7 +114,7 @@ test('provider rejects missing, non-positive, malformed, or mismatched price pay
     { status: 'success', data: { 'NSE_EQ:INE002A01018': { last_price: 0, instrument_token: MAPPING.instrumentKey } } },
     { status: 'success', data: { 'NSE_EQ:INE002A01018': { last_price: 2950.25, instrument_token: 'NSE_EQ|WRONG' } } },
   ]) {
-    const provider = new UpstoxLtpProvider({
+    const provider = new UpstoxFullMarketQuoteProvider({
       accessToken: 'test-token',
       instrumentResolver: { resolve: () => MAPPING.instrumentKey },
       fetcher: async () => jsonResponse(envelope),
@@ -125,7 +126,7 @@ test('provider rejects missing, non-positive, malformed, or mismatched price pay
 });
 
 test('provider fails closed on HTTP/transport exceptions and never leaks upstream bodies', async () => {
-  const denied = new UpstoxLtpProvider({
+  const denied = new UpstoxFullMarketQuoteProvider({
     accessToken: 'sensitive-test-token',
     instrumentResolver: { resolve: () => MAPPING.instrumentKey },
     fetcher: async () => new Response('token=sensitive-test-token private upstream detail', { status: 401 }),
@@ -133,7 +134,7 @@ test('provider fails closed on HTTP/transport exceptions and never leaks upstrea
   await assert.rejects(() => denied.getQuote('RELIANCE', 3000), /HTTP 401/);
   assert.equal((await denied.healthCheck(3001)).status, 'DEGRADED');
 
-  const offline = new UpstoxLtpProvider({
+  const offline = new UpstoxFullMarketQuoteProvider({
     accessToken: 'sensitive-test-token',
     instrumentResolver: { resolve: () => MAPPING.instrumentKey },
     fetcher: async () => { throw new Error('token=sensitive-test-token private detail'); },
@@ -142,11 +143,11 @@ test('provider fails closed on HTTP/transport exceptions and never leaks upstrea
 });
 
 test('provider requires a non-empty token and a verified instrument resolver', () => {
-  assert.throws(() => new UpstoxLtpProvider({
+  assert.throws(() => new UpstoxFullMarketQuoteProvider({
     accessToken: '',
     instrumentResolver: { resolve: () => MAPPING.instrumentKey },
   }), /access token is required/);
-  assert.throws(() => new UpstoxLtpProvider({
+  assert.throws(() => new UpstoxFullMarketQuoteProvider({
     accessToken: 'test-token',
     instrumentResolver: null,
   }), /instrument-key resolver is required/);
@@ -162,7 +163,7 @@ test('VerifiedNseInstrumentKeyResolver keeps an immutable snapshot of the valida
 });
 
 test('malformed upstream payload leaves health DEGRADED, not HEALTHY', async () => {
-  const provider = new UpstoxLtpProvider({
+  const provider = new UpstoxFullMarketQuoteProvider({
     accessToken: 'test-token',
     instrumentResolver: { resolve: () => MAPPING.instrumentKey },
     fetcher: async () => jsonResponse({ status: 'success', data: {} }),
@@ -251,7 +252,7 @@ test('configured provider selection defaults to Null, blocks partial config, and
     assert.throws(() => createConfiguredMarketDataProvider(), /requires both UPSTOX_ACCESS_TOKEN and UPSTOX_INSTRUMENTS_JSON_URL/);
 
     process.env.UPSTOX_INSTRUMENTS_JSON_URL = INSTRUMENT_FEED_URL;
-    assert.equal(createConfiguredMarketDataProvider().name, 'UPSTOX_LTP_V3');
+    assert.equal(createConfiguredMarketDataProvider().name, 'UPSTOX_FULL_MARKET_QUOTES_V3');
   } finally {
     if (previousToken === undefined) delete process.env.UPSTOX_ACCESS_TOKEN;
     else process.env.UPSTOX_ACCESS_TOKEN = previousToken;
