@@ -41,7 +41,10 @@ async function main(): Promise<void> {
     await prisma.$connect();
     const result = await prisma.$transaction(async (tx) => {
       // Serialize concurrent imports of the exact same source bytes.
-      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${sourceHash}, 0))`;
+      const lockResult = await tx.$queryRaw<Array<{ lock_acquired: boolean }>>`SELECT pg_try_advisory_xact_lock(hashtextextended(${sourceHash}, 0)) AS lock_acquired`;
+      if (!lockResult[0]?.lock_acquired) {
+        throw new Error('Another staging run is processing this source hash. Retry after that run finishes.');
+      }
 
       const sameHashBatch = await tx.masterImportBatch.findFirst({
         where: { sourceHash },
