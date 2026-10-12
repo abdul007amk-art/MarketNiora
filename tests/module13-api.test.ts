@@ -537,3 +537,13 @@ test('GET /assets/app.js and /assets/styles.css serve only the whitelisted front
     await stopServer(server);
   }
 });
+
+
+// ================= RUNTIME STARTUP GATE =================
+
+test('production runtime launch is blocked until production integration gates pass', () => {
+  const { productionRuntimeBlockReason } = require('../backend/src/api/runtimeGuard.ts');
+  assert.equal(productionRuntimeBlockReason({ NODE_ENV: 'development' }), null);
+  assert.equal(productionRuntimeBlockReason({ NODE_ENV: 'test' }), null);
+  assert.match(productionRuntimeBlockReason({ NODE_ENV: 'production' }), /persistent production auth\/KMS/);
+});
