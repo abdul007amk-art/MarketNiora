@@ -114,3 +114,40 @@ test('real PostgreSQL: identical knowledgeTime collision is fail-closed and leav
   const runs = await prisma.darsRun.findMany({ where: { runId: `DARS12-${knowledgeTime}` } });
   assert.equal(runs.length, 1);
 });
+
+
+test('real PostgreSQL: identical provider-event replay preserves original knowledge time and conflicting replay cannot overwrite it', async () => {
+  const asOf = Date.now() - 1000;
+  const firstKnowledgeTime = Date.now() + 3000;
+  const secondKnowledgeTime = firstKnowledgeTime + 3000;
+  const conflictKnowledgeTime = secondKnowledgeTime + 3000;
+  const stableProvider = (price) => ({
+    name: 'REPLAY_INTEGRATION_PROVIDER',
+    healthCheck: async () => ({ providerName: 'REPLAY_INTEGRATION_PROVIDER', status: 'HEALTHY', lastCheckedAt: Date.now() }),
+    getQuote: async (symbol) => ({
+      symbol, price, status: 'LIVE', asOf, source: 'REPLAY_INTEGRATION_PROVIDER'
+    })
+  });
+  const run = (provider, knowledgeTime) => runDars12Production(prisma, {
+    provider, symbols: ['CCC'], runKnowledgeTime: knowledgeTime,
+    expectedCoverage: 1, formulaVersion: 'REPLAY-1',
+    formula: (evidence) => evidence.map((e) => e.value).join('+')
+  });
+
+  const first = await run(stableProvider(30), firstKnowledgeTime);
+  const replay = await run(stableProvider(30), secondKnowledgeTime);
+  const conflict = await run(stableProvider(31), conflictKnowledgeTime);
+
+  assert.equal(first.result.healthy, true);
+  assert.equal(replay.result.healthy, true);
+  assert.equal(replay.result.formulaOutput, '30');
+  assert.equal(conflict.result.healthy, false);
+  assert.equal(conflict.result.ready, false);
+  assert.equal(conflict.result.formulaExecuted, false);
+
+  const rows = await prisma.darsEvidence.findMany({ where: { symbol: 'CCC' } });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].value, '30');
+  assert.equal(rows[0].knowledgeTime.getTime(), firstKnowledgeTime);
+  assert.equal(rows[0].refreshedAt.getTime(), secondKnowledgeTime);
+});
