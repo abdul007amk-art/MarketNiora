@@ -499,3 +499,41 @@ test('market-data provider failures are fail-closed and do not expose raw error 
     await stopServer(server);
   }
 });
+
+
+// ================= SAME-ORIGIN FRONTEND =================
+
+test('GET / serves the MarketNiora dashboard with the correct content type', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const res = await fetch(`${baseUrl}/`);
+    assert.equal(res.status, 200);
+    assert.match(res.headers.get('content-type'), /text\/html/);
+    const body = await res.text();
+    assert.match(body, /MarketNiora/);
+    assert.match(body, /4,187/);
+    assert.match(body, /runtime count unverified/);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('GET /assets/app.js and /assets/styles.css serve only the whitelisted frontend assets', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const js = await fetch(`${baseUrl}/assets/app.js`);
+    assert.equal(js.status, 200);
+    assert.match(js.headers.get('content-type'), /javascript/);
+    assert.match(await js.text(), /market-data\/provider-health/);
+
+    const css = await fetch(`${baseUrl}/assets/styles.css`);
+    assert.equal(css.status, 200);
+    assert.match(css.headers.get('content-type'), /text\/css/);
+    assert.match(await css.text(), /\.app-shell/);
+
+    const traversal = await fetch(`${baseUrl}/assets/..%2F..%2F.env`);
+    assert.equal(traversal.status, 404);
+  } finally {
+    await stopServer(server);
+  }
+});
