@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const { gzipSync } = require('node:zlib');
 const {
   UpstoxLtpProvider,
   isValidNseEquityInstrumentKey,
@@ -30,6 +31,12 @@ const jsonResponse = (body, status = 200) => new Response(
   JSON.stringify(body),
   { status, headers: { 'Content-Type': 'application/json' } },
 );
+
+const instrumentFeedResponse = (rows, status = 200) => new Response(
+  gzipSync(Buffer.from(JSON.stringify(rows))),
+  { status, headers: { 'Content-Type': 'application/gzip' } },
+);
+
 
 test('instrument key validation accepts NSE equity keys only', () => {
   assert.equal(isValidNseEquityInstrumentKey('NSE_EQ|INE002A01018'), true);
@@ -178,7 +185,7 @@ const instrumentRows = [
 test('Upstox instrument directory accepts only NSE_EQ / NSE / EQ mappings', async () => {
   const directory = new UpstoxInstrumentDirectory({
     instrumentsJsonUrl: INSTRUMENT_FEED_URL,
-    fetcher: async () => jsonResponse(instrumentRows),
+    fetcher: async () => instrumentFeedResponse(instrumentRows),
   });
   assert.equal(await directory.resolve('reliance'), 'NSE_EQ|INE002A01018');
   assert.equal(await directory.resolve('INFY'), 'NSE_EQ|INE009A01021');
@@ -201,7 +208,7 @@ test('Upstox instrument directory caches a validated snapshot within its configu
   let calls = 0;
   const directory = new UpstoxInstrumentDirectory({
     instrumentsJsonUrl: INSTRUMENT_FEED_URL,
-    fetcher: async () => { calls += 1; return jsonResponse(instrumentRows); },
+    fetcher: async () => { calls += 1; return instrumentFeedResponse(instrumentRows); },
   });
   await directory.resolve('RELIANCE');
   await directory.resolve('INFY');
@@ -224,7 +231,7 @@ test('Upstox instrument directory fails closed on non-JSON or empty instrument f
   for (const payload of [{ data: instrumentRows }, [], [{ segment: 'BSE_EQ', exchange: 'BSE', instrument_type: 'EQ', trading_symbol: 'RELIANCE', instrument_key: 'BSE_EQ|500325' }]]) {
     const directory = new UpstoxInstrumentDirectory({
       instrumentsJsonUrl: INSTRUMENT_FEED_URL,
-      fetcher: async () => jsonResponse(payload),
+      fetcher: async () => instrumentFeedResponse(payload),
     });
     await assert.rejects(() => directory.resolve('RELIANCE'), /unexpected structure|no usable NSE equity records/);
   }
@@ -251,4 +258,18 @@ test('configured provider selection defaults to Null, blocks partial config, and
     if (previousUrl === undefined) delete process.env.UPSTOX_INSTRUMENTS_JSON_URL;
     else process.env.UPSTOX_INSTRUMENTS_JSON_URL = previousUrl;
   }
+});
+
+
+test('Upstox instrument directory decompresses official .json.gz feed before validation', async () => {
+  let calledUrl = '';
+  const directory = new UpstoxInstrumentDirectory({
+    instrumentsJsonUrl: INSTRUMENT_FEED_URL,
+    fetcher: async (url) => {
+      calledUrl = String(url);
+      return instrumentFeedResponse(instrumentRows);
+    },
+  });
+  assert.equal(await directory.resolve('RELIANCE'), 'NSE_EQ|INE002A01018');
+  assert.equal(calledUrl, INSTRUMENT_FEED_URL);
 });
