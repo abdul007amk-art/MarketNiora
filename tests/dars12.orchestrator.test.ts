@@ -21,6 +21,7 @@ test('production orchestration: provider -> DARS -> durable evidence -> durable 
     appAuditLog: { create: async ({ data }) => { calls.push(['audit.create', data]); return data; } },
     darsHealthReport: { create: async ({ data }) => { calls.push(['health.create', data]); return data; } },
     darsEvidence: {
+          findMany: async () => [],
       findUnique: async () => null,
       create: async ({ data }) => { calls.push(['evidence.create', data]); return data; }
     }
@@ -52,6 +53,7 @@ test('production orchestration: provider outage is persisted as blocked run with
     appAuditLog: { create: async ({ data }) => { calls.push(['audit.create', data]); return data; } },
     darsHealthReport: { create: async ({ data }) => { calls.push(['health.create', data]); return data; } },
     darsEvidence: {
+          findMany: async () => [],
       findUnique: async () => { throw new Error('must not persist evidence'); }
     }
   };
@@ -85,6 +87,7 @@ test('production orchestration: durable evidence failure fails the run instead o
     appAuditLog: { create: async () => { throw new Error('must not write audit'); } },
     darsHealthReport: { create: async () => { throw new Error('must not write health report'); } },
     darsEvidence: {
+          findMany: async () => [],
       findUnique: async () => null,
       create: async () => { throw new Error('evidence db unavailable'); }
     }
@@ -111,6 +114,7 @@ test('production orchestration: evidence persistence is transactional with final
       inTransaction = true;
       const tx = {
         darsEvidence: {
+          findMany: async () => [],
           findUnique: async () => null,
           create: async ({ data }) => { txCalls.push(['evidence.create', data]); return data; }
         },
@@ -135,6 +139,7 @@ test('production orchestration: evidence persistence is transactional with final
       update: async ({ data }) => { committed.push(['run.failure', data]); return data; }
     },
     darsEvidence: {
+          findMany: async () => [],
       findUnique: async () => null,
       create: async () => { throw new Error('must use transaction client'); }
     }
@@ -147,4 +152,99 @@ test('production orchestration: evidence persistence is transactional with final
   assert.equal(r.persistedEvidence, 2);
   assert.equal(committed.filter(x => x[0] === 'evidence.create').length, 2);
   assert.equal(committed.at(-1)[0], 'run.update');
+});
+
+
+test('production orchestration: identical durable event replay preserves first knowledge time across fresh engines', async () => {
+  const rows = [];
+  const provider = {
+    name: 'STABLE_PROVIDER',
+    healthCheck: async () => ({ providerName: 'STABLE_PROVIDER', status: 'HEALTHY', lastCheckedAt: 1000 }),
+    getQuote: async (symbol) => ({
+      symbol, price: 10, status: 'LIVE', asOf: 900, source: 'STABLE_PROVIDER'
+    })
+  };
+  const prisma = {
+    $transaction: async (fn) => fn(prisma),
+    darsRun: {
+      create: async ({ data }) => data,
+      update: async ({ data }) => data
+    },
+    appAuditLog: { create: async ({ data }) => data },
+    darsHealthReport: { create: async ({ data }) => data },
+    darsEvidence: {
+      findMany: async () => [...rows],
+      findUnique: async ({ where }) => rows.find((row) => row.sourceEventId === where.sourceEventId) ?? null,
+      create: async ({ data }) => { rows.push({ ...data }); return data; },
+      update: async ({ where, data }) => {
+        const row = rows.find((item) => item.sourceEventId === where.sourceEventId);
+        if (!row) throw new Error('expected persisted source_event_id');
+        Object.assign(row, data);
+        return row;
+      }
+    }
+  };
+
+  const first = await runDars12Production(prisma, {
+    provider, symbols: ['AAA'], runKnowledgeTime: 1000,
+    expectedCoverage: 1, formulaVersion: 'F-1', formula: (evidence) => evidence.map(e => e.value).join('+')
+  });
+  const second = await runDars12Production(prisma, {
+    provider, symbols: ['AAA'], runKnowledgeTime: 2000,
+    expectedCoverage: 1, formulaVersion: 'F-1', formula: (evidence) => evidence.map(e => e.value).join('+')
+  });
+
+  assert.equal(first.result.healthy, true);
+  assert.equal(second.result.healthy, true);
+  assert.equal(second.result.formulaOutput, '10');
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].knowledgeTime.getTime(), 1000);
+  assert.equal(rows[0].refreshedAt.getTime(), 2000);
+});
+
+test('production orchestration: conflicting durable source_event_id replay cannot overwrite prior evidence', async () => {
+  const rows = [];
+  const stableProvider = (price) => ({
+    name: 'STABLE_PROVIDER',
+    healthCheck: async () => ({ providerName: 'STABLE_PROVIDER', status: 'HEALTHY', lastCheckedAt: 1000 }),
+    getQuote: async (symbol) => ({
+      symbol, price, status: 'LIVE', asOf: 900, source: 'STABLE_PROVIDER'
+    })
+  });
+  const prisma = {
+    $transaction: async (fn) => fn(prisma),
+    darsRun: {
+      create: async ({ data }) => data,
+      update: async ({ data }) => data
+    },
+    appAuditLog: { create: async ({ data }) => data },
+    darsHealthReport: { create: async ({ data }) => data },
+    darsEvidence: {
+      findMany: async () => [...rows],
+      findUnique: async ({ where }) => rows.find((row) => row.sourceEventId === where.sourceEventId) ?? null,
+      create: async ({ data }) => { rows.push({ ...data }); return data; },
+      update: async ({ where, data }) => {
+        const row = rows.find((item) => item.sourceEventId === where.sourceEventId);
+        if (!row) throw new Error('expected persisted source_event_id');
+        Object.assign(row, data);
+        return row;
+      }
+    }
+  };
+
+  await runDars12Production(prisma, {
+    provider: stableProvider(10), symbols: ['AAA'], runKnowledgeTime: 1000,
+    expectedCoverage: 1, formulaVersion: 'F-1', formula: () => '10'
+  });
+  const replay = await runDars12Production(prisma, {
+    provider: stableProvider(11), symbols: ['AAA'], runKnowledgeTime: 2000,
+    expectedCoverage: 1, formulaVersion: 'F-1', formula: () => 'must not execute'
+  });
+
+  assert.equal(replay.result.healthy, false);
+  assert.equal(replay.result.ready, false);
+  assert.equal(replay.result.formulaExecuted, false);
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].value, '10');
+  assert.equal(rows[0].knowledgeTime.getTime(), 1000);
 });
