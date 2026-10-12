@@ -100,7 +100,14 @@ function lastPriceForInstrument(payload: unknown, instrumentKey: string): number
     const candidate = asRecord(rawQuote);
     if (!candidate) continue;
     const embeddedKey = candidate.instrument_token ?? candidate.instrument_key;
-    if (entryKey === normalizedKey || entryKey === instrumentKey || embeddedKey === instrumentKey) {
+    const entryMatches = entryKey === normalizedKey || entryKey === instrumentKey;
+    const embeddedKeyPresent = typeof embeddedKey === 'string' && embeddedKey.length > 0;
+
+    // A response object cannot be trusted when its map key selects the requested
+    // instrument but its own identity field contradicts that mapping.
+    if (entryMatches && embeddedKeyPresent && embeddedKey !== instrumentKey) return null;
+
+    if (entryMatches || embeddedKey === instrumentKey) {
       if (quote) return null; // ambiguous response is rejected
       quote = candidate;
     }
