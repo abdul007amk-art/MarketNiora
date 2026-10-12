@@ -6,11 +6,9 @@
  * Built entirely on Node's built-in `http` module — no Express/Fastify —
  * consistent with this repo's zero-network-install-dependency approach.
  *
- * BOUNDARY (see docs/API_LAYER.md): this is a genuinely running,
- * genuinely tested HTTP server. What it is NOT: connected to a real
- * Postgres database or a real Upstox/Telegram network call. All state
- * lives in the in-memory stores from dependencies.ts. No claim of
- * production readiness — see README's standing "not production ready" note.
+ * BOUNDARY: serves the same-origin static frontend and HTTP API. This
+ * does NOT prove production database connectivity or a configured market-data
+ * provider. Runtime readiness is reported separately by the provider endpoints.
  */
 
 import { createServer } from 'http';
