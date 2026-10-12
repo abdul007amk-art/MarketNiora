@@ -196,7 +196,7 @@ test('Upstox instrument directory accepts only NSE_EQ / NSE / EQ mappings', asyn
 test('Upstox instrument directory blocks conflicting NSE mappings instead of choosing the first', async () => {
   const directory = new UpstoxInstrumentDirectory({
     instrumentsJsonUrl: INSTRUMENT_FEED_URL,
-    fetcher: async () => jsonResponse([
+    fetcher: async () => instrumentFeedResponse([
       ...instrumentRows,
       { segment: 'NSE_EQ', exchange: 'NSE', instrument_type: 'EQ', trading_symbol: 'RELIANCE', instrument_key: 'NSE_EQ|DIFFERENTKEY' },
     ]),
