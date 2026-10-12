@@ -68,7 +68,7 @@ export class Dars12Store {
       const samePayload = existing.source===e.source && existing.symbol===e.symbol && existing.value===e.value &&
         existing.sourceTimestamp===e.sourceTimestamp && existing.effectiveTime===e.effectiveTime &&
         existing.knowledgeTime===e.knowledgeTime && existing.verificationStatus===e.verificationStatus &&
-        existing.dataNature===e.dataNature && existing.formulaVersion===e.formulaVersion && existing.origin===e.origin;
+        existing.dataNature===e.dataNature && existing.formulaVersion===e.formulaVersion && (existing.origin ?? null)===(e.origin ?? null);
       if(samePayload){
         const k=this.versionKey(existing);
         this.rows.set(k,{...existing,refreshedAt:e.refreshedAt,truthState:'CURRENT'});
@@ -144,7 +144,7 @@ export class Dars12Engine {
       other.source!==e.source || other.symbol!==e.symbol || other.value!==e.value ||
       other.sourceTimestamp!==e.sourceTimestamp || other.effectiveTime!==e.effectiveTime ||
       other.knowledgeTime!==e.knowledgeTime || other.verificationStatus!==e.verificationStatus ||
-      other.dataNature!==e.dataNature || other.formulaVersion!==e.formulaVersion || other.origin!==e.origin
+      other.dataNature!==e.dataNature || other.formulaVersion!==e.formulaVersion || (other.origin ?? null)!==(e.origin ?? null)
     )));
     if(batchConflicts.length){
       mark('DATA_DIFF','FAILED');
@@ -159,7 +159,7 @@ export class Dars12Engine {
       return existing.source!==e.source || existing.symbol!==e.symbol || existing.value!==e.value ||
         existing.sourceTimestamp!==e.sourceTimestamp || existing.effectiveTime!==e.effectiveTime ||
         existing.knowledgeTime!==e.knowledgeTime || existing.verificationStatus!==e.verificationStatus ||
-        existing.dataNature!==e.dataNature || existing.formulaVersion!==e.formulaVersion || existing.origin!==e.origin;
+        existing.dataNature!==e.dataNature || existing.formulaVersion!==e.formulaVersion || (existing.origin ?? null)!==(e.origin ?? null);
     });
     if(conflictingReplay){
       fail('conflicting source_event_id replay rejected');

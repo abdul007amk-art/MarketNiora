@@ -31,29 +31,79 @@ export async function runDars12Production(
   engine: Dars12Engine = new Dars12Engine(),
 ): Promise<Dars12OrchestrationResult> {
   const startedAt = Date.now();
-  const fetch = await fetchDarsEvents(input.provider, input.symbols, input.runKnowledgeTime);
+  const uniqueSymbols = [...new Set(input.symbols.map((symbol) => symbol.trim()).filter(Boolean))];
+  const runId = `DARS12-${input.runKnowledgeTime}`;
   const runStore = new PrismaDarsRunStore(prisma);
   const evidenceStore = new PrismaDarsEvidenceStore(prisma);
   const healthStore = new PrismaDarsHealthReportStore(prisma);
 
+  let fetchResult: Awaited<ReturnType<typeof fetchDarsEvents>>;
+  try {
+    fetchResult = await fetchDarsEvents(input.provider, uniqueSymbols, input.runKnowledgeTime);
+  } catch (error) {
+    fetchResult = {
+      events: [],
+      providerHealthy: false,
+      errors: [error instanceof Error ? error.message : 'unknown provider fetch failure'],
+    };
+  }
+
   await runStore.start({
-    runId: `DARS12-${input.runKnowledgeTime}`,
+    runId,
     knowledgeTime: input.runKnowledgeTime,
-    providerHealthy: fetch.providerHealthy,
+    providerHealthy: fetchResult.providerHealthy,
     startedAt,
   });
 
   let result: Dars12RunResult;
+  const memorySnapshot = engine.getStore().snapshot();
+  let rollbackSnapshot = memorySnapshot;
   try {
+    // PostgreSQL is the durable source of truth. Hydrate every version before
+    // replay detection, point-in-time selection, and formula calculation.
+    const durableRows = await evidenceStore.allEvidence();
+    rollbackSnapshot = durableRows;
+    engine.getStore().restore(durableRows);
+
+    const durableByEventId = new Map(durableRows.map((evidence) => [evidence.sourceEventId, evidence]));
+    const rawEvents = fetchResult.events.map((event) => {
+      const previous = durableByEventId.get(event.sourceEventId);
+      if (!previous) return event;
+
+      // An identical provider event keeps its original first-seen knowledge time.
+      // A changed payload is deliberately left untouched so the engine rejects
+      // the immutable source_event_id replay rather than silently overwriting it.
+      const identicalImmutablePayload =
+        previous.source === event.source &&
+        previous.symbol === event.symbol &&
+        previous.value === event.value &&
+        previous.sourceTimestamp === event.sourceTimestamp &&
+        previous.effectiveTime === event.effectiveTime &&
+        previous.verificationStatus === event.verificationStatus &&
+        previous.dataNature === event.dataNature &&
+        previous.formulaVersion === event.formulaVersion &&
+        (previous.origin ?? null) === (event.origin ?? null);
+
+      return identicalImmutablePayload
+        ? { ...event, knowledgeTime: previous.knowledgeTime }
+        : event;
+    });
+
     result = engine.run({
       runKnowledgeTime: input.runKnowledgeTime,
-      providerHealthy: fetch.providerHealthy,
-      rawEvents: fetch.events,
+      providerHealthy: fetchResult.providerHealthy,
+      rawEvents,
       evidenceRefreshSucceeded: input.evidenceRefreshSucceeded ?? true,
-      expectedCoverage: input.expectedCoverage,
+      expectedCoverage: input.expectedCoverage ?? uniqueSymbols.length,
       formulaVersion: input.formulaVersion,
       formula: input.formula,
     });
+
+    // Non-ready runs are observable in the run/audit/health ledgers, but their
+    // candidate evidence must not remain in the in-memory canonical store.
+    if (!result.healthy || !result.ready) {
+      engine.getStore().restore(rollbackSnapshot);
+    }
 
     const fwhy = await (input.fwhyDiagnostics ?? ((evidence) => runFwhyDiagnostics(evidence) as unknown as Record<string, unknown>))(result.evidence);
     const provenance = await (input.provenanceAudit ?? ((evidence) => ({
@@ -90,6 +140,7 @@ export async function runDars12Production(
     return { result, persistedEvidence };
   } catch (error) {
     const message = error instanceof Error ? error.message : 'unknown orchestration failure';
+    engine.getStore().restore(rollbackSnapshot);
     const failed: Dars12RunResult = {
       runId: `DARS12-${input.runKnowledgeTime}`,
       stageEvents: [],
@@ -100,7 +151,7 @@ export async function runDars12Production(
       truthState: 'BLOCKED',
       ready: false,
       healthy: false,
-      errors: [...fetch.errors, message],
+      errors: [...fetchResult.errors, message],
     };
     await runStore.complete(failed, Date.now());
     throw error;

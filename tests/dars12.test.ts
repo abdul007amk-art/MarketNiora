@@ -84,7 +84,8 @@ test('DARS12 adversarial: FWHY BLOCKED prevents formula execution',()=>{
  assert.equal(r.formulaOutput,null);
  assert.equal(r.truthState,'BLOCKED');
  assert.ok(idx(r,'FWHY_PREFLIGHT','FAILED')>=0);
- assert.ok(idx(r,'FWHY_DIAGNOSTICS','FAILED')<idx(r,'FORMULA_RECALCULATION','SKIPPED'));
+ assert.ok(idx(r,'FWHY_PREFLIGHT','FAILED')<idx(r,'FORMULA_RECALCULATION','SKIPPED'));
+ assert.ok(idx(r,'FORMULA_RECALCULATION','SKIPPED')<idx(r,'FWHY_DIAGNOSTICS','SKIPPED'));
 });
 
 test('DARS12 adversarial: FWHY gate runs before formula and custom BLOCKED gate is honored',()=>{
@@ -94,4 +95,30 @@ test('DARS12 adversarial: FWHY gate runs before formula and custom BLOCKED gate 
  assert.equal(r.formulaExecuted,false);
  assert.equal(r.formulaOutput,null);
  assert.equal(r.truthState,'BLOCKED');
+});
+
+
+test('DARS12 adversarial: SQL NULL origin hydrates as the same immutable event as omitted origin', () => {
+ const s = new Dars12Store();
+ s.restore([{
+   ...base(),
+   evidenceKey: 'SOURCE_A|AAA',
+   refreshedAt: 100,
+   truthState: 'STALE',
+   origin: null
+ }]);
+ const r = new Dars12Engine(s).run({
+   runKnowledgeTime: 200,
+   providerHealthy: true,
+   rawEvents: [base()],
+   evidenceRefreshSucceeded: true,
+   formulaVersion: 'F1',
+   formula: sum
+ });
+ assert.equal(r.healthy, true);
+ assert.equal(r.formulaExecuted, true);
+ assert.equal(r.formulaOutput, '1.25');
+ assert.equal(s.allEvidence().length, 1);
+ assert.equal(s.allEvidence()[0].knowledgeTime, 100);
+ assert.equal(s.allEvidence()[0].origin, null);
 });

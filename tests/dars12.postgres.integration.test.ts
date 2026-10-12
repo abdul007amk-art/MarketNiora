@@ -24,11 +24,11 @@ async function clean() {
   await prisma.appAuditLog.deleteMany();
 }
 
-test.before(async () => { await clean(); });
+test.beforeEach(async () => { await clean(); });
 test.after(async () => { await clean(); await prisma.$disconnect(); });
 
 test('real PostgreSQL: persists evidence, health report, audit and successful run atomically', async () => {
-  const knowledgeTime = Date.now();
+  const knowledgeTime = 2_100_000_000_000;
   const result = await runDars12Production(prisma, {
     provider, symbols: ['AAA', 'BBB'], runKnowledgeTime: knowledgeTime,
     expectedCoverage: 2, formulaVersion: 'INTEGRATION-1',
@@ -54,7 +54,7 @@ test('real PostgreSQL: persists evidence, health report, audit and successful ru
 });
 
 test('real PostgreSQL: transaction rollback removes evidence/health/audit when final transaction fails', async () => {
-  const knowledgeTime = Date.now() + 1000;
+  const knowledgeTime = 2_100_000_010_000;
   const failingPrisma = new Proxy(prisma, {
     get(target, property, receiver) {
       if (property !== '$transaction') return Reflect.get(target, property, receiver);
@@ -96,7 +96,7 @@ test('real PostgreSQL: transaction rollback removes evidence/health/audit when f
 });
 
 test('real PostgreSQL: identical knowledgeTime collision is fail-closed and leaves one durable run', async () => {
-  const knowledgeTime = Date.now() + 2000;
+  const knowledgeTime = 2_100_000_020_000;
   const results = await Promise.allSettled([
     runDars12Production(prisma, {
       provider, symbols: ['AAA'], runKnowledgeTime: knowledgeTime,
@@ -113,4 +113,41 @@ test('real PostgreSQL: identical knowledgeTime collision is fail-closed and leav
 
   const runs = await prisma.darsRun.findMany({ where: { runId: `DARS12-${knowledgeTime}` } });
   assert.equal(runs.length, 1);
+});
+
+
+test('real PostgreSQL: identical provider-event replay preserves original knowledge time and conflicting replay cannot overwrite it', async () => {
+  const asOf = Date.now() - 1000;
+  const firstKnowledgeTime = 2_100_000_100_000;
+  const secondKnowledgeTime = firstKnowledgeTime + 30_000;
+  const conflictKnowledgeTime = secondKnowledgeTime + 30_000;
+  const stableProvider = (price) => ({
+    name: 'REPLAY_INTEGRATION_PROVIDER',
+    healthCheck: async () => ({ providerName: 'REPLAY_INTEGRATION_PROVIDER', status: 'HEALTHY', lastCheckedAt: Date.now() }),
+    getQuote: async (symbol) => ({
+      symbol, price, status: 'LIVE', asOf, source: 'REPLAY_INTEGRATION_PROVIDER'
+    })
+  });
+  const run = (provider, knowledgeTime) => runDars12Production(prisma, {
+    provider, symbols: ['CCC'], runKnowledgeTime: knowledgeTime,
+    expectedCoverage: 1, formulaVersion: 'REPLAY-1',
+    formula: (evidence) => evidence.map((e) => e.value).join('+')
+  });
+
+  const first = await run(stableProvider(30), firstKnowledgeTime);
+  const replay = await run(stableProvider(30), secondKnowledgeTime);
+  const conflict = await run(stableProvider(31), conflictKnowledgeTime);
+
+  assert.equal(first.result.healthy, true, JSON.stringify(first.result));
+  assert.equal(replay.result.healthy, true);
+  assert.equal(replay.result.formulaOutput, '30');
+  assert.equal(conflict.result.healthy, false);
+  assert.equal(conflict.result.ready, false);
+  assert.equal(conflict.result.formulaExecuted, false);
+
+  const rows = await prisma.darsEvidence.findMany({ where: { symbol: 'CCC' } });
+  assert.equal(rows.length, 1);
+  assert.equal(rows[0].value, '30');
+  assert.equal(rows[0].knowledgeTime.getTime(), firstKnowledgeTime);
+  assert.equal(rows[0].refreshedAt.getTime(), secondKnowledgeTime);
 });

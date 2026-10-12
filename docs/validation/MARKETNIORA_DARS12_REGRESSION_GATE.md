@@ -86,6 +86,19 @@ Executable test verifies identical state/input ordering produces identical formu
 
 The exact D12-001 through D12-009 domain specifications are not present in the repository, so this implementation does not claim unverified domain behavior beyond the controls explicitly defined by the DARS-1.2 regression contract.
 
+## Durable orchestration hardening
+
+The runtime adapter must treat PostgreSQL as the source of truth across separate runs:
+
+- Hydrate durable evidence versions before replay checks and formula execution.
+- Preserve the original `knowledge_time` for an identical `source_event_id` replay; refresh metadata may update, but immutable event content may not.
+- Reject conflicting replays without replacing the previous durable evidence.
+- Default expected coverage to the number of unique requested symbols when no explicit coverage gate is supplied.
+- Restore the in-memory engine snapshot to the durable baseline after a blocked run or failed persistence transaction.
+- An empty FWHY evidence set is `BLOCKED`, never `CURRENT`.
+
+These controls are separate from the protected Rotation and Stock Score engines. They do not alter locked formulas.
+
 ## Verification status
 
 The repository source was independently inspected and the adversarial gaps identified in the prior DARS review were patched:
