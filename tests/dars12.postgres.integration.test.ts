@@ -24,7 +24,7 @@ async function clean() {
   await prisma.appAuditLog.deleteMany();
 }
 
-test.before(async () => { await clean(); });
+test.beforeEach(async () => { await clean(); });
 test.after(async () => { await clean(); await prisma.$disconnect(); });
 
 test('real PostgreSQL: persists evidence, health report, audit and successful run atomically', async () => {
