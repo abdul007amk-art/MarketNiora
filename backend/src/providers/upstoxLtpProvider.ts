@@ -166,15 +166,16 @@ export class UpstoxLtpProvider implements MarketDataProvider {
     }
 
     const price = lastPriceForInstrument(payload, instrumentKey);
+    if (price === null) {
+      // Successful HTTP transport does not make malformed/unmatched quote
+      // content verified. Keep the provider degraded and return no number.
+      this.markProviderFailure(now, 'Upstox response did not contain a verifiable price for the resolved instrument.');
+      return this.unavailable(normalizedSymbol, 'NOT_INTERPRETABLE');
+    }
+
     this.lastProviderStatus = 'HEALTHY';
     this.lastProviderCheckAt = now;
     this.lastProviderDetail = PROFILE_LABEL;
-
-    if (price === null) {
-      // Successful HTTP transport does not make malformed/unmatched quote
-      // content verified. Do not return a numerical placeholder.
-      return this.unavailable(normalizedSymbol, 'NOT_INTERPRETABLE');
-    }
 
     const status: DataStatus = 'UNKNOWN';
     return {
