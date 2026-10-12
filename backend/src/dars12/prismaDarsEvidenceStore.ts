@@ -9,6 +9,23 @@ function dateFromEpoch(ms: number): Date {
 
 function epochFromDate(d: Date): number { return d.getTime(); }
 
+type StoredDarsEvidence = {
+  evidenceKey: string;
+  sourceEventId: string;
+  source: string;
+  symbol: string;
+  value: string;
+  sourceTimestamp: Date;
+  effectiveTime: Date;
+  knowledgeTime: Date;
+  verificationStatus: string;
+  dataNature: string;
+  formulaVersion: string | null;
+  origin: string | null;
+  refreshedAt: Date;
+  truthState: string;
+};
+
 export class PrismaDarsEvidenceStore {
   private readonly prisma: PrismaClient;
   constructor(prisma: PrismaClient) { this.prisma = prisma; }
@@ -60,6 +77,37 @@ export class PrismaDarsEvidenceStore {
     return true;
   }
 
+  private fromRow(row: StoredDarsEvidence): DarsEvidence {
+    return {
+      evidenceKey: row.evidenceKey,
+      sourceEventId: row.sourceEventId,
+      source: row.source,
+      symbol: row.symbol,
+      value: row.value,
+      sourceTimestamp: epochFromDate(row.sourceTimestamp),
+      effectiveTime: epochFromDate(row.effectiveTime),
+      knowledgeTime: epochFromDate(row.knowledgeTime),
+      verificationStatus: row.verificationStatus as DarsEvidence['verificationStatus'],
+      dataNature: row.dataNature as DarsEvidence['dataNature'],
+      formulaVersion: row.formulaVersion,
+      origin: row.origin as DarsEvidence['origin'],
+      refreshedAt: epochFromDate(row.refreshedAt),
+      truthState: row.truthState as DarsEvidence['truthState'],
+    };
+  }
+
+  /** All durable rows are required to restore event identity and point-in-time history before each run. */
+  async allEvidence(): Promise<DarsEvidence[]> {
+    const rows = await this.prisma.darsEvidence.findMany({
+      orderBy: [
+        { evidenceKey: 'asc' },
+        { knowledgeTime: 'asc' },
+        { sourceEventId: 'asc' },
+      ],
+    });
+    return rows.map((row) => this.fromRow(row as StoredDarsEvidence));
+  }
+
   async currentEvidence(asOfKnowledgeTime: number): Promise<DarsEvidence[]> {
     const rows = await this.prisma.darsEvidence.findMany({
       where: { knowledgeTime: { lte: dateFromEpoch(asOfKnowledgeTime) } },
@@ -67,25 +115,11 @@ export class PrismaDarsEvidenceStore {
     });
     const selected = new Map<string, DarsEvidence>();
     for (const row of rows) {
-      if (epochFromDate(row.knowledgeTime) > asOfKnowledgeTime) continue;
-      if (selected.has(row.evidenceKey)) continue;
-      selected.set(row.evidenceKey, {
-        evidenceKey: row.evidenceKey,
-        sourceEventId: row.sourceEventId,
-        source: row.source,
-        symbol: row.symbol,
-        value: row.value,
-        sourceTimestamp: epochFromDate(row.sourceTimestamp),
-        effectiveTime: epochFromDate(row.effectiveTime),
-        knowledgeTime: epochFromDate(row.knowledgeTime),
-        verificationStatus: row.verificationStatus as DarsEvidence['verificationStatus'],
-        dataNature: row.dataNature as DarsEvidence['dataNature'],
-        formulaVersion: row.formulaVersion,
-        origin: row.origin as DarsEvidence['origin'],
-        refreshedAt: epochFromDate(row.refreshedAt),
-        truthState: row.truthState as DarsEvidence['truthState'],
-      });
+      const evidence = this.fromRow(row as StoredDarsEvidence);
+      if (evidence.knowledgeTime > asOfKnowledgeTime) continue;
+      if (selected.has(evidence.evidenceKey)) continue;
+      selected.set(evidence.evidenceKey, evidence);
     }
-    return [...selected.values()].sort((a,b) => a.evidenceKey.localeCompare(b.evidenceKey));
+    return [...selected.values()].sort((a, b) => a.evidenceKey.localeCompare(b.evidenceKey));
   }
 }
