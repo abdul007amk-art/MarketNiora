@@ -12,7 +12,7 @@ import type { OwnerTotpStore, OwnerMfaChallengeStore } from '../auth/ownerMfa.ts
 import { getPrismaClient, isNonProdDbTarget } from '../db/prisma.ts';
 import { NonProdLocalSecretCipher } from '../db/nonProdSecretCipher.ts';
 import { PrismaUserStore, PrismaSessionStore, PrismaOwnerTotpStore, PrismaOwnerMfaChallengeStore } from '../db/authStores.ts';
-import { NullMarketDataProvider } from '../providers/marketDataProvider.ts';
+import { createConfiguredMarketDataProvider } from '../providers/marketDataProviderFactory.ts';
 import type { MarketDataProvider } from '../providers/marketDataProvider.ts';
 
 export interface AppDependencies {
@@ -40,7 +40,7 @@ export function createDependencies(): AppDependencies {
       oidcVerifier: new GoogleOidcVerifier(),
       ownerTotpStore: new PrismaOwnerTotpStore(prisma, cipher),
       ownerMfaChallengeStore: new PrismaOwnerMfaChallengeStore(prisma),
-      marketDataProvider: new NullMarketDataProvider(),
+      marketDataProvider: createConfiguredMarketDataProvider(),
     };
   }
 
@@ -52,6 +52,6 @@ export function createDependencies(): AppDependencies {
     oidcVerifier: new GoogleOidcVerifier(),
     ownerTotpStore: new InMemoryOwnerTotpStore(),
     ownerMfaChallengeStore: new InMemoryOwnerMfaChallengeStore(),
-    marketDataProvider: new NullMarketDataProvider(),
+    marketDataProvider: createConfiguredMarketDataProvider(),
   };
 }

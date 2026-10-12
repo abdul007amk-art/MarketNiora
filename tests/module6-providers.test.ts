@@ -11,7 +11,7 @@ const {
   TelegramNotificationProvider,
 } = require('../backend/src/providers/notificationProvider.ts');
 const { ProviderRegistry } = require('../backend/src/providers/providerRegistry.ts');
-const { loadTelegramConfig, loadUpstoxConfig } = require('../backend/src/providers/providerConfig.ts');
+const { loadTelegramConfig, loadUpstoxConfig, loadUpstoxAccessTokenConfig } = require('../backend/src/providers/providerConfig.ts');
 
 // ================= SOURCE HEALTH / DATA STATUS =================
 
@@ -305,4 +305,20 @@ test('loadUpstoxConfig: throws when either credential is missing', () => {
   delete process.env.UPSTOX_API_KEY;
   delete process.env.UPSTOX_API_SECRET;
   assert.throws(() => loadUpstoxConfig());
+});
+
+
+// ================= UPSTOX SHORT-LIVED TOKEN CONFIG =================
+
+test('loadUpstoxAccessTokenConfig requires the server-side access token and never invents one', () => {
+  const previous = process.env.UPSTOX_ACCESS_TOKEN;
+  try {
+    delete process.env.UPSTOX_ACCESS_TOKEN;
+    assert.throws(() => loadUpstoxAccessTokenConfig(), /UPSTOX_ACCESS_TOKEN/);
+    process.env.UPSTOX_ACCESS_TOKEN = 'test-token';
+    assert.deepEqual(loadUpstoxAccessTokenConfig(), { accessToken: 'test-token' });
+  } finally {
+    if (previous === undefined) delete process.env.UPSTOX_ACCESS_TOKEN;
+    else process.env.UPSTOX_ACCESS_TOKEN = previous;
+  }
 });

@@ -547,3 +547,29 @@ test('production runtime launch is blocked until production integration gates pa
   assert.equal(productionRuntimeBlockReason({ NODE_ENV: 'test' }), null);
   assert.match(productionRuntimeBlockReason({ NODE_ENV: 'production' }), /persistent production auth\/KMS/);
 });
+
+
+test('GET /market-data/provider-health preserves UNKNOWN when a configured provider has not been verified', async () => {
+  const { server, baseUrl, deps } = await startServer();
+  deps.marketDataProvider = {
+    name: 'UPSTOX_FULL_MARKET_QUOTES_V3',
+    getQuote: async (symbol) => ({ symbol, price: null, status: 'SOURCE_REQUIRED', asOf: null, source: 'UPSTOX_FULL_MARKET_QUOTES_V3' }),
+    healthCheck: async () => ({
+      providerName: 'UPSTOX_FULL_MARKET_QUOTES_V3',
+      status: 'UNKNOWN',
+      lastCheckedAt: 1234,
+      detail: 'A successful, recent provider request is needed to verify API health.'
+    })
+  };
+  try {
+    const response = await fetch(`${baseUrl}/market-data/provider-health`);
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.configured, true);
+    assert.equal(body.status, 'UNKNOWN');
+    assert.equal(body.truthState, 'UNKNOWN');
+    assert.match(body.detail, /successful, recent provider request/);
+  } finally {
+    await stopServer(server);
+  }
+});
