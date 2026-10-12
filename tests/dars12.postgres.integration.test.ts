@@ -28,7 +28,7 @@ test.before(async () => { await clean(); });
 test.after(async () => { await clean(); await prisma.$disconnect(); });
 
 test('real PostgreSQL: persists evidence, health report, audit and successful run atomically', async () => {
-  const knowledgeTime = Date.now();
+  const knowledgeTime = 2_100_000_000_000;
   const result = await runDars12Production(prisma, {
     provider, symbols: ['AAA', 'BBB'], runKnowledgeTime: knowledgeTime,
     expectedCoverage: 2, formulaVersion: 'INTEGRATION-1',
@@ -54,7 +54,7 @@ test('real PostgreSQL: persists evidence, health report, audit and successful ru
 });
 
 test('real PostgreSQL: transaction rollback removes evidence/health/audit when final transaction fails', async () => {
-  const knowledgeTime = Date.now() + 1000;
+  const knowledgeTime = 2_100_000_010_000;
   const failingPrisma = new Proxy(prisma, {
     get(target, property, receiver) {
       if (property !== '$transaction') return Reflect.get(target, property, receiver);
@@ -96,7 +96,7 @@ test('real PostgreSQL: transaction rollback removes evidence/health/audit when f
 });
 
 test('real PostgreSQL: identical knowledgeTime collision is fail-closed and leaves one durable run', async () => {
-  const knowledgeTime = Date.now() + 2000;
+  const knowledgeTime = 2_100_000_020_000;
   const results = await Promise.allSettled([
     runDars12Production(prisma, {
       provider, symbols: ['AAA'], runKnowledgeTime: knowledgeTime,
@@ -118,7 +118,7 @@ test('real PostgreSQL: identical knowledgeTime collision is fail-closed and leav
 
 test('real PostgreSQL: identical provider-event replay preserves original knowledge time and conflicting replay cannot overwrite it', async () => {
   const asOf = Date.now() - 1000;
-  const firstKnowledgeTime = Date.now() + 86_400_000;
+  const firstKnowledgeTime = 2_100_000_100_000;
   const secondKnowledgeTime = firstKnowledgeTime + 30_000;
   const conflictKnowledgeTime = secondKnowledgeTime + 30_000;
   const stableProvider = (price) => ({
