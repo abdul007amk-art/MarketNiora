@@ -1,18 +1,19 @@
 /**
- * UPSTOX LTP QUOTES V3 ADAPTER
+ * UPSTOX FULL MARKET QUOTES V3 ADAPTER
  *
- * API: GET https://api.upstox.com/v3/market-quote/ltp
+ * API: GET https://api.upstox.com/v3/market-quote/quotes
  *
  * Important truth boundary:
- * - Requires a server-side Upstox access token and a verified NSE symbol ->
- *   instrument_key mapping supplied by the caller.
- * - The LTP response does not establish a trustworthy observation timestamp
- *   for this data contract, so returned prices deliberately have asOf=null
- *   and status=UNKNOWN until an approved timestamp/freshness policy is wired.
- * - Missing/ambiguous/unverified instrument mappings return SOURCE_REQUIRED.
+ * - Requires a server-side Upstox access token and a unique NSE-equity
+ *   instrument_key resolved from the official instrument JSON feed.
+ * - Preserves the source response timestamp from the matching quote object.
+ *   It is the time the snapshot was generated, not the last trade time.
+ * - Price status remains UNKNOWN until MarketNiora's approved freshness policy
+ *   can label the snapshot LIVE/DELAYED/STALE.
+ * - Missing/ambiguous/conflicting instrument mappings return SOURCE_REQUIRED.
  * - Provider exceptions never expose response bodies, request headers or token.
  *
- * Reference: Upstox LTP Quotes V3 and Instruments JSON documentation.
+ * References: Upstox Full Market Quotes V3 and Instruments JSON documentation.
  */
 
 import { gunzipSync } from 'node:zlib';
