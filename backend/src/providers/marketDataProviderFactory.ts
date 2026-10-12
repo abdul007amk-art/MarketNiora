@@ -12,7 +12,7 @@
 
 import type { MarketDataProvider } from './marketDataProvider.ts';
 import { NullMarketDataProvider } from './marketDataProvider.ts';
-import { UpstoxInstrumentDirectory, UpstoxLtpProvider, type UpstoxFetch } from './upstoxLtpProvider.ts';
+import { UpstoxInstrumentDirectory, UpstoxFullMarketQuoteProvider, type UpstoxFetch } from './upstoxLtpProvider.ts';
 import {
   loadUpstoxAccessTokenConfig,
   loadUpstoxInstrumentFeedConfig,
@@ -33,7 +33,7 @@ export function createConfiguredMarketDataProvider(fetcher?: UpstoxFetch): Marke
     fetcher,
   });
 
-  return new UpstoxLtpProvider({
+  return new UpstoxFullMarketQuoteProvider({
     accessToken,
     instrumentResolver,
     fetcher,
