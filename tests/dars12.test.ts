@@ -84,7 +84,9 @@ test('DARS12 adversarial: FWHY BLOCKED prevents formula execution',()=>{
  assert.equal(r.formulaOutput,null);
  assert.equal(r.truthState,'BLOCKED');
  assert.ok(idx(r,'FWHY_PREFLIGHT','FAILED')>=0);
- assert.ok(idx(r,'FWHY_DIAGNOSTICS','FAILED')<idx(r,'FORMULA_RECALCULATION','SKIPPED'));
+ assert.ok(idx(r,'FWHY_PREFLIGHT','FAILED')>=0);
+ assert.ok(idx(r,'FWHY_PREFLIGHT','FAILED')<idx(r,'FORMULA_RECALCULATION','SKIPPED'));
+ assert.ok(idx(r,'FORMULA_RECALCULATION','SKIPPED')<idx(r,'FWHY_DIAGNOSTICS','SKIPPED'));
 });
 
 test('DARS12 adversarial: FWHY gate runs before formula and custom BLOCKED gate is honored',()=>{
