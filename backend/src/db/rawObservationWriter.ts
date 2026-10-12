@@ -177,6 +177,10 @@ export class PrismaRawObservationWriter {
       select: { observationId: true, stockId: true, retrievedAt: true },
     });
 
+    if (!created.retrievedAt) {
+      throw new Error('persisted raw observation is missing its retrieval timestamp');
+    }
+
     return {
       observationId: created.observationId,
       stockId: created.stockId,
