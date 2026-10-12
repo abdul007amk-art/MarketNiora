@@ -138,7 +138,7 @@ test('real PostgreSQL: identical provider-event replay preserves original knowle
   const replay = await run(stableProvider(30), secondKnowledgeTime);
   const conflict = await run(stableProvider(31), conflictKnowledgeTime);
 
-  assert.equal(first.result.healthy, true);
+  assert.equal(first.result.healthy, true, JSON.stringify(first.result));
   assert.equal(replay.result.healthy, true);
   assert.equal(replay.result.formulaOutput, '30');
   assert.equal(conflict.result.healthy, false);
