@@ -146,10 +146,11 @@ test('provider requires a non-empty token and a verified instrument resolver', (
 
 
 test('VerifiedNseInstrumentKeyResolver keeps an immutable snapshot of the validated mapping rows', () => {
-  const records = [MAPPING];
+  const originalKey = MAPPING.instrumentKey;
+  const records = [{ ...MAPPING }];
   const resolver = new VerifiedNseInstrumentKeyResolver(records);
   records[0].instrumentKey = 'NSE_EQ|CHANGED';
-  assert.equal(resolver.resolve('RELIANCE'), MAPPING.instrumentKey);
+  assert.equal(resolver.resolve('RELIANCE'), originalKey);
 });
 
 test('malformed upstream payload leaves health DEGRADED, not HEALTHY', async () => {
