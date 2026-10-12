@@ -86,6 +86,103 @@ function asRecord(value: unknown): Record<string, unknown> | null {
     : null;
 }
 
+/**
+ * Optional runtime resolver for Upstox's official BOD JSON instrument file.
+ * The URL must be explicitly configured and must point to Upstox's asset host;
+ * no arbitrary URL, exchange token or guessed symbol mapping is accepted.
+ */
+export class UpstoxInstrumentDirectory implements InstrumentKeyResolver {
+  private readonly url: URL;
+  private readonly fetcher: UpstoxFetch;
+  private readonly cacheTtlMs: number;
+  private cachedIndex: Map<string, string | null> | null = null;
+  private loadedAt = 0;
+
+  constructor(options: { instrumentsJsonUrl: string; fetcher?: UpstoxFetch; cacheTtlMs?: number }) {
+    let parsed: URL;
+    try {
+      parsed = new URL(options.instrumentsJsonUrl);
+    } catch {
+      throw new Error('A valid Upstox instrument JSON URL is required.');
+    }
+    if (
+      parsed.protocol !== 'https:' ||
+      parsed.hostname !== 'assets.upstox.com' ||
+      !/\.json(?:\.gz)?$/i.test(parsed.pathname)
+    ) {
+      throw new Error('Instrument directory URL must be an HTTPS JSON file hosted on assets.upstox.com.');
+    }
+    const ttl = options.cacheTtlMs ?? 6 * 60 * 60 * 1000;
+    if (!Number.isSafeInteger(ttl) || ttl < 60_000 || ttl > 24 * 60 * 60 * 1000) {
+      throw new Error('Instrument directory cache TTL must be between 1 minute and 24 hours.');
+    }
+    this.url = parsed;
+    this.fetcher = options.fetcher ?? fetch;
+    this.cacheTtlMs = ttl;
+  }
+
+  async resolve(symbol: string): Promise<string | null> {
+    const normalized = symbol.trim().toUpperCase();
+    if (!/^[A-Z0-9&.-]{1,25}$/.test(normalized)) return null;
+    const index = await this.loadIndex();
+    return index.get(normalized) ?? null;
+  }
+
+  private async loadIndex(): Promise<Map<string, string | null>> {
+    const now = Date.now();
+    if (this.cachedIndex && now - this.loadedAt <= this.cacheTtlMs) return this.cachedIndex;
+
+    let response: Response;
+    try {
+      response = await this.fetcher(this.url.toString(), {
+        method: 'GET',
+        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+        signal: AbortSignal.timeout(10_000),
+      });
+    } catch {
+      throw new Error('Upstox instrument directory request unavailable.');
+    }
+    if (!response.ok) throw new Error('Upstox instrument directory request rejected.');
+
+    let payload: unknown;
+    try {
+      payload = await response.json();
+    } catch {
+      throw new Error('Upstox instrument directory response unavailable.');
+    }
+    if (!Array.isArray(payload) || payload.length === 0 || payload.length > 500_000) {
+      throw new Error('Upstox instrument directory has an unexpected structure.');
+    }
+
+    const keysBySymbol = new Map<string, Set<string>>();
+    for (const rawRow of payload) {
+      const row = asRecord(rawRow);
+      if (!row) continue;
+      if (row.segment !== 'NSE_EQ' || row.exchange !== 'NSE' || row.instrument_type !== 'EQ') continue;
+      if (typeof row.trading_symbol !== 'string' || typeof row.instrument_key !== 'string') continue;
+
+      const tradingSymbol = row.trading_symbol.trim().toUpperCase();
+      const instrumentKey = row.instrument_key;
+      if (!/^[A-Z0-9&.-]{1,25}$/.test(tradingSymbol) || !isValidNseEquityInstrumentKey(instrumentKey)) continue;
+      const keys = keysBySymbol.get(tradingSymbol) ?? new Set<string>();
+      keys.add(instrumentKey);
+      keysBySymbol.set(tradingSymbol, keys);
+    }
+
+    const index = new Map<string, string | null>();
+    for (const [tradingSymbol, keys] of keysBySymbol) {
+      // Duplicate/conflicting symbols never select whichever row happened first.
+      index.set(tradingSymbol, keys.size === 1 ? [...keys][0] : null);
+    }
+    if (index.size === 0) throw new Error('Upstox instrument directory contains no usable NSE equity records.');
+
+    this.cachedIndex = index;
+    this.loadedAt = now;
+    return index;
+  }
+}
+
 function lastPriceForInstrument(payload: unknown, instrumentKey: string): number | null {
   const envelope = asRecord(payload);
   if (!envelope || envelope.status !== 'success') return null;
@@ -150,7 +247,13 @@ export class UpstoxLtpProvider implements MarketDataProvider {
       return this.unavailable(normalizedSymbol, 'SOURCE_REQUIRED');
     }
 
-    const instrumentKey = await this.resolver.resolve(normalizedSymbol);
+    let instrumentKey: string | null;
+    try {
+      instrumentKey = await this.resolver.resolve(normalizedSymbol);
+    } catch {
+      this.markProviderFailure(now, 'Upstox instrument mapping source could not be verified.');
+      throw new Error('Upstox instrument mapping unavailable.');
+    }
     if (!instrumentKey || !isValidNseEquityInstrumentKey(instrumentKey)) {
       this.markProviderFailure(now, 'Required verified instrument mapping is unavailable.');
       return this.unavailable(normalizedSymbol, 'SOURCE_REQUIRED');
