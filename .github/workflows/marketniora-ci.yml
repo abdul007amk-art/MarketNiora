@@ -47,6 +47,12 @@ jobs:
       - name: Bootstrap CI database
         run: psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/dars12-ci-bootstrap.sql
 
+      - name: Validate MASTER_4187 staging migration
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/master4187-staging-ci-bootstrap.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/014_master_4187_staging_provenance.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/master4187-staging-ci-assert.sql
+
       - name: Apply DARS-1.2 migrations
         run: |
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/20260927_dars_evidence.sql
