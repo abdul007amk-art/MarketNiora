@@ -25,6 +25,8 @@ Provider Health
 -> Provenance/Audit
 -> Health Report
 
+Implementation note: `FWHY_PREFLIGHT` is a fail-closed guard immediately before formula execution. It is distinct from the `FWHY_DIAGNOSTICS` reporting stage, which remains after Formula Recalculation as specified above.
+
 Evidence Refresh MUST complete before Formula Recalculation.
 
 No DARS-1.2 PASS, LOCK READY, or certificate may be claimed until the mandatory regression suite has executed successfully in the repository validation environment.
