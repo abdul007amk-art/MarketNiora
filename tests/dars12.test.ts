@@ -7,7 +7,7 @@ const idx=(r,s,st)=>r.stageEvents.findIndex(e=>e.stage===s&&e.status===st);
 
 test('DARS12-001 Evidence Refresh precedes Formula Recalculation',()=>{
  const r=new Dars12Engine().run({runKnowledgeTime:200,providerHealthy:true,rawEvents:[base()],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
- assert.equal(r.formulaExecuted,true); assert.ok(idx(r,'EVIDENCE_REFRESH','SUCCEEDED')<idx(r,'FORMULA_RECALCULATION','STARTED'));
+ assert.equal(r.formulaExecuted,true); assert.ok(idx(r,'EVIDENCE_REFRESH','SUCCEEDED')<idx(r,'FORMULA_RECALCULATION','STARTED')); assert.ok(idx(r,'FORMULA_RECALCULATION','SUCCEEDED')<idx(r,'FWHY_DIAGNOSTICS','STARTED'));
 });
 test('DARS12-002 stale evidence blocks formula recalculation',()=>{
  const e=new Dars12Engine(); e.run({runKnowledgeTime:200,providerHealthy:true,rawEvents:[base()],evidenceRefreshSucceeded:true,formulaVersion:'F1',formula:sum});
@@ -83,7 +83,7 @@ test('DARS12 adversarial: FWHY BLOCKED prevents formula execution',()=>{
  assert.equal(r.formulaExecuted,false);
  assert.equal(r.formulaOutput,null);
  assert.equal(r.truthState,'BLOCKED');
- assert.ok(idx(r,'FWHY_DIAGNOSTICS','FAILED')>=0);
+ assert.ok(idx(r,'FWHY_PREFLIGHT','FAILED')>=0);
  assert.ok(idx(r,'FWHY_DIAGNOSTICS','FAILED')<idx(r,'FORMULA_RECALCULATION','SKIPPED'));
 });
 
