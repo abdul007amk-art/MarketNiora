@@ -1,5 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const http = require('node:http');
 const { createApp } = require('../backend/src/api/server.ts');
 const { buildRoutes } = require('../backend/src/api/routes/index.ts');
 const { createDependencies } = require('../backend/src/api/dependencies.ts');
@@ -633,6 +634,46 @@ test('oversized request body -> real 413, not a crash', async () => {
     const hugeBody = JSON.stringify({ idToken: 'x'.repeat(1024 * 1024 * 2) });
     const res = await fetch(`${baseUrl}/auth/oidc/google`, { method: 'POST', body: hugeBody });
     assert.equal(res.status, 413);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('chunked UTF-8 request body over 1 MB is rejected by raw byte size', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const target = new URL(baseUrl);
+    // 600,000 two-byte UTF-8 characters are about 1.2 MB while JS string
+    // length is only 600,000. Transfer-Encoding: chunked avoids Content-Length.
+    const oversizedJson = JSON.stringify({ idToken: 'é'.repeat(600_000) });
+    const result = await new Promise((resolve, reject) => {
+      const request = http.request({
+        hostname: target.hostname,
+        port: Number(target.port),
+        path: '/auth/oidc/google',
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Transfer-Encoding': 'chunked',
+        },
+      }, (response) => {
+        let responseBody = '';
+        response.setEncoding('utf8');
+        response.on('data', (chunk) => { responseBody += chunk; });
+        response.on('end', () => resolve({
+          statusCode: response.statusCode,
+          body: responseBody,
+        }));
+      });
+      request.on('error', reject);
+      for (let offset = 0; offset < oversizedJson.length; offset += 8192) {
+        request.write(oversizedJson.slice(offset, offset + 8192));
+      }
+      request.end();
+    });
+
+    assert.equal(result.statusCode, 413);
+    assert.deepEqual(JSON.parse(result.body), { error: 'request body too large' });
   } finally {
     await stopServer(server);
   }
