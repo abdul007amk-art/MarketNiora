@@ -44,7 +44,9 @@ The server already constructed a fixed-window limiter at 5 attempts per 60 secon
 
 **Source remediation in review:** OIDC login and Owner MFA now call the limiter before token/challenge validation. Requests that exceed the per-socket-peer-IP window receive HTTP 429 with `Retry-After` and `Cache-Control: no-store`. Each route has a separate bucket. The address is derived from Node's socket peer, not the client-controlled `X-Forwarded-For` header. Tests exercise repeated HTTP requests, spoofed forwarding headers and Retry-After boundary behavior.
 
-**Remaining limitation:** this limiter is in-memory and explicitly reports `productionReady=false`. It is effective only for a single process and can be bypassed across multiple instances/restarts. The production runtime gate must remain in place until a durable, shared rate-limit store and deployed tests are approved.
+**Additional source hardening:** the default in-memory map is capped at 10,000 tracked keys. When capacity is needed, expired windows are pruned; if every slot is still active, unseen keys fail closed until a window expires. `Retry-After` reports the earliest expected capacity expiry, and regression tests cover this boundary.
+
+**Remaining limitation:** this limiter is still in-memory and explicitly reports `productionReady=false`. It is effective only within one process, resets on restart, and does not enforce a shared limit across multiple instances. The production runtime gate must remain in place until a durable shared rate-limit store and deployed tests are approved.
 
 ### LOW — OIDC token-age policy could be stricter
 

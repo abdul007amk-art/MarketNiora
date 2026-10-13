@@ -109,6 +109,23 @@ test('rate limiter computes accurate Retry-After seconds within a fixed window',
   assert.equal(limiter.check('ip1', 6000), true);
 });
 
+test('rate limiter bounds in-memory client keys and releases capacity after expiry', () => {
+  const limiter = new FixedWindowRateLimiter(1, 5000, undefined, 2);
+
+  assert.equal(limiter.check('ip-a', 1000), true);
+  assert.equal(limiter.check('ip-b', 1000), true);
+  assert.equal(limiter.check('ip-c', 1000), false, 'new keys fail closed when the tracked-key cap is reached');
+  assert.equal(limiter.retryAfterSeconds('ip-c', 1000), 5, 'Retry-After reflects the earliest capacity expiry');
+
+  assert.equal(limiter.check('ip-c', 6000), true, 'expired windows are pruned when new capacity is needed');
+  assert.equal(limiter.check('ip-d', 6000), true);
+});
+
+test('rate limiter rejects invalid tracked-key limits', () => {
+  assert.throws(() => new FixedWindowRateLimiter(1, 1000, undefined, 0), /maxTrackedKeys/);
+  assert.throws(() => new FixedWindowRateLimiter(1, 1000, undefined, 1.5), /maxTrackedKeys/);
+});
+
 test('rate limiter hardening (post-audit): productionReady flag is explicitly false', () => {
   const limiter = new FixedWindowRateLimiter(3, 1000);
   assert.equal(limiter.productionReady, false);
