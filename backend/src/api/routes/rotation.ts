@@ -2,10 +2,10 @@
  * ROTATION ROUTE
  * Status: IMPLEMENTATION — unit tested below via real HTTP requests.
  *
- * Thin HTTP wrapper around the LOCKED rotationEngine.ts — no formula
- * logic here, just request parsing and error sanitization. Public
- * (no auth required) since rotation is public market-movement data, same
- * as the rest of this repo's treatment of market data.
+ * Thin HTTP wrapper around the LOCKED rotationEngine.ts — no formula logic
+ * here. This is a public PREVIEW-only calculator over caller-supplied data;
+ * official rotation scores remain NOT_CONFIGURED until verified canonical
+ * observations and score snapshots are connected server-side.
  */
 
 import type { ParsedRequest, RouteResult } from '../router.ts';
