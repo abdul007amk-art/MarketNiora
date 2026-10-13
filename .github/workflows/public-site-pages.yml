@@ -1,11 +1,9 @@
 name: MarketNiora Public Site
 
+# Optional static landing-page deployment only.
+# Run manually after enabling Settings → Pages → Build and deployment → GitHub Actions.
+# The main research application remains hosted at MiniUp and is not deployed by this workflow.
 on:
-  push:
-    branches: [main]
-    paths:
-      - "public-site/**"
-      - ".github/workflows/public-site-pages.yml"
   workflow_dispatch:
 
 permissions:
