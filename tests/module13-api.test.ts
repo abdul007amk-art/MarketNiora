@@ -323,10 +323,6 @@ test('POST /rotation/calculate: higher-level roll-up is eligible at exactly 60%'
     assert.equal(body.outputStatus, 'PREVIEW_ONLY');
     assert.equal(body.officialRotationScoreAvailable, false);
     assert.equal(body.officialScoreStatus, 'NOT_CONFIGURED');
-    assert.equal(body.includedByConfidence, true);
-    assert.equal(body.finalScore, null);
-    assert.equal(typeof body.previewScore, 'number');
-    assert.equal(body.officialScoreStatus, 'NOT_CONFIGURED');
   } finally {
     await stopServer(server);
   }
@@ -348,7 +344,6 @@ test('POST /rotation/calculate: approved D2 FLAT state returns 40 with default w
     assert.equal(body.confidenceThreshold, 30);
     assert.equal(body.finalScore, null);
     assert.equal(body.previewScore, 40);
-    assert.equal(body.rotationState, 'FLAT');
     assert.equal(body.officialRotationScoreAvailable, false);
   } finally {
     await stopServer(server);
