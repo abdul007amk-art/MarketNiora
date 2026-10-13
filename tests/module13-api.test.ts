@@ -100,6 +100,57 @@ test('Google OIDC -> real session cookie issued', async () => {
   }
 });
 
+test('OIDC login enforces per-socket-IP rate limits and ignores spoofed X-Forwarded-For', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    for (let i = 0; i < 5; i += 1) {
+      const res = await fetch(`${baseUrl}/auth/oidc/google`, {
+        method: 'POST',
+        headers: { 'X-Forwarded-For': `192.0.2.${i + 1}` },
+        body: JSON.stringify({ idToken: `rate-limit-user-${i}@example.com` }),
+      });
+      assert.equal(res.status, 200);
+    }
+
+    const blocked = await fetch(`${baseUrl}/auth/oidc/google`, {
+      method: 'POST',
+      headers: { 'X-Forwarded-For': '203.0.113.99' },
+      body: JSON.stringify({ idToken: 'rate-limit-user-6@example.com' }),
+    });
+    assert.equal(blocked.status, 429);
+    assert.equal((await blocked.json()).error, 'too many authentication attempts');
+    const retryAfter = Number(blocked.headers.get('retry-after'));
+    assert.ok(Number.isInteger(retryAfter) && retryAfter >= 1 && retryAfter <= 60);
+    assert.equal(blocked.headers.get('cache-control'), 'no-store');
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('Owner MFA endpoint enforces its own rate-limit bucket before code verification', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    for (let i = 0; i < 5; i += 1) {
+      const res = await fetch(`${baseUrl}/auth/owner/mfa`, {
+        method: 'POST',
+        body: JSON.stringify({ challenge: `unknown-challenge-${i}`, code: '000000' }),
+      });
+      assert.equal(res.status, 401);
+    }
+
+    const blocked = await fetch(`${baseUrl}/auth/owner/mfa`, {
+      method: 'POST',
+      body: JSON.stringify({ challenge: 'unknown-challenge-6', code: '000000' }),
+    });
+    assert.equal(blocked.status, 429);
+    assert.equal((await blocked.json()).error, 'too many authentication attempts');
+    const retryAfter = Number(blocked.headers.get('retry-after'));
+    assert.ok(Number.isInteger(retryAfter) && retryAfter >= 1 && retryAfter <= 60);
+  } finally {
+    await stopServer(server);
+  }
+});
+
 test('password authentication endpoints are removed', async () => {
   const { server, baseUrl } = await startServer();
   try {
