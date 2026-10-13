@@ -76,3 +76,50 @@ jobs:
             exit 1
           fi
           echo "Protected engines unchanged."
+
+  auth-db-integration:
+    name: Auth stores — isolated PostgreSQL integration
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: marketniora_auth_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d marketniora_auth_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5432/marketniora_auth_ci
+      MARKETNIORA_DB_TARGET: CI_TEST
+      MARKETNIORA_CI_AUTH_DB_TEST: "1"
+      NODE_ENV: test
+      KMS_PROVIDER: local-dev
+      KMS_LOCAL_MASTER_KEY: marketniora-only-ci-test-key-not-for-production
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Prisma generate
+        run: npx prisma generate --schema database/prisma/schema.prisma
+
+      - name: Create isolated auth tables
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/009_marketniora.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/010_marketniora.sql
+
+      - name: Run DB-backed auth store integration
+        run: node --experimental-strip-types scripts/integrationTest.ts
