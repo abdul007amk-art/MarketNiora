@@ -84,6 +84,23 @@ test('Google OIDC verifier rejects untrusted audiences and mismatched azp', asyn
     const validSingletonAudience = await verifier.verify(makeToken({ ...baseClaims, aud: ['test-client'] }));
     assert.equal(validSingletonAudience.subject, 'google-subject-1');
 
+    const validPastNotBefore = await verifier.verify(makeToken({ ...baseClaims, nbf: now - 30 }));
+    assert.equal(validPastNotBefore.subject, 'google-subject-1');
+
+    // Reuse the existing 60-second clock-skew tolerance used for iat.
+    const withinClockSkew = await verifier.verify(makeToken({ ...baseClaims, nbf: now + 30 }));
+    assert.equal(withinClockSkew.subject, 'google-subject-1');
+
+    await assert.rejects(
+      () => verifier.verify(makeToken({ ...baseClaims, nbf: now + 120 })),
+      /ID token not yet valid/,
+    );
+
+    await assert.rejects(
+      () => verifier.verify(makeToken({ ...baseClaims, nbf: 'later' })),
+      /invalid nbf/,
+    );
+
     await assert.rejects(
       () => verifier.verify(makeToken({ ...baseClaims, azp: 'another-client' })),
       /invalid ID token authorized party/,
