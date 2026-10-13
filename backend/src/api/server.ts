@@ -124,6 +124,9 @@ export function createApp(routes: Route<AppDependencies>[], deps: AppDependencie
         body: parsedBody,
         cookies: parseCookies(req.headers['cookie']),
         headers: req.headers,
+        // Use the socket peer only. X-Forwarded-For is client-controlled unless
+        // a separately approved trusted-proxy configuration exists.
+        clientIp: req.socket.remoteAddress ?? 'unknown',
       };
 
       const result = await match.route.handler(ctx, deps);
