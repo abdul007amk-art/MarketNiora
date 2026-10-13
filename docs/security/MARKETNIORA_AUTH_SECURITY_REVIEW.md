@@ -48,6 +48,14 @@ The server already constructed a fixed-window limiter at 5 attempts per 60 secon
 
 **Remaining limitation:** this limiter is still in-memory and explicitly reports `productionReady=false`. It is effective only within one process, resets on restart, and does not enforce a shared limit across multiple instances. The production runtime gate must remain in place until a durable shared rate-limit store and deployed tests are approved.
 
+### MEDIUM — OIDC audience / authorized-party validation was permissive (source fix + signed-token tests)
+
+The verifier previously accepted any `aud` array containing the configured client ID and ignored `azp`, even though this deployment has one configured Google OAuth client and no allowlist for additional trusted audiences.
+
+**Source remediation in review:** `aud` must be exactly the configured client ID, either as a string or as a one-item array. Multi-audience tokens are rejected until an explicit trusted-audience configuration exists. If `azp` is present, it must be a string equal to the configured client ID. Regression coverage uses locally signed RSA test tokens and a local JWKS endpoint; no Google credentials are required.
+
+Reference: [Google OpenID Connect — ID token validation and claims](https://developers.google.com/identity/openid-connect/openid-connect).
+
 ### LOW — OIDC token-age policy could be stricter
 
 The verifier checks `exp` and rejects an `iat` more than 60 seconds in the future, but does not impose a separate maximum token age. A bounded age policy could further reduce acceptance of unusually old-but-unexpired tokens. Do not invent a value without documenting the policy.
