@@ -44,7 +44,7 @@ export class PrismaUserStore implements UserStore {
           userId: user.userId,
           oidcIssuer: user.oidcIssuer,
           oidcSubject: user.oidcSubject,
-          email: user.email.toLowerCase(),
+          email: user.email.trim().toLowerCase(),
           emailVerified: user.emailVerified,
           role: user.role,
         },
@@ -59,7 +59,7 @@ export class PrismaUserStore implements UserStore {
 
   async getByEmail(email: string): Promise<StoredUser | undefined> {
     const user = await this.prisma.appUser.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: email.trim().toLowerCase() },
     });
     return user ? {
       userId: user.userId,
