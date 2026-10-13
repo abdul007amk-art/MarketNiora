@@ -12,6 +12,7 @@ import type { ParsedRequest, RouteResult } from '../router.ts';
 import type { AppDependencies } from '../dependencies.ts';
 import { calculateRotation } from '../../protected/rotationEngine.ts';
 import { isRotationAggregationLevel, meetsRotationConfidenceGate, minimumRotationConfidence } from '../../rotation/aggregationGate.ts';
+import type { RotationAggregationLevel } from '../../rotation/aggregationGate.ts';
 
 const VALID_HORIZONS = ['1D', '1W', '1M', '3M'];
 
@@ -30,7 +31,7 @@ export async function rotationCalculateHandler(ctx: ParsedRequest, _deps: AppDep
   }
 
   try {
-    const aggregationLevel = body.aggregationLevel;
+    const aggregationLevel = body.aggregationLevel as RotationAggregationLevel;
     const confidenceThreshold = minimumRotationConfidence(aggregationLevel);
     const rollupEligible = meetsRotationConfidenceGate(aggregationLevel, body.confidence);
     const result = calculateRotation({
