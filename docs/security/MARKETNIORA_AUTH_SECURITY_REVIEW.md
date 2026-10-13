@@ -32,6 +32,14 @@ A reviewed source migration, `database/migrations/015_security_function_search_p
 
 Remediation reference: [Supabase database linter — Function Search Path Mutable](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable).
 
+### MEDIUM — Authentication rate limiter was not enforced by routes (source fix + CI verification)
+
+The server already constructed a fixed-window limiter at 5 attempts per 60 seconds, but the Google OIDC login and Owner TOTP/MFA handlers did not consult it.
+
+**Source remediation in review:** OIDC login and Owner MFA now call the limiter before token/challenge validation. Requests that exceed the per-socket-peer-IP window receive HTTP 429 with `Retry-After` and `Cache-Control: no-store`. Each route has a separate bucket. The address is derived from Node's socket peer, not the client-controlled `X-Forwarded-For` header. Tests exercise repeated HTTP requests, spoofed forwarding headers and Retry-After boundary behavior.
+
+**Remaining limitation:** this limiter is in-memory and explicitly reports `productionReady=false`. It is effective only for a single process and can be bypassed across multiple instances/restarts. The production runtime gate must remain in place until a durable, shared rate-limit store and deployed tests are approved.
+
 ### LOW — OIDC token-age policy could be stricter
 
 The verifier checks `exp` and rejects an `iat` more than 60 seconds in the future, but does not impose a separate maximum token age. A bounded age policy could further reduce acceptance of unusually old-but-unexpired tokens. Do not invent a value without documenting the policy.
