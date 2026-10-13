@@ -33,15 +33,22 @@ async function cleanup(prisma: ReturnType<typeof getPrismaClient>): Promise<void
 
 async function main(): Promise<void> {
   console.log('============================================================');
-  console.log('MarketNiora NON-PROD DB Auth Integration Test');
+  console.log('MarketNiora DB Auth Integration Test');
   console.log('============================================================');
 
   console.log('\n[TEST] Checking non-production guard');
+  const ciAuthTest = process.env.MARKETNIORA_DB_TARGET === 'CI_TEST'
+    && process.env.MARKETNIORA_CI_AUTH_DB_TEST === '1'
+    && process.env.CI === 'true'
+    && process.env.NODE_ENV === 'test';
+  assert(
+    process.env.MARKETNIORA_DB_TARGET === 'NON_PROD' || ciAuthTest,
+    'target must be NON_PROD or the explicit GitHub Actions CI_TEST target',
+  );
   assertNonProdDatabaseAccess();
-  assertEqual(process.env.MARKETNIORA_DB_TARGET, 'NON_PROD', 'MARKETNIORA_DB_TARGET must be NON_PROD');
-  assertEqual(process.env.KMS_PROVIDER, 'local-dev', 'KMS_PROVIDER must be local-dev for non-prod TOTP encryption');
+  assertEqual(process.env.KMS_PROVIDER, 'local-dev', 'KMS_PROVIDER must be local-dev for test TOTP encryption');
   assert(process.env.KMS_LOCAL_MASTER_KEY, 'KMS_LOCAL_MASTER_KEY must be configured');
-  pass('Non-production guard accepted the environment');
+  pass(ciAuthTest ? 'Isolated CI PostgreSQL guard accepted the environment' : 'Non-production guard accepted the environment');
 
   const prisma = getPrismaClient();
   const userStore = new PrismaUserStore(prisma);
