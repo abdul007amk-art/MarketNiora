@@ -78,6 +78,12 @@ test('Google OIDC verifier rejects untrusted audiences and mismatched azp', asyn
     assert.equal(validIdentity.subject, 'google-subject-1');
     assert.equal(validIdentity.email, 'researcher@example.com');
 
+    const validWithoutAzp = await verifier.verify(makeToken({ ...baseClaims, azp: undefined }));
+    assert.equal(validWithoutAzp.subject, 'google-subject-1');
+
+    const validSingletonAudience = await verifier.verify(makeToken({ ...baseClaims, aud: ['test-client'] }));
+    assert.equal(validSingletonAudience.subject, 'google-subject-1');
+
     await assert.rejects(
       () => verifier.verify(makeToken({ ...baseClaims, azp: 'another-client' })),
       /invalid ID token authorized party/,
