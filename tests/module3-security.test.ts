@@ -98,6 +98,17 @@ test('rate limiter: enforces fixed window per key, isolated across keys', () => 
   assert.equal(limiter.check('ip1', t + 1000), true); // window elapsed
 });
 
+test('rate limiter computes accurate Retry-After seconds within a fixed window', () => {
+  const limiter = new FixedWindowRateLimiter(1, 5000);
+  assert.equal(limiter.retryAfterSeconds('ip1', 1000), 0);
+  assert.equal(limiter.check('ip1', 1000), true);
+  assert.equal(limiter.check('ip1', 2000), false);
+  assert.equal(limiter.retryAfterSeconds('ip1', 2000), 4);
+  assert.equal(limiter.retryAfterSeconds('ip1', 5999), 1);
+  assert.equal(limiter.retryAfterSeconds('ip1', 6000), 0);
+  assert.equal(limiter.check('ip1', 6000), true);
+});
+
 test('rate limiter hardening (post-audit): productionReady flag is explicitly false', () => {
   const limiter = new FixedWindowRateLimiter(3, 1000);
   assert.equal(limiter.productionReady, false);

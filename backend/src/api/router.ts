@@ -13,6 +13,8 @@ export interface ParsedRequest {
   body: unknown;
   cookies: Record<string, string>;
   headers: Record<string, string | string[] | undefined>;
+  /** Trusted connection peer from the Node socket; never sourced from X-Forwarded-For. */
+  clientIp?: string;
 }
 
 export interface RouteResult {
