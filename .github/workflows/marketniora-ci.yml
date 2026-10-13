@@ -129,3 +129,12 @@ jobs:
 
       - name: Run DB-backed auth store integration
         run: node --experimental-strip-types scripts/integrationTest.ts
+
+      - name: Test MASTER_4187 import readiness gates (ephemeral PostgreSQL only)
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/master-import-readiness-fixture.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/014_master_4187_staging_provenance.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/master-import-readiness-seed.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/013_marketniora.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/016_master_4187_readiness_fail_closed.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/master-import-readiness-assert.sql
