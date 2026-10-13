@@ -316,6 +316,49 @@ test('POST /rotation/calculate: higher-level roll-up is eligible at exactly 60%'
   }
 });
 
+
+test('POST /rotation/calculate: approved D2 FLAT state returns 40 with default weights', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const observations = Array.from({ length: 20 }, (_, i) => ({ stockId: `flat-${i}`, return_: 0 }));
+    const res = await fetch(`${baseUrl}/rotation/calculate`, {
+      method: 'POST',
+      body: JSON.stringify({ horizon: '1D', aggregationLevel: 'STOCK_GROUP', observations, confidence: 30 }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.formulaVersion, 'ROTATION-1.2');
+    assert.equal(body.rotationState, 'FLAT');
+    assert.equal(body.confidenceThreshold, 30);
+    assert.equal(body.finalScore, 40);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('POST /rotation/calculate: missing, empty, duplicate, or non-finite observations fail closed', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const cases = [
+      undefined,
+      [],
+      [{ stockId: 'x', return_: 0 }, { stockId: 'x', return_: 0 }],
+      [{ stockId: 'x', return_: NaN }],
+      [{ stockId: '', return_: 0 }],
+    ];
+    for (const observations of cases) {
+      const res = await fetch(`${baseUrl}/rotation/calculate`, {
+        method: 'POST',
+        body: JSON.stringify({ horizon: '1D', aggregationLevel: 'STOCK_GROUP', observations, confidence: 100 }),
+      });
+      assert.equal(res.status, 400);
+      assert.equal((await res.json()).error, 'invalid rotation calculation input');
+    }
+  } finally {
+    await stopServer(server);
+  }
+});
+
 test('POST /rotation/calculate: missing or unknown aggregation level fails closed', async () => {
   const { server, baseUrl } = await startServer();
   try {
