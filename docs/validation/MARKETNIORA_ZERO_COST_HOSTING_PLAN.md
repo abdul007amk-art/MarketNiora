@@ -53,6 +53,11 @@ Do not import staged rows into canonical tables without the required Owner autho
 
 Official docs: https://supabase.com/pricing
 
+### Non-production Security Advisor — 2026-10-13
+Read-only Supabase Advisor inspection found three `function_search_path_mutable` warnings in the approved non-production clone for `reject_append_only_mutation()`, `reject_locked_formula_mutation()` and `enforce_owner_totp_owner_role()`. A source-only remediation is prepared in `database/migrations/015_security_function_search_path.sql`; it sets an explicit empty search path for those schema-qualified trigger functions.
+
+This migration has **not** been applied to any Supabase project. The new CI job applies it only in its ephemeral PostgreSQL 16 fixture and asserts the function configuration. The direct NON_PROD migration and a repeat Advisor scan remain release gates. See the [Supabase database-linter guidance](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable).
+
 ## 3. Recommended free-first operating model
 
 1. **Design and source control:** GitHub branches and PRs; keep main protected by tests and review.
