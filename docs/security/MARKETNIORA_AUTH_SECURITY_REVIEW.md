@@ -1,7 +1,7 @@
 # MarketNiora Auth Security Review — Static Review
 
-**Review type:** source-code review only  
-**Runtime DB integration:** PENDING — requires local execution against the approved non-production Supabase clone  
+**Review type:** source-code review plus read-only Supabase advisor inspection  
+**CI DB integration:** PASS on isolated PostgreSQL fixture; **actual Supabase NON_PROD runtime:** PENDING  
 **Production DB:** not accessed  
 **Scope:** Google OIDC verifier, owner TOTP/MFA, session handling, Prisma auth stores, secret handling, auth routes.
 
@@ -15,11 +15,22 @@ No locked MarketNiora formula or rotation/stock-score engine was changed by this
 
 ### MEDIUM — Production cookie hardening (remediated in source; runtime release verification pending)
 
-`backend/src/api/routes/auth.ts` currently sets `session_token` with `HttpOnly`, `SameSite=Strict`, and `Path=/`, but does not currently include the `Secure` attribute. For production HTTPS deployment, the session cookie should be issued with `Secure` explicitly.
+`backend/src/api/sessionCookies.ts` centralises session and CSRF cookie attributes. Production mode adds `Secure`; the session cookie remains `HttpOnly`; the CSRF cookie remains script-readable for the existing double-submit design.
 
-**Source remediation:** `backend/src/api/sessionCookies.ts` now adds `Secure` to both session and CSRF cookies only when `NODE_ENV=production`. The regression test asserts the production attributes and preserves the intended HTTP-local development behavior. `HttpOnly` remains on the session cookie; the CSRF cookie remains script-readable for the existing double-submit design. **Runtime release gate:** verify this on the deployed HTTPS runtime after the host is configured; CI/source tests alone do not prove production configuration.
+**Source remediation:** merged to `main` and CI-tested, including explicit production/development attribute assertions. **Runtime release gate:** verify the attributes on the deployed HTTPS runtime after hosting is configured. CI/source tests alone do not prove production configuration.
 
-Do not apply this remediation as part of the DB integration task; handle it as a separate auth-hardening change with route tests.
+### MEDIUM — Trigger functions have mutable search_path (Supabase Advisor, 2026-10-13)
+
+The approved non-production Supabase clone's security advisor reported `function_search_path_mutable` warnings for:
+- `public.reject_append_only_mutation()`
+- `public.reject_locked_formula_mutation()`
+- `public.enforce_owner_totp_owner_role()`
+
+A reviewed source migration, `database/migrations/015_security_function_search_path.sql`, sets the functions' `search_path` to an explicit empty value. Their bodies use schema-qualified relations/types or PL/pgSQL trigger metadata, so they do not need implicit application-schema resolution.
+
+**Status:** source-only remediation prepared for review. The migration has **not** been applied to the Supabase clone or production. An isolated PostgreSQL CI fixture validates the migration configuration. After approved NON_PROD migration application, rerun the Supabase Security Advisor and verify these three findings disappear before considering any production change.
+
+Remediation reference: [Supabase database linter — Function Search Path Mutable](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable).
 
 ### LOW — OIDC token-age policy could be stricter
 
