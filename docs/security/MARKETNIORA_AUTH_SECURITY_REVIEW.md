@@ -32,6 +32,12 @@ A reviewed source migration, `database/migrations/015_security_function_search_p
 
 Remediation reference: [Supabase database linter — Function Search Path Mutable](https://supabase.com/docs/guides/database/database-linter?lint=0011_function_search_path_mutable).
 
+### MEDIUM — Chunked request body limit counted characters rather than bytes (source fix + CI verification)
+
+The HTTP server previously converted each request chunk to UTF-8 text and incremented its limit counter by JavaScript string length. A chunked multibyte payload could therefore exceed the configured 1 MiB byte ceiling without exceeding the character count.
+
+**Source remediation in review:** the server now counts raw received Buffer bytes before decoding, stops buffering once the 1 MiB limit is crossed, drains the remaining request without retaining it, and returns HTTP 413. A real HTTP regression test streams a 1.2 MiB UTF-8 JSON body with `Transfer-Encoding: chunked` and no `Content-Length`, asserting the 413 response. The existing early Content-Length guard remains.
+
 ### MEDIUM — Authentication rate limiter was not enforced by routes (source fix + CI verification)
 
 The server already constructed a fixed-window limiter at 5 attempts per 60 seconds, but the Google OIDC login and Owner TOTP/MFA handlers did not consult it.

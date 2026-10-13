@@ -30,18 +30,32 @@ const STATIC_FILES: Record<string, { path: string; contentType: string }> = {
   '/assets/styles.css': { path: 'frontend/assets/styles.css', contentType: 'text/css; charset=utf-8' },
 };
 
-async function readBody(req: IncomingMessage): Promise<string> {
-  let data = '';
+async function readBody(req: IncomingMessage): Promise<{ bodyText: string; tooLarge: boolean }> {
+  const chunks: Buffer[] = [];
   let byteCount = 0;
+  let tooLarge = false;
+
   for await (const chunk of req) {
-    const chunkStr = chunk.toString('utf8');
-    byteCount += chunkStr.length;
+    // Enforce the limit on received bytes before UTF-8 decoding. Counting
+    // JavaScript string length undercounts multibyte text in chunked bodies.
+    const rawChunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+    byteCount += rawChunk.byteLength;
+
     if (byteCount > MAX_BODY_BYTES) {
-      throw new Error('request body too large');
+      tooLarge = true;
+      chunks.length = 0;
+      // Keep draining without buffering the remaining payload so chunked
+      // requests can receive a deterministic 413 response.
+      continue;
     }
-    data += chunkStr;
+
+    if (!tooLarge) chunks.push(rawChunk);
   }
-  return data;
+
+  return {
+    bodyText: tooLarge ? '' : Buffer.concat(chunks, byteCount).toString('utf8'),
+    tooLarge,
+  };
 }
 
 export function createApp(routes: Route<AppDependencies>[], deps: AppDependencies): Server {
@@ -90,10 +104,16 @@ export function createApp(routes: Route<AppDependencies>[], deps: AppDependencie
 
       let bodyText: string;
       try {
-        bodyText = await readBody(req);
+        const receivedBody = await readBody(req);
+        if (receivedBody.tooLarge) {
+          res.statusCode = 413;
+          res.end(JSON.stringify({ error: 'request body too large' }));
+          return;
+        }
+        bodyText = receivedBody.bodyText;
       } catch {
-        res.statusCode = 413;
-        res.end(JSON.stringify({ error: 'request body too large' }));
+        res.statusCode = 400;
+        res.end(JSON.stringify({ error: 'could not read request body' }));
         req.destroy();
         return;
       }
