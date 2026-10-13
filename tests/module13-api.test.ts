@@ -385,6 +385,59 @@ test('POST /rotation/calculate: malformed input -> sanitized 400, not a raw stac
   }
 });
 
+test('POST /stock-score/calculate: malformed or out-of-range score inputs fail closed', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const components = { momentum: 50, earningsMomentum: 50, businessQuality: 50, relativeStrength: 50, valuation: 50, trendQuality: 50, volumeConfirmation: 50, growthVisibility: 50 };
+    const base = { components, riskPenalty: 0, catalyst: 0, isSuspendedOrDelisted: false };
+    const missingComponent = { ...components };
+    delete missingComponent.growthVisibility;
+    const noObservedComponents = { momentum: null, earningsMomentum: null, businessQuality: null, relativeStrength: null, valuation: null, trendQuality: null, volumeConfirmation: null, growthVisibility: null };
+    const cases = [
+      { ...base, components: missingComponent },
+      { ...base, components: { ...components, momentum: -1 } },
+      { ...base, components: { ...components, valuation: 101 } },
+      { ...base, components: { ...components, momentum: '50' } },
+      { ...base, components: { ...components, unexpectedComponent: 50 } },
+      { ...base, components: noObservedComponents },
+      { ...base, riskPenalty: -31 },
+      { ...base, riskPenalty: 1 },
+      { ...base, riskPenalty: null },
+      { ...base, catalyst: '4' },
+      { ...base, isSuspendedOrDelisted: 'false' },
+      { components, riskPenalty: 0, catalyst: 0 },
+    ];
+
+    for (const payload of cases) {
+      const res = await fetch(`${baseUrl}/stock-score/calculate`, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+      });
+      assert.equal(res.status, 400);
+      assert.equal((await res.json()).error, 'invalid stock score calculation input');
+    }
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('POST /stock-score/calculate: valid partial inputs remain supported by the locked engine', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const components = { momentum: 50, earningsMomentum: null, businessQuality: null, relativeStrength: null, valuation: null, trendQuality: null, volumeConfirmation: null, growthVisibility: null };
+    const res = await fetch(`${baseUrl}/stock-score/calculate`, {
+      method: 'POST',
+      body: JSON.stringify({ components, riskPenalty: 0, catalyst: 0, isSuspendedOrDelisted: false }),
+    });
+    assert.equal(res.status, 200);
+    const body = await res.json();
+    assert.equal(body.formulaVersion, 'SS-1.0-R3');
+    assert.equal(typeof body.finalScore, 'number');
+  } finally {
+    await stopServer(server);
+  }
+});
+
 test('POST /stock-score/calculate: real HTTP round trip, catalyst guard still enforced over HTTP', async () => {
   const { server, baseUrl } = await startServer();
   try {
