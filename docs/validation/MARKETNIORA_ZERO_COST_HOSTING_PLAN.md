@@ -19,7 +19,7 @@
 No platform found for this project offers an unlimited production-grade combination of site builds, hosted database, server execution, authentication, live exchange feeds, and storage at zero cost. Free tiers are quota-limited and may change. Market-data and exchange redistribution rights may add cost or contractual restrictions.
 
 ### MiniUp
-The existing site is useful for a no-builder-credit, static research preview. The connected account currently reports finite limits (including 1,000 data API calls/month, up to five tables and 128 records/table, and a finite site count). Keep bulk research data in existing hosted data files rather than moving it into row tables. Do not build an auth/market-data backend on the assumption that MiniUp Functions or API calls are unlimited.
+The existing site is useful for a no-builder-credit, static research preview. The connected account currently reports finite limits (including 1,000 Table API calls/month, up to five tables and 128 records/table, and a finite site count). MiniUp's published default is one Function with 100 production calls/month for signed-in accounts; check account-specific limits before relying on it. Keep bulk research data in existing hosted data files rather than moving it into row tables. Do not build an auth/market-data backend on the assumption that MiniUp Functions or API calls are unlimited.
 
 Official docs: https://www.miniup.io/faqs
 
