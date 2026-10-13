@@ -57,8 +57,22 @@ export class GoogleOidcVerifier implements OidcVerifier {
     const issuer = string(payload.iss, 'iss');
     if (!this.allowedIssuers.has(issuer)) throw new Error('invalid ID token issuer');
     const audience = payload.aud;
-    const audienceOk = typeof audience === 'string' ? audience === this.clientId : Array.isArray(audience) && audience.includes(this.clientId);
+    // This deployment has one explicitly configured Google OAuth client and
+    // no allowlist for additional audiences. Reject multi-audience tokens
+    // rather than implicitly trusting an unconfigured recipient.
+    const audienceOk = typeof audience === 'string'
+      ? audience === this.clientId
+      : Array.isArray(audience)
+        && audience.length === 1
+        && audience[0] === this.clientId;
     if (!audienceOk) throw new Error('invalid ID token audience');
+
+    // If Google supplies azp, it must identify this configured OAuth client.
+    // Do not silently accept a token authorized for a different presenter.
+    if (payload.azp !== undefined && payload.azp !== this.clientId) {
+      throw new Error('invalid ID token authorized party');
+    }
+
     const now = Math.floor(Date.now() / 1000);
     if (number(payload.exp, 'exp') <= now) throw new Error('ID token expired');
     if (number(payload.iat, 'iat') > now + 60) throw new Error('ID token issued-at is in the future');
