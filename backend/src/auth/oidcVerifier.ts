@@ -7,6 +7,7 @@ export interface OidcVerifier { verify(idToken: string): Promise<GoogleIdentity>
 
 const DEFAULT_ISSUERS = new Set(['https://accounts.google.com', 'accounts.google.com']);
 const JWKS_CACHE_TTL_MS = 5 * 60 * 1000;
+const CLOCK_SKEW_SECONDS = 60;
 
 function decode(value: string): Buffer { return Buffer.from(value.replace(/-/g, '+').replace(/_/g, '/').padEnd(Math.ceil(value.length / 4) * 4, '='), 'base64'); }
 function object(value: string): Record<string, unknown> {
@@ -75,7 +76,10 @@ export class GoogleOidcVerifier implements OidcVerifier {
 
     const now = Math.floor(Date.now() / 1000);
     if (number(payload.exp, 'exp') <= now) throw new Error('ID token expired');
-    if (number(payload.iat, 'iat') > now + 60) throw new Error('ID token issued-at is in the future');
+    if (number(payload.iat, 'iat') > now + CLOCK_SKEW_SECONDS) throw new Error('ID token issued-at is in the future');
+    if (payload.nbf !== undefined && number(payload.nbf, 'nbf') > now + CLOCK_SKEW_SECONDS) {
+      throw new Error('ID token not yet valid');
+    }
     const subject = string(payload.sub, 'sub');
     const email = string(payload.email, 'email').trim().toLowerCase();
     if (payload.email_verified !== true) throw new Error('Google email is not verified');
