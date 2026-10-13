@@ -60,6 +60,12 @@ Reference: [Google OpenID Connect — ID token validation and claims](https://de
 
 The verifier checks `exp` and rejects an `iat` more than 60 seconds in the future, but does not impose a separate maximum token age. A bounded age policy could further reduce acceptance of unusually old-but-unexpired tokens. Do not invent a value without documenting the policy.
 
+### MEDIUM — OIDC not-before (`nbf`) claim was not checked (source fix + signed-token tests)
+
+The verifier previously checked `exp` and future `iat`, but ignored an optional JWT `nbf` claim. A signed token with a future not-before time should not be accepted outside the configured clock-skew tolerance.
+
+**Source remediation in review:** when `nbf` is present, it is parsed as a finite numeric claim and must not be more than the existing 60-second clock-skew tolerance into the future. Tests cover an expired/past `nbf`, a within-skew timestamp, a future timestamp outside tolerance, and a malformed non-numeric claim using locally signed RSA test tokens.
+
 ### LOW — JWKS operational hardening
 
 The verifier refreshes JWKS when the cache expires and also refreshes when a requested key ID is absent. Future hardening could add bounded retry/backoff and configuration validation. No specific vulnerability was established from this behavior alone.
