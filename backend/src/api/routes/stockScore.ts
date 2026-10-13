@@ -49,6 +49,10 @@ function isValidScoreComponents(value: unknown): value is ScoreComponents {
 
 export async function stockScoreCalculateHandler(ctx: ParsedRequest, _deps: AppDependencies): Promise<RouteResult> {
   const body = (ctx.body ?? {}) as Record<string, unknown>;
+  if (body.mode !== 'PREVIEW') {
+    return { status: 400, body: { error: 'preview mode required; official stock score output is not configured' } };
+  }
+
   const components = body.components;
   const riskPenalty = body.riskPenalty;
   const catalyst = body.catalyst;
@@ -77,7 +81,18 @@ export async function stockScoreCalculateHandler(ctx: ParsedRequest, _deps: AppD
       catalyst: catalyst as 0 | 4 | 8 | 12,
       isSuspendedOrDelisted,
     });
-    return { status: 200, body: result };
+    return { status: 200, body: {
+      ...result,
+      // This endpoint evaluates caller-supplied inputs only. A canonical
+      // score remains NOT_CONFIGURED until verified features and snapshots
+      // are provided by the server-side data pipeline.
+      finalScore: null,
+      previewScore: result.finalScore,
+      calculationMode: 'PREVIEW',
+      outputStatus: 'PREVIEW_ONLY',
+      officialStockScoreAvailable: false,
+      officialScoreStatus: 'NOT_CONFIGURED',
+    } };
   } catch {
     return { status: 400, body: { error: 'invalid stock score calculation input' } };
   }
