@@ -30,7 +30,7 @@ function assertCiAuthDatabaseAccess(databaseUrl: string): void {
   }
 
   const localHosts = new Set(['localhost', '127.0.0.1', '[::1]', '::1']);
-  const databaseName = parsed.pathname.replace(/^\\/+/, '');
+  const databaseName = parsed.pathname.replace(/^\/+/, '');
   if (
     !['postgres:', 'postgresql:'].includes(parsed.protocol) ||
     !localHosts.has(parsed.hostname) ||
