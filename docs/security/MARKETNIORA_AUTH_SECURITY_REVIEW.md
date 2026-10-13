@@ -13,11 +13,11 @@ No locked MarketNiora formula or rotation/stock-score engine was changed by this
 
 ## Findings
 
-### MEDIUM — Production cookie hardening should be explicit
+### MEDIUM — Production cookie hardening (remediated in source; runtime release verification pending)
 
 `backend/src/api/routes/auth.ts` currently sets `session_token` with `HttpOnly`, `SameSite=Strict`, and `Path=/`, but does not currently include the `Secure` attribute. For production HTTPS deployment, the session cookie should be issued with `Secure` explicitly.
 
-**Recommended remediation:** production cookies should use `Secure; HttpOnly; SameSite=Strict; Path=/`. Development may use non-Secure cookies only when explicitly running local HTTP.
+**Source remediation:** `backend/src/api/sessionCookies.ts` now adds `Secure` to both session and CSRF cookies only when `NODE_ENV=production`. The regression test asserts the production attributes and preserves the intended HTTP-local development behavior. `HttpOnly` remains on the session cookie; the CSRF cookie remains script-readable for the existing double-submit design. **Runtime release gate:** verify this on the deployed HTTPS runtime after the host is configured; CI/source tests alone do not prove production configuration.
 
 Do not apply this remediation as part of the DB integration task; handle it as a separate auth-hardening change with route tests.
 
