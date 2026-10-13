@@ -8,6 +8,7 @@ import type { Session } from '../backend/src/auth/sessionManager.ts';
 const TEST_RUN_ID = randomUUID();
 const TEST_USER_ID = randomUUID();
 const TEST_EMAIL = 'marketniora-db-integration-' + TEST_RUN_ID + '@example.invalid';
+const TEST_EMAIL_UPDATED = 'marketniora-db-integration-updated-' + TEST_RUN_ID + '@example.invalid';
 const OIDC_ISSUER = 'https://accounts.google.com';
 const OIDC_SUBJECT = 'integration-test-' + TEST_RUN_ID;
 
@@ -76,7 +77,22 @@ async function main(): Promise<void> {
     assertEqual(byEmail.oidcSubject, OIDC_SUBJECT, 'OIDC subject mismatch');
     const byId = await userStore.getById(TEST_USER_ID);
     assert(byId, 'user not found by ID');
-    pass('User read by email and ID');
+    const byOidcIdentity = await userStore.getByOidcIdentity(OIDC_ISSUER, OIDC_SUBJECT);
+    assert(byOidcIdentity, 'user not found by OIDC issuer + subject');
+    assertEqual(byOidcIdentity.userId, TEST_USER_ID, 'OIDC identity lookup returned the wrong user');
+    pass('User read by email, ID, and stable OIDC issuer + subject');
+
+    console.log('\n[TEST] Verified email change preserves stable OIDC user ID');
+    await userStore.updateVerifiedEmail(TEST_USER_ID, TEST_EMAIL_UPDATED);
+    const oldEmailLookup = await userStore.getByEmail(TEST_EMAIL);
+    assertEqual(oldEmailLookup, undefined, 'old email lookup must be removed after verified email update');
+    const updatedEmailLookup = await userStore.getByEmail(TEST_EMAIL_UPDATED);
+    assert(updatedEmailLookup, 'updated email lookup not found');
+    assertEqual(updatedEmailLookup.userId, TEST_USER_ID, 'email change must retain stable user ID');
+    const subjectLookupAfterEmailChange = await userStore.getByOidcIdentity(OIDC_ISSUER, OIDC_SUBJECT);
+    assert(subjectLookupAfterEmailChange, 'OIDC subject lookup lost after email change');
+    assertEqual(subjectLookupAfterEmailChange.userId, TEST_USER_ID, 'email change must preserve OIDC subject mapping');
+    pass('Email changed; OIDC subject still maps to the same AppUser');
 
     console.log('\n[TEST] PrismaUserStore UPDATE');
     await userStore.setRole(TEST_USER_ID, 'ADMIN');
