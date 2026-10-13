@@ -5,13 +5,14 @@ import type { AppDependencies } from '../dependencies.ts';
 import { issueSession, revokeSession, validateSession } from '../../auth/sessionManager.ts';
 import { generateCsrfToken, verifyCsrfToken } from '../../security/csrfToken.ts';
 import { beginOwnerMfa, verifyOwnerMfa } from '../../auth/ownerMfa.ts';
+import { buildSessionCookieHeaders } from '../sessionCookies.ts';
 
 interface OidcBody { idToken?: string; }
 interface OwnerMfaBody { challenge?: string; code?: string; }
 function ownerEmails(): Set<string> { return new Set((process.env.OWNER_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)); }
 function sessionResponse(session: Awaited<ReturnType<typeof issueSession>>): RouteResult {
   const csrfToken = generateCsrfToken();
-  return { status: 200, body: { userId: session.userId, role: session.role, csrfToken }, headers: { 'Set-Cookie': ['session_token=' + session.token + '; HttpOnly; Path=/; SameSite=Strict', 'csrf_token=' + csrfToken + '; Path=/; SameSite=Strict'] } };
+  return { status: 200, body: { userId: session.userId, role: session.role, csrfToken }, headers: { 'Set-Cookie': buildSessionCookieHeaders(session.token, csrfToken) } };
 }
 export async function oidcLoginHandler(ctx: ParsedRequest, deps: AppDependencies): Promise<RouteResult> {
   const body = (ctx.body ?? {}) as OidcBody;
