@@ -101,6 +101,129 @@ test('Google OIDC -> real session cookie issued', async () => {
   }
 });
 
+test('OIDC account ID stays stable when verified email changes for the same issuer and subject', async () => {
+  const { server, baseUrl, deps } = await startServer();
+  const tokenIdentities = {
+    'stable-subject-before': {
+      issuer: 'https://accounts.google.com', subject: 'stable-google-subject-101',
+      email: 'stable-before@example.com', emailVerified: true,
+    },
+    'stable-subject-after': {
+      issuer: 'https://accounts.google.com', subject: 'stable-google-subject-101',
+      email: 'stable-after@example.com', emailVerified: true,
+    },
+  };
+  deps.oidcVerifier = {
+    verify: async (token) => {
+      const identity = tokenIdentities[token];
+      if (!identity) throw new Error('unknown test identity');
+      return identity;
+    },
+  };
+
+  try {
+    const firstResponse = await fetch(`${baseUrl}/auth/oidc/google`, {
+      method: 'POST', body: JSON.stringify({ idToken: 'stable-subject-before' }),
+    });
+    assert.equal(firstResponse.status, 200);
+    const first = await firstResponse.json();
+    const firstUser = await deps.userStore.getById(first.userId);
+    assert.equal(firstUser.email, 'stable-before@example.com');
+
+    const secondResponse = await fetch(`${baseUrl}/auth/oidc/google`, {
+      method: 'POST', body: JSON.stringify({ idToken: 'stable-subject-after' }),
+    });
+    assert.equal(secondResponse.status, 200);
+    const second = await secondResponse.json();
+
+    assert.equal(second.userId, first.userId, 'same issuer+subject must resolve to the same MarketNiora account');
+    const currentByEmail = await deps.userStore.getByEmail('stable-after@example.com');
+    assert.equal(currentByEmail.userId, first.userId);
+    assert.equal(await deps.userStore.getByEmail('stable-before@example.com'), undefined);
+    const currentBySubject = await deps.userStore.getByOidcIdentity('https://accounts.google.com', 'stable-google-subject-101');
+    assert.equal(currentBySubject.userId, first.userId);
+    assert.equal(currentBySubject.email, 'stable-after@example.com');
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('OIDC rejects a different subject trying to reuse an existing verified email', async () => {
+  const { server, baseUrl, deps } = await startServer();
+  const tokenIdentities = {
+    'email-collision-owner': {
+      issuer: 'https://accounts.google.com', subject: 'google-subject-201',
+      email: 'identity-collision@example.com', emailVerified: true,
+    },
+    'email-collision-attacker': {
+      issuer: 'https://accounts.google.com', subject: 'google-subject-202',
+      email: 'identity-collision@example.com', emailVerified: true,
+    },
+  };
+  deps.oidcVerifier = {
+    verify: async (token) => {
+      const identity = tokenIdentities[token];
+      if (!identity) throw new Error('unknown test identity');
+      return identity;
+    },
+  };
+
+  try {
+    const firstResponse = await fetch(`${baseUrl}/auth/oidc/google`, {
+      method: 'POST', body: JSON.stringify({ idToken: 'email-collision-owner' }),
+    });
+    assert.equal(firstResponse.status, 200);
+    const first = await firstResponse.json();
+
+    const collisionResponse = await fetch(`${baseUrl}/auth/oidc/google`, {
+      method: 'POST', body: JSON.stringify({ idToken: 'email-collision-attacker' }),
+    });
+    assert.equal(collisionResponse.status, 401);
+    assert.equal((await collisionResponse.json()).error, 'identity binding mismatch');
+    assert.equal((await deps.userStore.getByEmail('identity-collision@example.com')).userId, first.userId);
+    assert.equal(await deps.userStore.getByOidcIdentity('https://accounts.google.com', 'google-subject-202'), undefined);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('OIDC Owner whose email leaves the allowlist is blocked, not downgraded to USER', async () => {
+  const { server, baseUrl, deps } = await startServer();
+  const ownerEmail = 'owner-stable-old@example.com';
+  const changedEmail = 'owner-stable-new@example.com';
+  const ownerSubject = 'owner-stable-google-subject';
+  await deps.userStore.create({
+    userId: 'owner-stable-subject-regression',
+    email: ownerEmail,
+    oidcIssuer: 'https://accounts.google.com',
+    oidcSubject: ownerSubject,
+    role: 'OWNER',
+    emailVerified: true,
+  });
+  process.env.OWNER_EMAILS = Array.from(new Set(
+    (process.env.OWNER_EMAILS ?? '').split(',').map((value) => value.trim()).filter(Boolean).filter((value) => value !== ownerEmail && value !== changedEmail),
+  )).join(',');
+  deps.oidcVerifier = {
+    verify: async () => ({
+      issuer: 'https://accounts.google.com', subject: ownerSubject,
+      email: changedEmail, emailVerified: true,
+    }),
+  };
+
+  try {
+    const response = await fetch(`${baseUrl}/auth/oidc/google`, {
+      method: 'POST', body: JSON.stringify({ idToken: 'owner-email-change' }),
+    });
+    assert.equal(response.status, 403);
+    assert.equal((await response.json()).error, 'owner email is not in the configured allowlist');
+    const storedOwner = await deps.userStore.getById('owner-stable-subject-regression');
+    assert.equal(storedOwner.role, 'OWNER');
+    assert.equal(storedOwner.email, ownerEmail, 'owner email is not silently changed before allowlist review');
+  } finally {
+    await stopServer(server);
+  }
+});
+
 test('OIDC login enforces per-socket-IP rate limits and ignores spoofed X-Forwarded-For', async () => {
   const { server, baseUrl } = await startServer();
   try {
