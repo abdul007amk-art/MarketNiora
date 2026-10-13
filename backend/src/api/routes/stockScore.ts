@@ -4,7 +4,7 @@
  *
  * Thin HTTP wrapper around the LOCKED stockScoreEngine.ts — no formula
  * logic here. The API boundary validates untrusted JSON before the engine.
- * Public (no auth required), same as rotation.
+ * It is PREVIEW-only and does not publish official score snapshots.
  */
 
 import type { ParsedRequest, RouteResult } from '../router.ts';
