@@ -4,7 +4,7 @@ CREATE SCHEMA IF NOT EXISTS governance_layer;
 CREATE SCHEMA IF NOT EXISTS staging_enrichment;
 CREATE SCHEMA IF NOT EXISTS production_layer;
 
-DO $
+DO $roles$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'anon') THEN
     CREATE ROLE anon NOLOGIN;
@@ -16,7 +16,7 @@ BEGIN
     CREATE ROLE service_role NOLOGIN;
   END IF;
 END
-$;
+$roles$;
 
 CREATE TABLE IF NOT EXISTS governance_layer.master_import_batch (
   batch_id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
