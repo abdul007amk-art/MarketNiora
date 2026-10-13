@@ -268,7 +268,7 @@ test('POST /rotation/calculate: real HTTP round trip through the LOCKED engine',
   try {
     const res = await fetch(`${baseUrl}/rotation/calculate`, {
       method: 'POST',
-      body: JSON.stringify({ horizon: '1D', aggregationLevel: 'STOCK_GROUP', observations: [{ stockId: 'a', return_: 0.05 }, { stockId: 'b', return_: 0.03 }], confidence: 100 }),
+      body: JSON.stringify({ mode: 'PREVIEW', horizon: '1D', aggregationLevel: 'STOCK_GROUP', observations: [{ stockId: 'a', return_: 0.05 }, { stockId: 'b', return_: 0.03 }], confidence: 100 }),
     });
     assert.equal(res.status, 200);
     const body = await res.json();
@@ -277,6 +277,12 @@ test('POST /rotation/calculate: real HTTP round trip through the LOCKED engine',
     assert.equal(body.aggregationLevel, 'STOCK_GROUP');
     assert.equal(body.confidenceThreshold, 30);
     assert.equal(body.rollupEligible, true);
+    assert.equal(body.finalScore, null);
+    assert.equal(typeof body.previewScore, 'number');
+    assert.equal(body.calculationMode, 'PREVIEW');
+    assert.equal(body.outputStatus, 'PREVIEW_ONLY');
+    assert.equal(body.officialRotationScoreAvailable, false);
+    assert.equal(body.officialScoreStatus, 'NOT_CONFIGURED');
   } finally {
     await stopServer(server);
   }
@@ -286,7 +292,7 @@ test('POST /rotation/calculate: real HTTP round trip through the LOCKED engine',
 test('POST /rotation/calculate: higher-level roll-up is blocked below 60% confidence', async () => {
   const { server, baseUrl } = await startServer();
   try {
-    const payload = { horizon: '1D', aggregationLevel: 'SUB_SECTOR', observations: [{ stockId: 'a', return_: 0.05 }], confidence: 59 };
+    const payload = { mode: 'PREVIEW', horizon: '1D', aggregationLevel: 'SUB_SECTOR', observations: [{ stockId: 'a', return_: 0.05 }], confidence: 59 };
     const res = await fetch(`${baseUrl}/rotation/calculate`, { method: 'POST', body: JSON.stringify(payload) });
     assert.equal(res.status, 200);
     const body = await res.json();
@@ -294,7 +300,9 @@ test('POST /rotation/calculate: higher-level roll-up is blocked below 60% confid
     assert.equal(body.confidenceThreshold, 60);
     assert.equal(body.rollupEligible, false);
     assert.equal(body.includedByConfidence, false);
-    assert.equal(body.finalScore, null, 'sub-sector score must not publish below the approved 60% roll-up gate');
+    assert.equal(body.finalScore, null, 'official sub-sector score is never exposed by the preview endpoint');
+    assert.equal(body.previewScore, null, 'a below-gate result receives no preview score');
+    assert.equal(body.outputStatus, 'PREVIEW_ONLY');
   } finally {
     await stopServer(server);
   }
@@ -303,14 +311,18 @@ test('POST /rotation/calculate: higher-level roll-up is blocked below 60% confid
 test('POST /rotation/calculate: higher-level roll-up is eligible at exactly 60%', async () => {
   const { server, baseUrl } = await startServer();
   try {
-    const payload = { horizon: '1D', aggregationLevel: 'SECTOR', observations: [{ stockId: 'a', return_: 0.05 }], confidence: 60 };
+    const payload = { mode: 'PREVIEW', horizon: '1D', aggregationLevel: 'SECTOR', observations: [{ stockId: 'a', return_: 0.05 }], confidence: 60 };
     const res = await fetch(`${baseUrl}/rotation/calculate`, { method: 'POST', body: JSON.stringify(payload) });
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(body.confidenceThreshold, 60);
     assert.equal(body.rollupEligible, true);
-    assert.equal(body.includedByConfidence, true);
-    assert.notEqual(body.finalScore, null);
+    assert.equal(body.finalScore, null);
+    assert.equal(typeof body.previewScore, 'number');
+    assert.equal(body.calculationMode, 'PREVIEW');
+    assert.equal(body.outputStatus, 'PREVIEW_ONLY');
+    assert.equal(body.officialRotationScoreAvailable, false);
+    assert.equal(body.officialScoreStatus, 'NOT_CONFIGURED');
   } finally {
     await stopServer(server);
   }
@@ -323,14 +335,16 @@ test('POST /rotation/calculate: approved D2 FLAT state returns 40 with default w
     const observations = Array.from({ length: 20 }, (_, i) => ({ stockId: `flat-${i}`, return_: 0 }));
     const res = await fetch(`${baseUrl}/rotation/calculate`, {
       method: 'POST',
-      body: JSON.stringify({ horizon: '1D', aggregationLevel: 'STOCK_GROUP', observations, confidence: 30 }),
+      body: JSON.stringify({ mode: 'PREVIEW', horizon: '1D', aggregationLevel: 'STOCK_GROUP', observations, confidence: 30 }),
     });
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(body.formulaVersion, 'ROTATION-1.2');
     assert.equal(body.rotationState, 'FLAT');
     assert.equal(body.confidenceThreshold, 30);
-    assert.equal(body.finalScore, 40);
+    assert.equal(body.finalScore, null);
+    assert.equal(body.previewScore, 40);
+    assert.equal(body.officialRotationScoreAvailable, false);
   } finally {
     await stopServer(server);
   }
@@ -349,7 +363,7 @@ test('POST /rotation/calculate: missing, empty, duplicate, or non-finite observa
     for (const observations of cases) {
       const res = await fetch(`${baseUrl}/rotation/calculate`, {
         method: 'POST',
-        body: JSON.stringify({ horizon: '1D', aggregationLevel: 'STOCK_GROUP', observations, confidence: 100 }),
+        body: JSON.stringify({ mode: 'PREVIEW', horizon: '1D', aggregationLevel: 'STOCK_GROUP', observations, confidence: 100 }),
       });
       assert.equal(res.status, 400);
       assert.equal((await res.json()).error, 'invalid rotation calculation input');
@@ -363,7 +377,7 @@ test('POST /rotation/calculate: missing or unknown aggregation level fails close
   const { server, baseUrl } = await startServer();
   try {
     for (const aggregationLevel of [undefined, 'UNKNOWN', 'STOCK']) {
-      const payload = { horizon: '1D', aggregationLevel, observations: [{ stockId: 'a', return_: 0.05 }], confidence: 100 };
+      const payload = { mode: 'PREVIEW', horizon: '1D', aggregationLevel, observations: [{ stockId: 'a', return_: 0.05 }], confidence: 100 };
       const res = await fetch(`${baseUrl}/rotation/calculate`, { method: 'POST', body: JSON.stringify(payload) });
       assert.equal(res.status, 400);
       assert.equal((await res.json()).error, 'invalid rotation calculation input');
@@ -373,10 +387,26 @@ test('POST /rotation/calculate: missing or unknown aggregation level fails close
   }
 });
 
+test('POST /rotation/calculate: caller must explicitly request PREVIEW mode', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const valid = { horizon: '1D', aggregationLevel: 'STOCK_GROUP', observations: [{ stockId: 'a', return_: 0.05 }], confidence: 100 };
+    for (const mode of [undefined, 'OFFICIAL', 'LIVE']) {
+      const payload = { ...valid, mode };
+      if (mode === undefined) delete payload.mode;
+      const res = await fetch(`${baseUrl}/rotation/calculate`, { method: 'POST', body: JSON.stringify(payload) });
+      assert.equal(res.status, 400);
+      assert.match((await res.json()).error, /preview mode required/);
+    }
+  } finally {
+    await stopServer(server);
+  }
+});
+
 test('POST /rotation/calculate: malformed input -> sanitized 400, not a raw stack trace', async () => {
   const { server, baseUrl } = await startServer();
   try {
-    const res = await fetch(`${baseUrl}/rotation/calculate`, { method: 'POST', body: JSON.stringify({ horizon: 'NOT_REAL' }) });
+    const res = await fetch(`${baseUrl}/rotation/calculate`, { method: 'POST', body: JSON.stringify({ mode: 'PREVIEW', horizon: 'NOT_REAL' }) });
     assert.equal(res.status, 400);
     const body = await res.json();
     assert.equal(body.error, 'invalid rotation calculation input');
@@ -389,7 +419,7 @@ test('POST /stock-score/calculate: malformed or out-of-range score inputs fail c
   const { server, baseUrl } = await startServer();
   try {
     const components = { momentum: 50, earningsMomentum: 50, businessQuality: 50, relativeStrength: 50, valuation: 50, trendQuality: 50, volumeConfirmation: 50, growthVisibility: 50 };
-    const base = { components, riskPenalty: 0, catalyst: 0, isSuspendedOrDelisted: false };
+    const base = { mode: 'PREVIEW', components, riskPenalty: 0, catalyst: 0, isSuspendedOrDelisted: false };
     const missingComponent = { ...components };
     delete missingComponent.growthVisibility;
     const noObservedComponents = { momentum: null, earningsMomentum: null, businessQuality: null, relativeStrength: null, valuation: null, trendQuality: null, volumeConfirmation: null, growthVisibility: null };
@@ -405,7 +435,7 @@ test('POST /stock-score/calculate: malformed or out-of-range score inputs fail c
       { ...base, riskPenalty: null },
       { ...base, catalyst: '4' },
       { ...base, isSuspendedOrDelisted: 'false' },
-      { components, riskPenalty: 0, catalyst: 0 },
+      { mode: 'PREVIEW', components, riskPenalty: 0, catalyst: 0 }, 
     ];
 
     for (const payload of cases) {
@@ -421,18 +451,39 @@ test('POST /stock-score/calculate: malformed or out-of-range score inputs fail c
   }
 });
 
+test('POST /stock-score/calculate: caller must explicitly request PREVIEW mode', async () => {
+  const { server, baseUrl } = await startServer();
+  try {
+    const components = { momentum: 50, earningsMomentum: 50, businessQuality: 50, relativeStrength: 50, valuation: 50, trendQuality: 50, volumeConfirmation: 50, growthVisibility: 50 };
+    for (const mode of [undefined, 'OFFICIAL', 'LIVE']) {
+      const payload = { mode, components, riskPenalty: 0, catalyst: 0, isSuspendedOrDelisted: false };
+      if (mode === undefined) delete payload.mode;
+      const res = await fetch(`${baseUrl}/stock-score/calculate`, { method: 'POST', body: JSON.stringify(payload) });
+      assert.equal(res.status, 400);
+      assert.match((await res.json()).error, /preview mode required/);
+    }
+  } finally {
+    await stopServer(server);
+  }
+});
+
 test('POST /stock-score/calculate: valid partial inputs remain supported by the locked engine', async () => {
   const { server, baseUrl } = await startServer();
   try {
     const components = { momentum: 50, earningsMomentum: null, businessQuality: null, relativeStrength: null, valuation: null, trendQuality: null, volumeConfirmation: null, growthVisibility: null };
     const res = await fetch(`${baseUrl}/stock-score/calculate`, {
       method: 'POST',
-      body: JSON.stringify({ components, riskPenalty: 0, catalyst: 0, isSuspendedOrDelisted: false }),
+      body: JSON.stringify({ mode: 'PREVIEW', components, riskPenalty: 0, catalyst: 0, isSuspendedOrDelisted: false }),
     });
     assert.equal(res.status, 200);
     const body = await res.json();
     assert.equal(body.formulaVersion, 'SS-1.0-R3');
-    assert.equal(typeof body.finalScore, 'number');
+    assert.equal(body.finalScore, null);
+    assert.equal(typeof body.previewScore, 'number');
+    assert.equal(body.calculationMode, 'PREVIEW');
+    assert.equal(body.outputStatus, 'PREVIEW_ONLY');
+    assert.equal(body.officialStockScoreAvailable, false);
+    assert.equal(body.officialScoreStatus, 'NOT_CONFIGURED');
   } finally {
     await stopServer(server);
   }
@@ -442,10 +493,10 @@ test('POST /stock-score/calculate: real HTTP round trip, catalyst guard still en
   const { server, baseUrl } = await startServer();
   try {
     const components = { momentum: 50, earningsMomentum: 50, businessQuality: 50, relativeStrength: 50, valuation: 50, trendQuality: 50, volumeConfirmation: 50, growthVisibility: 50 };
-    const goodRes = await fetch(`${baseUrl}/stock-score/calculate`, { method: 'POST', body: JSON.stringify({ components, riskPenalty: 0, catalyst: 4, isSuspendedOrDelisted: false }) });
+    const goodRes = await fetch(`${baseUrl}/stock-score/calculate`, { method: 'POST', body: JSON.stringify({ mode: 'PREVIEW', components, riskPenalty: 0, catalyst: 4, isSuspendedOrDelisted: false }) });
     assert.equal(goodRes.status, 200);
 
-    const badRes = await fetch(`${baseUrl}/stock-score/calculate`, { method: 'POST', body: JSON.stringify({ components, riskPenalty: 0, catalyst: 6, isSuspendedOrDelisted: false }) });
+    const badRes = await fetch(`${baseUrl}/stock-score/calculate`, { method: 'POST', body: JSON.stringify({ mode: 'PREVIEW', components, riskPenalty: 0, catalyst: 6, isSuspendedOrDelisted: false }) });
     assert.equal(badRes.status, 400, 'Finding 9-A guard must still reject catalyst=6 even reached via real HTTP');
   } finally {
     await stopServer(server);
