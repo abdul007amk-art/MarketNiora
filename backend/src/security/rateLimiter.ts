@@ -46,6 +46,14 @@ export class FixedWindowRateLimiter {
     this.store = store ?? new InMemoryStore();
   }
 
+  /** Seconds until the current fixed window expires (0 if no active window). */
+  retryAfterSeconds(key: string, now: number = Date.now()): number {
+    const state = this.store.get(key);
+    if (!state) return 0;
+    const remainingMs = this.windowMs - (now - state.windowStart);
+    return remainingMs <= 0 ? 0 : Math.ceil(remainingMs / 1000);
+  }
+
   /** Returns true if the request is allowed, false if it should be rejected (429). */
   check(key: string, now: number = Date.now()): boolean {
     const state = this.store.get(key);
