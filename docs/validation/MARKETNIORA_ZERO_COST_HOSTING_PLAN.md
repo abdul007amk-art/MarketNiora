@@ -39,8 +39,16 @@ Official docs:
 - Workers limits: https://developers.cloudflare.com/workers/platform/limits/
 - D1 pricing / limits: https://developers.cloudflare.com/d1/platform/pricing/
 
-### Supabase — inspect the existing project before any use
-The account lists an inactive project named MarketNiora and an active non-production clone. A table/connection inspection timed out during the current check, so their runtime/database readiness is not certified here. Do not create another database, apply migrations, enable paid services or write to either database as a workaround. First restore read-only health/inspection, then complete the documented NON_PROD auth CRUD integration test. Production must remain separate from this exercise.
+### Supabase — non-production read-only audit (2026-10-13/14)
+- Production project `MarketNiora` is **INACTIVE**. It was not modified.
+- `MarketNiora-NP-Clone-20260920` is **ACTIVE_HEALTHY**. Read-only SQL connectivity succeeded and 14 applied migrations were reported.
+- Public auth/session/MFA tables have RLS enabled and zero rows. This proves schema presence, not that the TypeScript auth runtime has passed real CRUD.
+- `staging_enrichment.master_4187_staging` contains **4,187 rows**. Its governance import batch is `STAGED`; `owner_authorized_at` is null.
+- Canonical `production_layer.canonical_stock`, `raw_stock_observation`, `rotation_score`, `stock_score`, `stock_classification`, `stock_theme_membership`, `value_chain_evidence`, and `shariah_status` are all currently **0 rows** in the inspected non-production clone.
+- `governance_layer.provider_registry` and `source_health` are **0 rows**; there are no Supabase Edge Functions in that clone.
+- The exact DB-backed auth integration script has **not** been run because its approved non-production `DATABASE_URL` and local-dev KMS key are not available in the execution environment. Runtime auth CRUD remains **PENDING**, not PASS.
+
+Do not import staged rows into canonical tables without the required Owner authorization and the documented validation/reconciliation gate. Do not create another database, apply migrations, enable paid services or write to production as a workaround. Production and non-production remain separate.
 
 Official docs: https://supabase.com/pricing
 
