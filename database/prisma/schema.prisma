@@ -17,6 +17,7 @@ enum IdentityRole {
   ADMIN
   OWNER
 
+  @@map("identity_role")
   @@schema("public")
 }
 
