@@ -38,15 +38,73 @@ export async function oidcLoginHandler(ctx: ParsedRequest, deps: AppDependencies
   let identity;
   try { identity = await deps.oidcVerifier.verify(body.idToken); } catch { return { status: 401, body: { error: 'invalid Google identity token' } }; }
   if (!identity.emailVerified) return { status: 401, body: { error: 'Google account email is not verified' } };
-  const isOwner = ownerEmails().has(identity.email);
-  let user = await deps.userStore.getByEmail(identity.email);
+  const email = identity.email.trim().toLowerCase();
+  const isOwner = ownerEmails().has(email);
+
+  // The stable identity key is the verified issuer + subject, not email.
+  // Email remains a uniqueness/collision check; it must never rebind an
+  // existing account to a different Google subject.
+  let user = await deps.userStore.getByOidcIdentity(identity.issuer, identity.subject);
+  const emailUser = await deps.userStore.getByEmail(email);
+
+  if (user && emailUser && emailUser.userId !== user.userId) {
+    return { status: 401, body: { error: 'identity binding mismatch' } };
+  }
+
+  if (!user && emailUser) {
+    user = emailUser;
+  }
+
+  if (user && (user.oidcIssuer !== identity.issuer || user.oidcSubject !== identity.subject)) {
+    return { status: 401, body: { error: 'identity binding mismatch' } };
+  }
+
+  // Do not silently turn an existing Owner into a normal user when the
+  // verified Google email is no longer on the explicit Owner allowlist.
+  if (user?.role === 'OWNER' && !isOwner) {
+    return { status: 403, body: { error: 'owner email is not in the configured allowlist' } };
+  }
+
   if (!user) {
     const userId = randomUUID();
-    await deps.userStore.create({ userId, email: identity.email, oidcIssuer: identity.issuer, oidcSubject: identity.subject, role: isOwner ? 'OWNER' : 'USER', emailVerified: true });
-    user = await deps.userStore.getById(userId);
+    try {
+      await deps.userStore.create({
+        userId,
+        email,
+        oidcIssuer: identity.issuer,
+        oidcSubject: identity.subject,
+        role: isOwner ? 'OWNER' : 'USER',
+        emailVerified: true,
+      });
+    } catch (error) {
+      // Concurrent first logins for the same stable subject may race on the
+      // database unique constraint. Re-read only a matching subject/email;
+      // never choose an unrelated user.
+      if (!(error instanceof Error) || error.message !== 'identity already exists') throw error;
+    }
+    user = await deps.userStore.getByOidcIdentity(identity.issuer, identity.subject);
+    const racedEmailUser = await deps.userStore.getByEmail(email);
+    if (!user && racedEmailUser) user = racedEmailUser;
   }
+
   if (!user) return { status: 500, body: { error: 'identity provisioning failed' } };
-  if (user.oidcIssuer !== identity.issuer || user.oidcSubject !== identity.subject) return { status: 401, body: { error: 'identity binding mismatch' } };
+  if (user.oidcIssuer !== identity.issuer || user.oidcSubject !== identity.subject) {
+    return { status: 401, body: { error: 'identity binding mismatch' } };
+  }
+
+  if (user.email.toLowerCase() !== email) {
+    try {
+      await deps.userStore.updateVerifiedEmail(user.userId, email);
+    } catch (error) {
+      if (error instanceof Error && error.message === 'identity already exists') {
+        return { status: 401, body: { error: 'identity binding mismatch' } };
+      }
+      throw error;
+    }
+    user = await deps.userStore.getById(user.userId);
+    if (!user) return { status: 500, body: { error: 'identity provisioning failed' } };
+  }
+
   if (isOwner) {
     if (user.role !== 'OWNER') { await deps.userStore.setRole(user.userId, 'OWNER'); user = await deps.userStore.getById(user.userId); }
     if (!user) return { status: 500, body: { error: 'owner identity resolution failed' } };
