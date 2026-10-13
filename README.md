@@ -46,7 +46,7 @@ Do not change locked business rules, hierarchy, scoring formulas or governance c
 
 Aggregation remains **raw stock observations → Stock Group Rotation → Sub-sector Rotation → Sector Rotation**. The locked score weights are median return 40%, participation 30%, equal-weighted capped return 20%, and IQR consistency 10%. Return caps remain 1D 8%, 1W 12%, 1M 20%, 3M 30%; `CONF_MIN=30`, `N_REF=20`. External-index breadth has zero role.
 
-Per ODR-2026-002 C3, `CONF_MIN=30` is the Stock Group inclusion/publication gate and `60%` is the Sub-sector/Sector roll-up eligibility gate. Confidence is an inclusion gate, never a Rotation Score multiplier. `POST /rotation/calculate` requires an explicit `aggregationLevel`.
+Per ODR-2026-002 C3, `CONF_MIN=30` is the Stock Group inclusion/publication gate and `60%` is the Sub-sector/Sector roll-up eligibility gate. Confidence is an inclusion gate, never a Rotation Score multiplier. `POST /rotation/calculate` requires an explicit `aggregationLevel`. ODR-2026-002 C6 also requires `FLAT` state and score 40 when a non-empty validated set has all-zero capped returns under the default weights; empty observations must not be treated as zero.
 
 ### Stock Score SS-1.0-R3
 
