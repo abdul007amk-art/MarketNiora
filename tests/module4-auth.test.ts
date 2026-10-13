@@ -1,5 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const http = require('node:http');
+const { generateKeyPairSync, sign: signJwt } = require('node:crypto');
 const { generateTotpCode, generateTotpSecret, verifyTotpCode } = require('../backend/src/auth/totp.ts');
 const { provisionOwnerTotp, confirmOwnerTotp, beginOwnerMfa, verifyOwnerMfa, InMemoryOwnerTotpStore, InMemoryOwnerMfaChallengeStore } = require('../backend/src/auth/ownerMfa.ts');
 const { GoogleOidcVerifier } = require('../backend/src/auth/oidcVerifier.ts');
@@ -25,6 +27,81 @@ test('Google OIDC verifier rejects malformed and non-RS256 tokens before trustin
   const header=Buffer.from(JSON.stringify({alg:'HS256',kid:'x'})).toString('base64url'); const payload=Buffer.from(JSON.stringify({iss:'https://accounts.google.com',aud:'test-client',sub:'s',email:'a@b.com',email_verified:true,exp:Math.floor(Date.now()/1000)+300,iat:Math.floor(Date.now()/1000)})).toString('base64url');
   await assert.rejects(()=>verifier.verify(header+'.'+payload+'.AA'),/unsupported ID token algorithm/);
 });
+test('Google OIDC verifier rejects untrusted audiences and mismatched azp', async () => {
+  const { publicKey, privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
+  const publicJwk = publicKey.export({ format: 'jwk' });
+  const jwks = {
+    keys: [{
+      ...publicJwk,
+      kid: 'marketniora-test-key',
+      kty: 'RSA',
+      alg: 'RS256',
+      use: 'sig',
+    }],
+  };
+  const jwksServer = http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'public, max-age=300' });
+    res.end(JSON.stringify(jwks));
+  });
+
+  await new Promise((resolve, reject) => {
+    jwksServer.once('error', reject);
+    jwksServer.listen(0, '127.0.0.1', resolve);
+  });
+
+  try {
+    const address = jwksServer.address();
+    const verifier = new GoogleOidcVerifier({
+      clientId: 'test-client',
+      jwksUri: `http://127.0.0.1:${address.port}/jwks`,
+    });
+    const now = Math.floor(Date.now() / 1000);
+    const baseClaims = {
+      iss: 'https://accounts.google.com',
+      aud: 'test-client',
+      azp: 'test-client',
+      sub: 'google-subject-1',
+      email: 'researcher@example.com',
+      email_verified: true,
+      exp: now + 300,
+      iat: now,
+    };
+    const makeToken = (claims) => {
+      const header = Buffer.from(JSON.stringify({ alg: 'RS256', kid: 'marketniora-test-key' })).toString('base64url');
+      const payload = Buffer.from(JSON.stringify(claims)).toString('base64url');
+      const signingInput = `${header}.${payload}`;
+      const signature = signJwt('RSA-SHA256', Buffer.from(signingInput), privateKey).toString('base64url');
+      return `${signingInput}.${signature}`;
+    };
+
+    const validIdentity = await verifier.verify(makeToken(baseClaims));
+    assert.equal(validIdentity.subject, 'google-subject-1');
+    assert.equal(validIdentity.email, 'researcher@example.com');
+
+    await assert.rejects(
+      () => verifier.verify(makeToken({ ...baseClaims, azp: 'another-client' })),
+      /invalid ID token authorized party/,
+    );
+
+    await assert.rejects(
+      () => verifier.verify(makeToken({ ...baseClaims, azp: 123 })),
+      /invalid ID token authorized party/,
+    );
+
+    await assert.rejects(
+      () => verifier.verify(makeToken({ ...baseClaims, aud: ['test-client', 'untrusted-audience'] })),
+      /invalid ID token audience/,
+    );
+
+    await assert.rejects(
+      () => verifier.verify(makeToken({ ...baseClaims, aud: ['test-client', 'untrusted-audience'], azp: 'test-client' })),
+      /invalid ID token audience/,
+    );
+  } finally {
+    await new Promise((resolve, reject) => jwksServer.close((error) => error ? reject(error) : resolve()));
+  }
+});
+
 test('auth route exposes no password signup/login endpoints', () => {
   const fs=require('fs'),route=fs.readFileSync(require.resolve('../backend/src/api/routes/auth.ts'),'utf8');
   assert.equal(route.includes('/auth/signup'),false); assert.equal(route.includes('/auth/login'),false); assert.equal(route.includes('password'),false);
