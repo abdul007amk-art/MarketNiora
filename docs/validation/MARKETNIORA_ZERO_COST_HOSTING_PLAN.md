@@ -46,7 +46,8 @@ Official docs:
 - `staging_enrichment.master_4187_staging` contains **4,187 rows**. Its governance import batch is `STAGED`; `owner_authorized_at` is null.
 - Canonical `production_layer.canonical_stock`, `raw_stock_observation`, `rotation_score`, `stock_score`, `stock_classification`, `stock_theme_membership`, `value_chain_evidence`, and `shariah_status` are all currently **0 rows** in the inspected non-production clone.
 - `governance_layer.provider_registry` and `source_health` are **0 rows**; there are no Supabase Edge Functions in that clone.
-- The exact DB-backed auth integration script has **not** been run because its approved non-production `DATABASE_URL` and local-dev KMS key are not available in the execution environment. Runtime auth CRUD remains **PENDING**, not PASS.
+- The existing DB-backed auth integration script now **passes in CI** on an isolated PostgreSQL 16 database. It verifies user/session/TOTP/MFA CRUD, token/challenge hashing, AES-GCM encryption, revoke and cleanup. That CI result is not the same as running against the approved Supabase clone.
+- Direct runtime CRUD against `MarketNiora-NP-Clone-20260920` remains **PENDING** because the approved clone `DATABASE_URL` and local-dev KMS key are not provisioned to the execution environment. Do not claim the actual clone has passed.
 
 Do not import staged rows into canonical tables without the required Owner authorization and the documented validation/reconciliation gate. Do not create another database, apply migrations, enable paid services or write to production as a workaround. Production and non-production remain separate.
 
