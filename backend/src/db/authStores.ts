@@ -44,7 +44,7 @@ export class PrismaUserStore implements UserStore {
           userId: user.userId,
           oidcIssuer: user.oidcIssuer,
           oidcSubject: user.oidcSubject,
-          email: user.email.toLowerCase(),
+          email: user.email.trim().toLowerCase(),
           emailVerified: user.emailVerified,
           role: user.role,
         },
@@ -59,7 +59,7 @@ export class PrismaUserStore implements UserStore {
 
   async getByEmail(email: string): Promise<StoredUser | undefined> {
     const user = await this.prisma.appUser.findUnique({
-      where: { email: email.toLowerCase() },
+      where: { email: email.trim().toLowerCase() },
     });
     return user ? {
       userId: user.userId,
@@ -69,6 +69,35 @@ export class PrismaUserStore implements UserStore {
       role: toRole(user.role),
       emailVerified: user.emailVerified,
     } : undefined;
+  }
+
+  async getByOidcIdentity(issuer: string, subject: string): Promise<StoredUser | undefined> {
+    const user = await this.prisma.appUser.findUnique({
+      where: { oidcIssuer_oidcSubject: { oidcIssuer: issuer, oidcSubject: subject } },
+    });
+    return user ? {
+      userId: user.userId,
+      email: user.email,
+      oidcIssuer: user.oidcIssuer,
+      oidcSubject: user.oidcSubject,
+      role: toRole(user.role),
+      emailVerified: user.emailVerified,
+    } : undefined;
+  }
+
+  async updateVerifiedEmail(userId: string, email: string): Promise<void> {
+    try {
+      await this.prisma.appUser.update({
+        where: { userId },
+        data: { email: email.trim().toLowerCase(), emailVerified: true },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError) {
+        if (error.code === 'P2002') throw new Error('identity already exists');
+        if (error.code === 'P2023' || error.code === 'P2025') throw new Error('user not found');
+      }
+      throw error;
+    }
   }
 
   async getById(userId: string): Promise<StoredUser | undefined> {

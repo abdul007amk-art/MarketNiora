@@ -66,6 +66,14 @@ The verifier previously checked `exp` and future `iat`, but ignored an optional 
 
 **Source remediation in review:** when `nbf` is present, it is parsed as a finite numeric claim and must not be more than the existing 60-second clock-skew tolerance into the future. Tests cover an expired/past `nbf`, a within-skew timestamp, a future timestamp outside tolerance, and a malformed non-numeric claim using locally signed RSA test tokens.
 
+### MEDIUM — OIDC account lookup depended on email instead of stable subject (source fix + CRUD/HTTP tests)
+
+The login handler previously searched by email first. That could fail to preserve account continuity when Google returned a new verified email for the same stable `(iss, sub)`, while the canonical application schema already defines `@@unique([oidcIssuer, oidcSubject])`.
+
+**Source remediation in review:** user stores now implement `getByOidcIdentity(issuer, subject)`; the handler resolves that stable key first. A verified email can be refreshed on the same account after checking for an existing email collision. If the email is already bound to a different subject, login fails closed with an identity-binding error. Existing OWNER accounts are not silently downgraded to USER if their current email is no longer in the explicit Owner allowlist; they are blocked until the allowlist is intentionally updated.
+
+**Validation added:** API regression tests cover same-subject email change preserving the original user ID, same email with a different subject being rejected, and the Owner allowlist guard. The isolated PostgreSQL auth-store integration test now exercises stable OIDC lookup and verified email change without a schema migration.
+
 ### LOW — JWKS operational hardening
 
 The verifier refreshes JWKS when the cache expires and also refreshes when a requested key ID is absent. Future hardening could add bounded retry/backoff and configuration validation. No specific vulnerability was established from this behavior alone.
