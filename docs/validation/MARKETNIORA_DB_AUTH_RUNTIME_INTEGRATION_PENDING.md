@@ -2,9 +2,13 @@
 
 ## Status
 
-**PENDING — local execution required.**
+**CI_TEST = PASS · actual approved Supabase NON_PROD runtime = PENDING.**
 
-The DB-backed auth repositories are implemented and normal CI validation is passing. Real CRUD against the approved non-production Supabase clone has not yet been executed because the required local database runtime/credentials are not available in the current environment.
+The existing `scripts/integrationTest.ts` now runs in GitHub Actions against an isolated ephemeral PostgreSQL 16 database. CI successfully verified auth-store CRUD, SHA-256 token/challenge hashes, AES-256-GCM TOTP encryption/decryption, session revocation and test-row cleanup.
+
+This is meaningful database-backed integration evidence, but it does **not** mean the same script has run against the approved `MarketNiora-NP-Clone-20260920` Supabase project. That separate runtime check remains pending because the clone's approved `DATABASE_URL` and local-dev KMS key are not provisioned to the local execution environment.
+
+During integration work, CI caught a Prisma/schema type-name mismatch: the generated client expected `public.IdentityRole`, while the existing SQL schema uses `public.identity_role`. The Prisma enum now explicitly maps to `identity_role`; no database migration was needed.
 
 ## Protected completed work
 
