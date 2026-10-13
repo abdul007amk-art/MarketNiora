@@ -10,11 +10,29 @@ import { buildSessionCookieHeaders } from '../sessionCookies.ts';
 interface OidcBody { idToken?: string; }
 interface OwnerMfaBody { challenge?: string; code?: string; }
 function ownerEmails(): Set<string> { return new Set((process.env.OWNER_EMAILS ?? '').split(',').map((e) => e.trim().toLowerCase()).filter(Boolean)); }
+
+function authenticationRateLimit(ctx: ParsedRequest, deps: AppDependencies, scope: 'oidc-login' | 'owner-mfa'): RouteResult | null {
+  const clientIp = typeof ctx.clientIp === 'string' && ctx.clientIp.trim()
+    ? ctx.clientIp.trim()
+    : 'unknown';
+  const key = `auth:${scope}:${clientIp}`;
+
+  if (deps.loginRateLimiter.check(key)) return null;
+
+  const retryAfterSeconds = Math.max(1, deps.loginRateLimiter.retryAfterSeconds(key));
+  return {
+    status: 429,
+    body: { error: 'too many authentication attempts' },
+    headers: { 'Retry-After': String(retryAfterSeconds), 'Cache-Control': 'no-store' },
+  };
+}
 function sessionResponse(session: Awaited<ReturnType<typeof issueSession>>): RouteResult {
   const csrfToken = generateCsrfToken();
   return { status: 200, body: { userId: session.userId, role: session.role, csrfToken }, headers: { 'Set-Cookie': buildSessionCookieHeaders(session.token, csrfToken) } };
 }
 export async function oidcLoginHandler(ctx: ParsedRequest, deps: AppDependencies): Promise<RouteResult> {
+  const limited = authenticationRateLimit(ctx, deps, 'oidc-login');
+  if (limited) return limited;
   const body = (ctx.body ?? {}) as OidcBody;
   if (!body.idToken) return { status: 400, body: { error: 'Google ID token is required' } };
   let identity;
@@ -39,6 +57,8 @@ export async function oidcLoginHandler(ctx: ParsedRequest, deps: AppDependencies
   return sessionResponse(await issueSession(deps.sessionStore, user.userId, 'USER'));
 }
 export async function ownerMfaHandler(ctx: ParsedRequest, deps: AppDependencies): Promise<RouteResult> {
+  const limited = authenticationRateLimit(ctx, deps, 'owner-mfa');
+  if (limited) return limited;
   const body = (ctx.body ?? {}) as OwnerMfaBody;
   if (!body.challenge || !body.code) return { status: 400, body: { error: 'MFA challenge and TOTP code are required' } };
   const result = await verifyOwnerMfa(deps.ownerTotpStore, deps.ownerMfaChallengeStore, body.challenge, body.code);
