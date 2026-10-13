@@ -121,5 +121,11 @@ jobs:
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/009_marketniora.sql
           psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/010_marketniora.sql
 
+      - name: Test trigger function search_path hardening migration
+        run: |
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/security_function_search_path_fixture.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f database/migrations/015_security_function_search_path.sql
+          psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f tests/sql/security_function_search_path_assert.sql
+
       - name: Run DB-backed auth store integration
         run: node --experimental-strip-types scripts/integrationTest.ts
