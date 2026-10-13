@@ -29,3 +29,18 @@ test('auth route exposes no password signup/login endpoints', () => {
   const fs=require('fs'),route=fs.readFileSync(require.resolve('../backend/src/api/routes/auth.ts'),'utf8');
   assert.equal(route.includes('/auth/signup'),false); assert.equal(route.includes('/auth/login'),false); assert.equal(route.includes('password'),false);
 });
+
+
+test('session cookies are Secure in production and retain existing local-development behavior', () => {
+  const { buildSessionCookieHeaders } = require('../backend/src/api/sessionCookies.ts');
+
+  const production = buildSessionCookieHeaders('session123', 'csrf456', 'production');
+  assert.equal(production.length, 2);
+  assert.match(production[0], /^session_token=session123; HttpOnly; Path=\/; SameSite=Strict; Secure$/);
+  assert.match(production[1], /^csrf_token=csrf456; Path=\/; SameSite=Strict; Secure$/);
+  assert.doesNotMatch(production[1], /HttpOnly/); // browser reads CSRF token for double-submit header
+
+  const development = buildSessionCookieHeaders('session123', 'csrf456', 'development');
+  assert.equal(development[0], 'session_token=session123; HttpOnly; Path=/; SameSite=Strict');
+  assert.equal(development[1], 'csrf_token=csrf456; Path=/; SameSite=Strict');
+});
