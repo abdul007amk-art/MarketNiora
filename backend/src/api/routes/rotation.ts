@@ -38,10 +38,14 @@ function isValidObservationSet(value: unknown): value is RotationObservation[] {
 export async function rotationCalculateHandler(ctx: ParsedRequest, _deps: AppDependencies): Promise<RouteResult> {
   const body = (ctx.body ?? {}) as Record<string, unknown>;
 
-  // API-layer input validation — the locked engine itself performs no
-  // horizon/confidence validation (it's a pure calculation function, not
-  // an input-sanitizing boundary), so this route validates BEFORE calling
-  // it rather than touching engine internals.
+  // This route accepts caller-supplied observations only as an explicit
+  // preview. It must never be treated as the source of an official score;
+  // official rotation requires verified canonical observations/snapshots.
+  if (body.mode !== 'PREVIEW') {
+    return { status: 400, body: { error: 'preview mode required; official rotation output is not configured' } };
+  }
+
+  // The locked engine is pure math, not an input-sanitizing boundary.
   if (!VALID_HORIZONS.includes(body.horizon as string) || !isRotationAggregationLevel(body.aggregationLevel)) {
     return { status: 400, body: { error: 'invalid rotation calculation input' } };
   }
@@ -67,10 +71,16 @@ export async function rotationCalculateHandler(ctx: ParsedRequest, _deps: AppDep
     // 40/30/20/10 weights, its mathematical score is 40. This state override
     // belongs to the API orchestration layer; the protected core math file is unchanged.
     const isFlat = body.observations.every((observation) => observation.return_ === 0);
-    const finalScore = eligible ? (isFlat ? 40 : result.finalScore) : null;
+    const previewScore = eligible ? (isFlat ? 40 : result.finalScore) : null;
     return { status: 200, body: {
       ...result,
-      finalScore,
+      // No official final score is exposed by this client-input endpoint.
+      finalScore: null,
+      previewScore,
+      calculationMode: 'PREVIEW',
+      outputStatus: 'PREVIEW_ONLY',
+      officialRotationScoreAvailable: false,
+      officialScoreStatus: 'NOT_CONFIGURED',
       rotationState: isFlat ? 'FLAT' : null,
       includedByConfidence: eligible,
       aggregationLevel,
