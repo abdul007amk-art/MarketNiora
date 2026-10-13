@@ -12,7 +12,8 @@
 - The MiniUp preview currently hosts six research datasets, each with a 4,187-row source where applicable. The published UI queries those datasets in-browser with DuckDB-Wasm.
 - The browser preview is not a production backend. Account login, OIDC session enforcement, owner Google + mandatory TOTP, live market data, canonical observations, and official score outputs are not connected to this public preview.
 - Market-data provider D-001 remains OPEN / NOT_SELECTED. Do not advertise the site as a live-data terminal.
-- The Stock Score and Rotation modules must not publish official calculated scores until the unresolved formula / approval gates are cleared.
+- Rotation v1.2 and Stock Score SS-1.0-R3 are OWNER_APPROVED + LOCKED under Blueprint v1.1 and ODR-2026-002. However, this browser-only public preview still must not display official scores because verified market observations/features, the production API path and canonical score snapshots are not connected here.
+- Theme Score and Fundamental Score remain NOT_DEFINED until separately approved; keep those outputs disabled.
 
 ## 2. Free does not mean unlimited
 
@@ -55,11 +56,12 @@ Official docs: https://supabase.com/pricing
 
 ## 4. Locked rules — cannot be weakened to fit free limits
 
-- Rotation aggregation: stock observations → Stock Group → Sub-sector → Sector. External Nifty 50 / NSE / BSE breadth has ZERO ROLE.
-- Rotation v1.2 weights: median return 40%, participation 30%, equal-weighted capped return 20%, IQR consistency 10%. Caps: 1D ±8%, 1W ±12%, 1M ±20%, 3M ±30%; CONF_MIN=30; N_REF=20.
-- FLAT = 40 remains REVIEW/CONFLICT until the Owner resolves its meaning.
-- Stock Score SS-1.0-R3 weights stay documented, but official score/rank/rating outputs remain off until the approval conflict is resolved.
-- Theme hierarchy vs Business/Value Chain separation remains REVIEW/CONFLICT pending Owner decision; do not silently blend the models.
+- Market Classification hierarchy: Sector → Sub-sector → Stock. Master Stock Group is a separate registry, but Stock Group remains a Rotation aggregation level. Rotation aggregation: raw stock observations → Stock Group Rotation → Sub-sector Rotation → Sector Rotation.
+- External Nifty 50 / NSE / BSE breadth has ZERO ROLE in Rotation.
+- Rotation v1.2 weights: median return 40%, participation 30%, equal-weighted capped return 20%, IQR consistency 10%. Caps: 1D ±8%, 1W ±12%, 1M ±20%, 3M ±30%. CONF_MIN=30 is the Stock Group inclusion/publication gate; 60% is the higher-level aggregation/roll-up eligibility gate; N_REF=20. Confidence is a gate and never a score multiplier.
+- D2 FLAT is OWNER_APPROVED by ODR-2026-002 C6: when all valid capped returns are zero, state = FLAT; default 40/30/20/10 weights yield score 40. With valid custom weights, the normal weighted formula applies; do not force a score of 40.
+- Stock Score SS-1.0-R3 is OWNER_APPROVED + LOCKED. Official score/rank/rating outputs remain off in the public browser preview until verified features, API integration and canonical score snapshots are connected and tested.
+- Theme hierarchy is OWNER_APPROVED by ODR-2026-002 C2: Theme → Sub-theme → Industry → Stock. Company is not a Theme level. Business / Value Chain stays separate inside Stock 360°. Current hosted theme data does not contain a separately verified Sub-theme field, so do not infer one.
 - UNKNOWN is never PASS. Missing database/source data is not a real zero.
 - Canonical MASTER_4187 seed is immutable. Searches and UI filters must not modify it.
 - Exactly five genuinely new, unique stocks per research batch, in original master order.
@@ -69,15 +71,15 @@ Official docs: https://supabase.com/pricing
 
 ## 5. Release checklist
 
-- [ ] Resolve FLAT = 40 in an owner-approved decision record.
-- [ ] Resolve Theme / Value Chain hierarchy conflict in an owner-approved decision record.
-- [ ] Approve the Stock Score formula specification and edge cases.
+- [ ] Verify the required regression cases for approved D2 FLAT: default weights and valid custom weights; do not change the locked formula.
+- [ ] Preserve Theme → Sub-theme → Industry → Stock and verify that missing Sub-theme data is not fabricated; keep Business / Value Chain independent.
+- [ ] Verify Stock Score implementation, missing-input redistribution, bounds and edge cases against SS-1.0-R3; do not alter the approved formula.
 - [ ] Verify existing DB and NON_PROD auth integration without production writes.
 - [ ] Reconcile master rows, symbols and quarantined rows; preserve the immutable seed order.
 - [ ] Verify source provenance, freshness, missing-value handling, conflict resolution, backup and restore.
 - [ ] Select and approve provider, instrument mapping and market-data usage rights.
 - [ ] Wire verified observations to feature calculation and the locked hierarchical Rotation Engine.
-- [ ] Wire verified features to Stock Score only after approval.
+- [ ] Wire verified features to the OWNER_APPROVED + LOCKED Stock Score API only after provenance, completeness and missing-input handling are validated.
 - [ ] Verify OIDC and Owner Google + TOTP against the running server, not a front-end mock.
 - [ ] Run unit, API, security, integration, regression and production smoke tests.
 - [ ] Verify the real deployment URL, error monitoring and rollback.
