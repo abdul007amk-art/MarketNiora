@@ -206,7 +206,7 @@ export class Dars12Engine {
       mark('EVIDENCE_REFRESH','FAILED'); fail('evidence refresh failed');
       this.store.restore(snapshot);
       for(const s of DARS12_STAGES.slice(11))mark(s,'SKIPPED');
-      return this.out(runId,events,this.store.currentEvidence(input.runKnowledgeTime),null,false,duplicates,'BLOCKED',false,false,errors);
+      return this.out(runId,events,inScope(this.store.currentEvidence(input.runKnowledgeTime)),null,false,duplicates,'BLOCKED',false,false,errors);
     }
     mark('EVIDENCE_REFRESH','SUCCEEDED');
 
