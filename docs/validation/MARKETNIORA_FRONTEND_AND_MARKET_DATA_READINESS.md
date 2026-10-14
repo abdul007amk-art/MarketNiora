@@ -11,8 +11,9 @@
 - `GET /market-data/provider-health` reports whether a provider is configured and healthy.
 - `GET /market-data/quote/:symbol` returns a source- and timestamp-aware quote response.
 - Both routes are wired to a fail-closed `NullMarketDataProvider` until an approved provider is explicitly integrated.
-- Read-only canonical workspace APIs now expose database counts, bounded stock search, approved Rotation snapshot reads and verified Theme memberships through `GET /workspace/summary`, `/workspace/stocks`, `/workspace/rotation` and `/workspace/themes`.
-- The dashboard loads those API responses in its overview, Stock Explorer, Rotation and Theme Explorer views. Missing database wiring returns `NOT_CONFIGURED`; empty canonical data remains `NOT_LOADED` / `NO_VERIFIED_SNAPSHOTS` and does not fall back to static demo results.
+- Read-only canonical workspace APIs expose database counts, bounded stock search, approved Rotation snapshot reads, verified Theme memberships, canonical company detail, verified Value Chain evidence, verified fundamental-tagged DARS evidence and verified Research evidence.
+- Endpoint paths: `/workspace/summary`, `/workspace/stocks`, `/workspace/rotation`, `/workspace/themes`, `/workspace/company/:symbol`, `/workspace/value-chain/:symbol`, `/workspace/fundamentals/:symbol`, `/workspace/research/:symbol`.
+- The dashboard loads these API responses in the Overview, Stock Explorer, Company Detail, Rotation, Theme Explorer, Value Chain, Fundamentals and Research & Evidence views. Symbol collisions return an exchange-selection response instead of guessing. Missing database wiring returns `NOT_CONFIGURED`; unresolved identities return `NOT_FOUND` / `AMBIGUOUS`, and absent verified evidence remains explicitly unavailable.
 - A runnable `backend/src/api/main.ts` entrypoint and `npm start` script are provided for non-production work.
 - A production startup gate refuses to start while persistent production authentication/KMS, durable market-data integration and release validation have not been approved and verified.
 
@@ -41,6 +42,10 @@ The API tests cover:
 
 - no-provider health truth;
 - no-provider quote truth;
+- workspace routes fail closed when the canonical read store is absent;
+- Company Detail distinguishes missing from ambiguous identities;
+- Value Chain returns only verified evidence records;
+- Fundamental and Research endpoints preserve source/effective/knowledge timestamps;
 - symbol-path validation before provider access;
 - passthrough of configured provider price/status/source/timestamp;
 - fail-closed provider exceptions without raw exception/secret leakage;
@@ -57,7 +62,7 @@ CI must pass typecheck, API/unit tests, PostgreSQL integration tests, Prisma val
 4. **Rotation wiring:** feed verified observations through the locked Stock Group → Sub-sector → Sector rotation aggregation; do not let the UI or API submit unverified arbitrary observation arrays as canonical market truth.
 5. **Stock Score wiring:** compute only from approved feature data with the locked SS-1.0-R3 engine and evidence gates.
 6. **Stock master import:** validate headers, row count, symbol uniqueness, sector mapping and source provenance before any canonical import. Quarantine malformed/misaligned rows; never silently repair the source.
-7. **Remaining company/value-chain/fundamental reads:** extend the read path for canonical evidence-backed company, value-chain and fundamental records and surface `XX`, `PENDING` or `UNAVAILABLE` for gaps. Theme hierarchy and stock registry / Rotation reads now have initial APIs, but runtime completeness still depends on actual approved canonical data.
+7. **Runtime population and completeness:** confirm the approved canonical DB has the required rows, source-linked classification paths, DARS evidence and verified value-chain evidence. Fundamentals endpoint is evidence-based, not a complete standardized fundamentals catalogue; populate and validate those source records before claiming coverage.
 8. **Authentication/database runtime:** execute `scripts/integrationTest.ts` against the approved NON_PROD Supabase clone with zero rows left after cleanup.
 9. **Deployment and operations:** verify OIDC redirect/cookies, production KMS, rate limits, backups/restore, telemetry/alerts and a real deployed smoke test.
 
