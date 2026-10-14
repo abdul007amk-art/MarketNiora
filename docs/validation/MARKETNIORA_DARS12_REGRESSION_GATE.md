@@ -94,6 +94,8 @@ The runtime adapter must treat PostgreSQL as the source of truth across separate
 - Preserve the original `knowledge_time` for an identical `source_event_id` replay; refresh metadata may update, but immutable event content may not.
 - Reject conflicting replays without replacing the previous durable evidence.
 - Default expected coverage to the number of unique requested symbols when no explicit coverage gate is supplied.
+- Scope freshness, coverage, FWHY preflight and formula input to the requested symbols; unrelated durable symbols must not satisfy a run's coverage gate or leak into its formula input.
+- Count coverage by unique symbols, not source-symbol evidence rows, so multiple sources for one symbol cannot satisfy coverage for a different requested symbol.
 - Restore the in-memory engine snapshot to the durable baseline after a blocked run or failed persistence transaction.
 - An empty FWHY evidence set is `BLOCKED`, never `CURRENT`.
 

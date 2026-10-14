@@ -95,6 +95,7 @@ export async function runDars12Production(
       rawEvents,
       evidenceRefreshSucceeded: input.evidenceRefreshSucceeded ?? true,
       expectedCoverage: input.expectedCoverage ?? uniqueSymbols.length,
+      scopeSymbols: uniqueSymbols,
       formulaVersion: input.formulaVersion,
       formula: input.formula,
     });

@@ -248,3 +248,57 @@ test('production orchestration: conflicting durable source_event_id replay canno
   assert.equal(rows[0].value, '10');
   assert.equal(rows[0].knowledgeTime.getTime(), 1000);
 });
+
+
+test('production orchestration: unrelated durable symbols are excluded from run coverage and formula', async () => {
+  const oldRow = {
+    evidenceKey: 'OLD_SOURCE|BBB',
+    sourceEventId: 'old-bbb-event',
+    source: 'OLD_SOURCE',
+    symbol: 'BBB',
+    value: '999',
+    sourceTimestamp: new Date(500),
+    effectiveTime: new Date(500),
+    knowledgeTime: new Date(500),
+    verificationStatus: 'VERIFIED',
+    dataNature: 'RAW',
+    formulaVersion: null,
+    origin: null,
+    refreshedAt: new Date(500),
+    truthState: 'STALE'
+  };
+  const rows = [oldRow];
+  const prisma = {
+    $transaction: async (fn) => fn(prisma),
+    darsRun: {
+      create: async ({ data }) => data,
+      update: async ({ data }) => data
+    },
+    appAuditLog: { create: async ({ data }) => data },
+    darsHealthReport: { create: async ({ data }) => data },
+    darsEvidence: {
+      findMany: async () => [...rows],
+      findUnique: async ({ where }) => rows.find(row => row.sourceEventId === where.sourceEventId) ?? null,
+      create: async ({ data }) => { rows.push({ ...data }); return data; },
+      update: async ({ where, data }) => {
+        const row = rows.find(item => item.sourceEventId === where.sourceEventId);
+        if (!row) throw new Error('expected persisted event');
+        Object.assign(row, data);
+        return row;
+      }
+    }
+  };
+  const r = await runDars12Production(prisma, {
+    provider,
+    symbols: ['AAA'],
+    runKnowledgeTime: 1000,
+    formulaVersion: 'F-1',
+    formula: evidence => evidence.map(row => row.symbol + ':' + row.value).join(',')
+  });
+  assert.equal(r.result.healthy, true);
+  assert.equal(r.result.ready, true);
+  assert.equal(r.result.formulaOutput, 'AAA:10');
+  assert.deepEqual(r.result.evidence.map(row => row.symbol), ['AAA']);
+  assert.equal(r.persistedEvidence, 1);
+  assert.equal(rows.length, 2);
+});
