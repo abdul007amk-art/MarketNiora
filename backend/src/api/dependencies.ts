@@ -12,6 +12,8 @@ import type { OwnerTotpStore, OwnerMfaChallengeStore } from '../auth/ownerMfa.ts
 import { getPrismaClient, isNonProdDbTarget } from '../db/prisma.ts';
 import { NonProdLocalSecretCipher } from '../db/nonProdSecretCipher.ts';
 import { PrismaUserStore, PrismaSessionStore, PrismaOwnerTotpStore, PrismaOwnerMfaChallengeStore } from '../db/authStores.ts';
+import { PrismaWorkspaceReadStore } from '../db/workspaceReadStore.ts';
+import type { WorkspaceReadStore } from '../db/workspaceReadStore.ts';
 import { createConfiguredMarketDataProvider } from '../providers/marketDataProviderFactory.ts';
 import type { MarketDataProvider } from '../providers/marketDataProvider.ts';
 
@@ -25,6 +27,8 @@ export interface AppDependencies {
   ownerMfaChallengeStore: OwnerMfaChallengeStore;
   /** Optional for backward-compatible test fixtures; runtime always supplies the fail-closed provider. */
   marketDataProvider?: MarketDataProvider;
+  /** Read-only canonical workspace queries; only available on the approved NON_PROD DB target. */
+  workspaceReadStore?: WorkspaceReadStore;
 }
 
 export function createDependencies(): AppDependencies {
@@ -41,6 +45,7 @@ export function createDependencies(): AppDependencies {
       ownerTotpStore: new PrismaOwnerTotpStore(prisma, cipher),
       ownerMfaChallengeStore: new PrismaOwnerMfaChallengeStore(prisma),
       marketDataProvider: createConfiguredMarketDataProvider(),
+      workspaceReadStore: new PrismaWorkspaceReadStore(prisma),
     };
   }
 
