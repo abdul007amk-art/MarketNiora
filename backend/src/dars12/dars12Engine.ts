@@ -178,8 +178,6 @@ export class Dars12Engine {
     }
     mark('CANONICAL_WRITE','SUCCEEDED');
 
-    const scope = input.scopeSymbols ? new Set(input.scopeSymbols) : null;
-    const inScope = (rows:DarsEvidence[]) => scope ? rows.filter(row=>scope.has(row.symbol)) : rows;
 
     mark('FRESHNESS','STARTED');
     const current=inScope(this.store.currentEvidence(input.runKnowledgeTime));
