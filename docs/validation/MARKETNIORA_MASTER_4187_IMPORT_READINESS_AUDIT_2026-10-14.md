@@ -1,6 +1,6 @@
 # MASTER_4187 Import Readiness Audit — 2026-10-14
 
-**Scope:** read-only inspection of the approved non-production clone `MarketNiora-NP-Clone-20260920` (`qvlhkeacbngvpldolxvd`). No database rows or migrations were changed during this audit.
+**Scope:** read-only inspection of the approved non-production clone `MarketNiora-NP-Clone-20260920` (`qvlhkeacbngvpldolxvd`), followed by applying the already-reviewed fail-closed readiness-view migration 016 to that non-production clone only. No staging rows were modified or promoted, and production was not touched.
 
 ## Observed state
 
@@ -44,10 +44,26 @@ Migration `database/migrations/016_master_4187_readiness_fail_closed.sql` adds:
 
 The CI fixture uses an isolated disposable PostgreSQL database. It first proves that the 4,187-row PENDING/QUARANTINED and unauthorised fixture fails closed, then simulates a verified/authorized case to prove the readiness checks can pass. This simulation never updates the actual Supabase clone.
 
+## Migration 016 — applied and verified on NON_PROD
+
+On 2026-10-14, migration `016_master_4187_readiness_fail_closed.sql` was applied to the approved non-production clone only. It changes governance views, not staging/canonical rows. The migration is recorded as `20261014001133 / master_4187_readiness_fail_closed`.
+
+Post-migration read-only verification:
+
+| Gate | Actual | Status |
+|---|---:|---|
+| `ROW_COUNT` | 4,187 | PASS |
+| `OPEN_IDENTITY_CONFLICTS` | 4 | FAIL |
+| `OWNER_AUTHORIZATION` | 1 unauthorized batch | FAIL |
+| `SECTOR_COVERAGE` | 0 eligible verified rows | FAIL |
+| `STAGING_IDENTITY_STATUS` | 4,187 not verified | FAIL |
+| Overall `import_ready` | false for every returned gate row | BLOCKED |
+
+The vacuous-PASS defect is closed: zero eligible verified rows now produce an explicit `FAIL`, not a false readiness result. Canonical counts remain unchanged at 0 stocks, 0 raw observations, 0 Rotation scores and 0 Stock Scores. No source row was altered.
+
 ## Not done / next gates
 
 - No canonical import or owner authorization was performed.
-- No Supabase migration was applied.
 - The actual staging identities/classifications still need evidence-based review and Owner authorization.
 - Market-data provider remains `OPEN / NOT_SELECTED`.
 - Production deployment, auth runtime against the actual clone, and actual provider/data integration remain pending.
