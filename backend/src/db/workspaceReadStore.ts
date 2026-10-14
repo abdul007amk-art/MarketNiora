@@ -31,7 +31,11 @@ export interface WorkspaceReadStore {
  * It never imports staged rows or manufactures scores/mappings.
  */
 export class PrismaWorkspaceReadStore implements WorkspaceReadStore {
-  constructor(private readonly prisma: PrismaClient) {}
+  private readonly prisma: PrismaClient;
+
+  constructor(prisma: PrismaClient) {
+    this.prisma = prisma;
+  }
 
   async getSummary(): Promise<WorkspaceSummary> {
     const [
