@@ -314,3 +314,9 @@ button:focus-visible,a:focus-visible,input:focus-visible{outline:3px solid #75c8
   .rotation-controls select { flex: 1; }
   .rotation-controls button { flex: 1; }
 }
+
+
+.row-action { display: inline-flex; align-items: center; justify-content: center; margin-top: 10px; min-height: 34px; border: 1px solid var(--border, #dce5ee); border-radius: 8px; padding: 7px 11px; background: transparent; color: var(--primary, #176b87); font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.row-action:hover, .row-action:focus-visible { background: var(--surface-secondary, #edf4f8); outline-offset: 2px; }
+.evidence-claim { margin-top: 10px; padding: 10px; border-left: 2px solid var(--primary, #176b87); background: var(--surface-secondary, #f5f8fa); border-radius: 0 8px 8px 0; }
+.evidence-claim small { overflow-wrap: anywhere; }
