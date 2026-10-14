@@ -24,7 +24,7 @@ Do not change locked business rules, hierarchy, scoring formulas or governance c
 | Rotation | Locked Rotation v1.2 engine and calculation endpoint | Engine exists; verified persisted observations and full group → sub-sector → sector orchestration are not verified as running |
 | Stock Score | Locked SS-1.0-R3 engine and calculation endpoint | Engine exists; scores are not populated from a verified canonical live data pipeline |
 | Data pipeline | Provider parsing, normalization, validation, deduplication, conflict checks and quality gate modules | Raw/canonical stores are still in-memory; production PostgreSQL persistence is not wired |
-| Stock, rotation and theme explorers | Read-only `/workspace/*` APIs query canonical stocks, approved rotation snapshots and verified theme memberships from Prisma | Requires the approved NON_PROD database target; no canonical data is fabricated when the database/store is absent; value-chain and fundamental read surfaces remain pending |
+| Stock, Rotation, Theme, Company, Value Chain and Evidence explorers | Read-only `/workspace/*` APIs query canonical stocks, approved score snapshots, verified memberships and verified evidence with explicit exchange disambiguation | Requires approved NON_PROD DB target and populated canonical/evidence records; no canonical data is fabricated when the database/store is absent. Fundamental screen displays only verified DARS evidence tagged as fundamental. |
 | Authentication | Google OIDC, owner TOTP/MFA, session and authorization modules | DB-backed auth is selectable for NON_PROD; clone CRUD integration script still must pass against the approved clone |
 | Security & CI | RBAC, CSRF, security headers, rate limiting, audit components, Prisma migrations and tests | Main-branch CI is green; CI is not the same as production runtime validation |
 | Broker / notifications | Upstox Full Market Quotes V3 adapter, compressed official instrument-directory resolver and verified-symbol conflict gates now have tests | Not activated: no canonical instrument-mapping table/resolver, approved token provisioning or source-timestamp rule; Telegram delivery is also not configured |
@@ -66,6 +66,10 @@ Weights remain Momentum 22%, Relative Strength 10%, Trend Quality 8%, Volume Con
 | GET | `/workspace/stocks?q=&sector=&limit=` | Search canonical stocks and show only Owner-approved locked SS-1.0-R3 snapshots as official scores |
 | GET | `/workspace/rotation?horizon=&limit=` | Read only locked, Owner-approved rotation snapshots that pass their level confidence gate |
 | GET | `/workspace/themes?q=&limit=` | Theme → sub-theme → industry with verified memberships only |
+| GET | `/workspace/company/:symbol?exchange=` | Canonical company detail; 404 when not found, 409 when exchange disambiguation is needed |
+| GET | `/workspace/value-chain/:symbol?exchange=` | Company-specific value-chain stages with verified evidence only |
+| GET | `/workspace/fundamentals/:symbol?exchange=&limit=` | Verified DARS evidence explicitly tagged as fundamental; not an inferred metrics table or fundamental score |
+| GET | `/workspace/research/:symbol?exchange=&limit=` | Verified DARS evidence with source time and knowledge time preserved |
 | POST | `/rotation/calculate` | PREVIEW-only input calculator; requires `mode=PREVIEW` and `aggregationLevel=STOCK_GROUP\|SUB_SECTOR\|SECTOR`; enforces 30% / 60% eligibility gates; `finalScore` is always null and result is exposed as `previewScore` |
 | POST | `/stock-score/calculate` | PREVIEW-only input calculator; requires `mode=PREVIEW`; `finalScore` is always null and result is exposed as `previewScore`; official score remains `NOT_CONFIGURED` |
 | POST | `/auth/oidc/google` | Google OIDC login; Owner path requires confirmed TOTP and issues no session before verification |
@@ -107,7 +111,7 @@ The documented script is `npx tsx scripts/integrationTest.ts`. It must be run on
 
 ## Workspace explorer read path
 
-The current branch adds read-only canonical explorer endpoints for summary counts, stock search, persisted Rotation snapshots and verified Theme memberships. They are wired only when `MARKETNIORA_DB_TARGET=NON_PROD` passes the approved database-target guard. Other runtimes return `NOT_CONFIGURED`; an empty canonical registry remains `NOT_LOADED`. The endpoints never import staged MASTER_4187 rows, calculate official scores from request data, or turn unverified memberships into public mappings. The dashboard calls these endpoints and renders data status from the API instead of pretending a placeholder list is live.
+The current branch adds read-only canonical explorer endpoints for summary counts, stock search, persisted Rotation snapshots and verified Theme memberships. They are wired only when `MARKETNIORA_DB_TARGET=NON_PROD` passes the approved database-target guard. Other runtimes return `NOT_CONFIGURED`; an empty canonical registry remains `NOT_LOADED`. The endpoints never import staged MASTER_4187 rows, calculate official scores from request data, or turn unverified memberships into public mappings. The dashboard calls these endpoints in Stock Explorer, Company Detail, Rotation, Theme, Value Chain, Fundamentals and Research & Evidence screens. Symbol-level endpoints reject ambiguous symbol identities unless an exchange is selected. The value-chain view returns only stages with verified evidence; fundamentals are returned only when verified DARS records identify their data nature as fundamental; general research reads return verified records with evidence time and knowledge time kept distinct. This read path does not itself prove that a data source is configured or that runtime tables contain complete data.
 
 ## Remaining release gates
 
