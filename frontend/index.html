@@ -79,6 +79,12 @@
           <article class="metric-card"><div class="metric-top"><span>Theme intelligence</span><span class="metric-icon">◎</span></div><strong class="metric-value compact">INDEPENDENT LAYER</strong><div class="metric-foot"><span class="soft-dot"></span>Theme membership does not drive rotation math</div><div class="mini-hierarchy"><span>THEME</span><i>→</i><span>SUB-THEME</span><i>→</i><span>INDUSTRY</span><i>→</i><span>STOCK</span></div></article>
         </section>
 
+        <section class="panel workspace-summary-panel" aria-live="polite">
+          <div class="panel-heading"><div><span class="section-kicker">CANONICAL DATABASE</span><h2>Runtime coverage</h2></div><button class="text-button" id="workspace-summary-refresh" type="button">Refresh counts ↻</button></div>
+          <p id="workspace-summary-status" class="workspace-status">Checking canonical workspace records…</p>
+          <div id="workspace-summary-metrics" class="summary-metrics"></div>
+        </section>
+
         <section class="workspace-grid">
           <article class="panel rotation-panel">
             <div class="panel-heading"><div><span class="section-kicker">MARKET BREADTH</span><h2>Sector rotation</h2></div><a href="#rotation" data-view-link="rotation" class="panel-link">Explore model <span>→</span></a></div>
@@ -86,7 +92,9 @@
               <div class="empty-chart" aria-hidden="true"><div class="chart-grid"></div><svg viewBox="0 0 520 150" preserveAspectRatio="none"><path d="M0 122 C35 115 42 128 70 103 S111 98 137 104 S174 55 207 75 S245 100 267 81 S309 88 335 55 S374 67 394 45 S432 66 453 28 S491 38 520 10" fill="none" stroke="#8aa6bf" stroke-width="2" stroke-dasharray="5 6" opacity=".7"/></svg><span class="chart-overlay">Awaiting verified observations</span></div>
               <div class="empty-state"><span class="empty-icon">◌</span><div><strong id="rotation-empty-title">Rotation not calculated</strong><p>Sector strength will appear after current stock observations pass coverage, freshness and evidence gates.</p></div></div>
             </div>
-            <div class="panel-footnote"><span class="status-tag pending">DATA UNAVAILABLE</span><span>Index breadth has zero role in the locked Rotation Score.</span></div>
+            <div class="panel-footnote"><span class="status-tag pending" id="home-rotation-state">CHECKING DATABASE</span><span>Index breadth has zero role in the locked Rotation Score.</span></div>
+            <div id="home-rotation-status" class="workspace-status">Checking approved rotation snapshots…</div>
+            <div id="home-rotation-results" class="data-list"></div>
           </article>
 
           <article class="panel quote-panel">
@@ -113,17 +121,17 @@
 
       <section class="page-view secondary-view" data-page="rotation" id="rotation">
         <div class="page-title"><span class="section-kicker">LOCKED ENGINE</span><h1>Sector Rotation</h1><p>Raw stock observations → Stock Group Rotation → Sub-sector Rotation → Sector Rotation.</p></div>
-        <div class="panel rule-panel"><h2>Rotation Phase 2 v1.2</h2><div class="weight-grid"><div><strong>40%</strong><span>Median return</span></div><div><strong>30%</strong><span>Participation</span></div><div><strong>20%</strong><span>Equal-weighted capped return</span></div><div><strong>10%</strong><span>IQR consistency</span></div></div><div class="rule-note">Caps: 1D 8% · 1W 12% · 1M 20% · 3M 30% · CONF_MIN 30 · N_REF 20. External-index breadth has ZERO ROLE.</div><div class="truth-panel"><span class="status-tag pending">RUNTIME UNKNOWN</span><p>The calculation engine is implemented, but this screen has no persisted, verified observation snapshot to rank. No sector leaders or laggards are invented.</p></div></div>
+        <div class="panel rule-panel"><h2>Rotation Phase 2 v1.2</h2><div class="weight-grid"><div><strong>40%</strong><span>Median return</span></div><div><strong>30%</strong><span>Participation</span></div><div><strong>20%</strong><span>Equal-weighted capped return</span></div><div><strong>10%</strong><span>IQR consistency</span></div></div><div class="rule-note">Caps: 1D 8% · 1W 12% · 1M 20% · 3M 30% · CONF_MIN 30 · N_REF 20. External-index breadth has ZERO ROLE.</div><div class="rotation-controls"><label for="rotation-horizon">Horizon</label><select id="rotation-horizon"><option value="1D">1 Day</option><option value="1W">1 Week</option><option value="1M">1 Month</option><option value="3M">3 Months</option></select><button id="rotation-refresh" type="button">Load snapshots</button></div><p id="rotation-runtime-status" class="workspace-status" aria-live="polite">Checking approved rotation snapshots…</p><div id="rotation-results" class="data-list"></div></div>
       </section>
 
       <section class="page-view secondary-view" data-page="stocks" id="stocks">
         <div class="page-title"><span class="section-kicker">STOCK INTELLIGENCE</span><h1>Stock Explorer</h1><p>Search and examine listed companies with clear identity, source and freshness states.</p></div>
-        <div class="panel"><h2>Universe status</h2><div class="truth-panel"><span class="status-tag pending">REGISTRY COUNT UNVERIFIED</span><p>The immutable seed target is 4,187 rows. The current database/runtime count must be validated before the explorer can claim complete coverage.</p></div><div class="inline-search"><input aria-label="Stock symbol" id="secondary-symbol" maxlength="25" placeholder="Enter NSE symbol"><button id="secondary-search">Check quote</button></div></div>
+        <div class="panel"><h2>Canonical stock registry</h2><p id="stocks-status" class="workspace-status" aria-live="polite">Loading canonical stock records…</p><form id="stock-search-form" class="explorer-search"><label><span>Company or symbol</span><input id="stock-query" maxlength="100" placeholder="e.g. INFY or Infosys"></label><label><span>Sector contains</span><input id="stock-sector" maxlength="100" placeholder="e.g. IT"></label><button type="submit">Search registry</button></form><div id="stock-results" class="data-list"></div><div class="inline-search"><input aria-label="Stock symbol" id="secondary-symbol" maxlength="25" placeholder="Enter NSE symbol"><button id="secondary-search" type="button">Check quote</button></div></div>
       </section>
 
       <section class="page-view secondary-view" data-page="themes" id="themes">
         <div class="page-title"><span class="section-kicker">INDEPENDENT CLASSIFICATION</span><h1>Theme Explorer</h1><p>THEME → SUB-THEME → INDUSTRY → STOCK. A stock may belong to multiple themes.</p></div>
-        <div class="panel truth-panel"><span class="status-tag pending">MAPPING RUNTIME UNVERIFIED</span><p>The structural contract exists in the repository. Verified theme membership will appear once approved master mappings are loaded and reconciled. Theme classification never changes Rotation or Stock Score mathematics.</p></div>
+        <div class="panel"><p>Verified theme membership is read from canonical database mappings only. Theme classification never changes Rotation or Stock Score mathematics.</p><form id="theme-search-form" class="explorer-search"><label><span>Theme name</span><input id="theme-query" maxlength="100" placeholder="Search a theme"></label><button type="submit">Search themes</button></form><p id="themes-status" class="workspace-status" aria-live="polite">Loading approved theme mappings…</p><div id="theme-results" class="data-list"></div></div>
       </section>
 
       <section class="page-view secondary-view" data-page="value-chain" id="value-chain">
