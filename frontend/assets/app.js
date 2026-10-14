@@ -311,7 +311,7 @@
   }
 
   async function loadRotation() {
-    const status = byId("rotation-runtime-status");
+    const status = byId("rotation-runtime-status") || byId("home-rotation-status");
     if (!status) return;
     const horizonControl = byId("rotation-horizon");
     const horizon = horizonControl ? horizonControl.value : "1D";
