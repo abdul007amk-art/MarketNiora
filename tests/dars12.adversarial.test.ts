@@ -60,3 +60,49 @@ test('DARS12 adversarial: formula callback receives only current as-of evidence'
   assert.equal(r.formulaExecuted,true);
   assert.deepEqual(received,['SOURCE_A|AAA','SOURCE_A|BBB']);
 });
+
+
+test('DARS12 coverage counts unique symbols, not source-symbol evidence rows', () => {
+ const r = new Dars12Engine().run({
+   runKnowledgeTime: 200,
+   providerHealthy: true,
+   rawEvents: [
+     base({ sourceEventId: 'evt-a', source: 'SOURCE_A', symbol: 'AAA' }),
+     base({ sourceEventId: 'evt-b', source: 'SOURCE_B', symbol: 'AAA' })
+   ],
+   scopeSymbols: ['AAA', 'BBB'],
+   expectedCoverage: 2,
+   evidenceRefreshSucceeded: true,
+   formulaVersion: 'F1',
+   formula: sum
+ });
+ assert.equal(r.formulaExecuted, false);
+ assert.equal(r.truthState, 'BLOCKED');
+ assert.ok(r.errors.some(message => /coverage 1 unique symbols below expected 2/.test(message)));
+});
+
+test('DARS12 scoped run ignores stale unrelated durable symbols for freshness and formula input', () => {
+ const store = new Dars12Store();
+ store.restore([{
+   ...base({ sourceEventId: 'old-bbb', symbol: 'BBB', knowledgeTime: 100, sourceTimestamp: 100 }),
+   evidenceKey: 'SOURCE_A|BBB',
+   refreshedAt: 100,
+   truthState: 'STALE'
+ }]);
+ let received = [];
+ const r = new Dars12Engine(store).run({
+   runKnowledgeTime: 200,
+   providerHealthy: true,
+   rawEvents: [base({ sourceEventId: 'new-aaa', symbol: 'AAA', knowledgeTime: 200 })],
+   scopeSymbols: ['AAA'],
+   expectedCoverage: 1,
+   evidenceRefreshSucceeded: true,
+   formulaVersion: 'F1',
+   formula: evidence => { received = evidence.map(row => row.symbol); return sum(evidence); }
+ });
+ assert.equal(r.healthy, true);
+ assert.equal(r.formulaExecuted, true);
+ assert.deepEqual(received, ['AAA']);
+ assert.deepEqual(r.evidence.map(row => row.symbol), ['AAA']);
+ assert.equal(store.allEvidence().length, 2);
+});
