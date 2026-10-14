@@ -66,6 +66,14 @@ The verifier previously checked `exp` and future `iat`, but ignored an optional 
 
 **Source remediation in review:** when `nbf` is present, it is parsed as a finite numeric claim and must not be more than the existing 60-second clock-skew tolerance into the future. Tests cover an expired/past `nbf`, a within-skew timestamp, a future timestamp outside tolerance, and a malformed non-numeric claim using locally signed RSA test tokens.
 
+### HIGH — Owner TOTP bootstrap API was missing (source fix + route tests)
+
+The login path correctly blocked allowlisted Owners without a confirmed TOTP secret, but no API route existed to provision and confirm the first secret. That created an onboarding dead end.
+
+**Source remediation in review:** `POST /auth/owner/totp/provision` and `POST /auth/owner/totp/confirm` are now available. Both require a verified Google ID token whose email is explicitly in `OWNER_EMAILS`, use separate rate-limit buckets, and return `Cache-Control: no-store`. Provisioning returns a TOTP secret/URI but issues no session; confirmation also issues no session. A fresh Google login plus successful `/auth/owner/mfa` remains required before an Owner session can be created. Confirmed secrets cannot be re-provisioned through this endpoint.
+
+**Runtime boundary:** tests use in-memory test stores. The normal deployment guard still prevents production mode because persistent production KMS/secret storage and production runtime verification are not configured. The public MiniUp preview is not connected to these auth routes.
+
 ### MEDIUM — OIDC account lookup depended on email instead of stable subject (source fix + CRUD/HTTP tests)
 
 The login handler previously searched by email first. That could fail to preserve account continuity when Google returned a new verified email for the same stable `(iss, sub)`, while the canonical application schema already defines `@@unique([oidcIssuer, oidcSubject])`.

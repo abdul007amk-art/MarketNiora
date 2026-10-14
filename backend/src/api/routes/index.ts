@@ -1,7 +1,7 @@
 import type { Route } from '../router.ts';
 import type { AppDependencies } from '../dependencies.ts';
 import { healthHandler } from './health.ts';
-import { oidcLoginHandler, ownerMfaHandler, logoutHandler } from './auth.ts';
+import { oidcLoginHandler, ownerMfaHandler, ownerTotpProvisionHandler, ownerTotpConfirmHandler, logoutHandler } from './auth.ts';
 import { rotationCalculateHandler } from './rotation.ts';
 import { stockScoreCalculateHandler } from './stockScore.ts';
 import { themeResolveHandler } from './theme.ts';
@@ -16,6 +16,8 @@ export function buildRoutes(): Route<AppDependencies>[] { return [
   { method: 'GET', pattern: '/market-data/quote/:symbol', handler: marketDataQuoteHandler },
   { method: 'POST', pattern: '/auth/oidc/google', handler: oidcLoginHandler },
   { method: 'POST', pattern: '/auth/owner/mfa', handler: ownerMfaHandler },
+  { method: 'POST', pattern: '/auth/owner/totp/provision', handler: ownerTotpProvisionHandler },
+  { method: 'POST', pattern: '/auth/owner/totp/confirm', handler: ownerTotpConfirmHandler },
   { method: 'POST', pattern: '/auth/logout', handler: logoutHandler },
   { method: 'POST', pattern: '/rotation/calculate', handler: rotationCalculateHandler },
   { method: 'POST', pattern: '/stock-score/calculate', handler: stockScoreCalculateHandler },

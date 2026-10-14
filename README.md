@@ -64,6 +64,11 @@ Weights remain Momentum 22%, Relative Strength 10%, Trend Quality 8%, Volume Con
 | GET | `/market-data/quote/:symbol` | One-symbol quote + provenance/status |
 | POST | `/rotation/calculate` | PREVIEW-only input calculator; requires `mode=PREVIEW` and `aggregationLevel=STOCK_GROUP\|SUB_SECTOR\|SECTOR`; enforces 30% / 60% eligibility gates; `finalScore` is always null and result is exposed as `previewScore` |
 | POST | `/stock-score/calculate` | PREVIEW-only input calculator; requires `mode=PREVIEW`; `finalScore` is always null and result is exposed as `previewScore`; official score remains `NOT_CONFIGURED` |
+| POST | `/auth/oidc/google` | Google OIDC login; Owner path requires confirmed TOTP and issues no session before verification |
+| POST | `/auth/owner/totp/provision` | Allowlisted verified Google identity can initialise TOTP; returns one-time setup secret/URI, no session, `Cache-Control: no-store` |
+| POST | `/auth/owner/totp/confirm` | Confirms a pending TOTP setup using the current Google ID token and TOTP code; no session is issued |
+| POST | `/auth/owner/mfa` | Verifies one-time Owner MFA challenge before Owner session is issued |
+| POST | `/auth/logout` | Authenticated, CSRF-protected session revocation |
 | POST | `/theme/resolve` | Theme membership resolver |
 | POST | `/fundamental/validate` | Fundamental record contract validation |
 | POST | `/value-chain/validate` | Value-chain entry contract validation |
@@ -82,6 +87,15 @@ npm start
 ```
 
 The server serves the same-origin dashboard at `/` and its whitelisted assets under `/assets/`. The non-production server binds to `HOST` (default `0.0.0.0`) and `PORT` (default `3000`). **A `NODE_ENV=production` launch is intentionally blocked** while production auth/KMS, durable market-data persistence/provider integration and runtime release gates remain unverified. Do not bypass that guard merely to publish the interface.
+
+### Owner TOTP first-time enrolment
+
+1. Add the verified Google owner email to `OWNER_EMAILS`.
+2. POST `/auth/owner/totp/provision` with that owner's Google ID token. The response contains the secret and `otpauthUri` for authenticator-app enrolment; it does not issue a session and is marked `Cache-Control: no-store`.
+3. POST `/auth/owner/totp/confirm` with the same verified Google ID token and current six-digit TOTP code.
+4. Start a fresh `/auth/oidc/google` login and complete `/auth/owner/mfa`; only this final successful step issues an Owner session.
+
+Non-allowlisted identities cannot initialise Owner TOTP. A confirmed secret cannot be re-provisioned by this endpoint. The flow is API-implemented and tests are being added; the public MiniUp preview is not connected to it, and production deployment remains blocked until production KMS/secret storage and runtime release gates pass.
 
 ### NON_PROD authentication integration
 
