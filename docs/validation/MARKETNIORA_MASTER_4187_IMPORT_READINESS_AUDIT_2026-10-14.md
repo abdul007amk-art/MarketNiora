@@ -44,6 +44,8 @@ Migration `database/migrations/016_master_4187_readiness_fail_closed.sql` adds:
 
 The CI fixture uses an isolated disposable PostgreSQL database. It first proves that the 4,187-row PENDING/QUARANTINED and unauthorised fixture fails closed, then simulates a verified/authorized case to prove the readiness checks can pass. This simulation never updates the actual Supabase clone.
 
+**Related identity research:** [MASTER_4187 primary-source identity conflict research](./MARKETNIORA_MASTER_4187_IDENTITY_RESEARCH_2026-10-14.md). It documents NSE filing evidence and candidate dispositions without changing quarantined staging rows.
+
 ## Migration 016 — applied and verified on NON_PROD
 
 On 2026-10-14, migration `016_master_4187_readiness_fail_closed.sql` was applied to the approved non-production clone only. It changes governance views, not staging/canonical rows. The migration is recorded as `20261014001133 / master_4187_readiness_fail_closed`.
