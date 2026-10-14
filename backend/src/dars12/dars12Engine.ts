@@ -25,6 +25,8 @@ export interface DarsEvidence extends RawDarsEvent {
 export interface Dars12RunInput {
   runKnowledgeTime:number; providerHealthy:boolean; rawEvents:RawDarsEvent[];
   evidenceRefreshSucceeded:boolean; expectedCoverage?:number; formulaVersion:string;
+  /** Restrict freshness, coverage and formula input to this run's requested symbols. */
+  scopeSymbols?:readonly string[];
   formula:(evidence:readonly DarsEvidence[])=>string;
   /** Synchronous fail-closed gate. The formula must not execute unless the FWHY preflight gate is CURRENT. */
   fwhyGate?:(evidence:readonly DarsEvidence[])=>{truthState:'CURRENT'|'BLOCKED'};
@@ -163,7 +165,7 @@ export class Dars12Engine {
     });
     if(conflictingReplay){
       fail('conflicting source_event_id replay rejected');
-      return this.out(runId,events,this.store.currentEvidence(input.runKnowledgeTime),null,false,duplicates,'BLOCKED',false,false,errors);
+      return this.out(runId,events,inScope(this.store.currentEvidence(input.runKnowledgeTime)),null,false,duplicates,'BLOCKED',false,false,errors);
     }
 
     const snapshot=this.store.snapshot();
@@ -173,21 +175,25 @@ export class Dars12Engine {
     }
     mark('CANONICAL_WRITE','SUCCEEDED');
 
+    const scope = input.scopeSymbols ? new Set(input.scopeSymbols) : null;
+    const inScope = (rows:DarsEvidence[]) => scope ? rows.filter(row=>scope.has(row.symbol)) : rows;
+
     mark('FRESHNESS','STARTED');
-    const current=this.store.currentEvidence(input.runKnowledgeTime);
+    const current=inScope(this.store.currentEvidence(input.runKnowledgeTime));
     const refreshed=current.map(e=>({...e,truthState:e.refreshedAt===input.runKnowledgeTime?'CURRENT' as const:'STALE' as const}));
     if(refreshed.some(e=>e.truthState==='STALE')){
       mark('FRESHNESS','FAILED'); fail('stale evidence remains in the current canonical view');
       this.store.restore(snapshot);
       for(const s of DARS12_STAGES.slice(8))mark(s,'SKIPPED');
-      return this.out(runId,events,this.store.currentEvidence(input.runKnowledgeTime),null,false,duplicates,'STALE',false,false,errors);
+      return this.out(runId,events,inScope(this.store.currentEvidence(input.runKnowledgeTime)),null,false,duplicates,'STALE',false,false,errors);
     }
     mark('FRESHNESS','SUCCEEDED');
 
     mark('COVERAGE','STARTED');
     const expected=input.expectedCoverage??0;
-    if(refreshed.length<expected){
-      mark('COVERAGE','FAILED'); fail(`coverage ${refreshed.length} below expected ${expected}`);
+    const coveredSymbols=new Set(refreshed.map(row=>row.symbol)).size;
+    if(coveredSymbols<expected){
+      mark('COVERAGE','FAILED'); fail(`coverage ${coveredSymbols} unique symbols below expected ${expected}`);
       for(const s of DARS12_STAGES.slice(9))mark(s,'SKIPPED');
       return this.out(runId,events,refreshed,null,false,duplicates,'BLOCKED',false,false,errors);
     }
@@ -204,7 +210,7 @@ export class Dars12Engine {
     }
     mark('EVIDENCE_REFRESH','SUCCEEDED');
 
-    const formulaEvidence=this.store.currentEvidence(input.runKnowledgeTime);
+    const formulaEvidence=inScope(this.store.currentEvidence(input.runKnowledgeTime));
     mark('FWHY_PREFLIGHT','STARTED');
     const fwhy = (input.fwhyGate ?? ((evidence:readonly DarsEvidence[]) => {
       const groups = new Map<string, DarsEvidence[]>();
