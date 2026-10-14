@@ -131,4 +131,68 @@ export async function workspaceThemesHandler(
   } catch {
     return { status: 503, body: { truthState: 'UNKNOWN', detail: 'Theme mappings could not be loaded.' } };
   }
+
+function symbolReadInput(ctx: ParsedRequest): { symbol: string; exchange?: string; limit: number } | RouteResult {
+  const symbol = (ctx.params.symbol ?? '').trim().toUpperCase();
+  if (!/^[A-Z0-9&.-]{1,25}$/.test(symbol)) {
+    return { status: 400, body: { error: 'invalid symbol' } };
+  }
+  const rawExchange = ctx.query.get('exchange');
+  const exchange = rawExchange ? rawExchange.trim().toUpperCase() : undefined;
+  if (exchange && !['NSE', 'BSE'].includes(exchange)) {
+    return { status: 400, body: { error: 'exchange must be NSE or BSE.' } };
+  }
+  const limit = boundedLimit(ctx.query.get('limit'), 50);
+  if (limit === null) return { status: 400, body: { error: 'limit must be between 1 and 100.' } };
+  return { symbol, exchange, limit };
+}
+
+function statusForSymbolResult(result: Record<string, unknown>): number {
+  if (result.truthState === 'NOT_FOUND') return 404;
+  if (result.truthState === 'AMBIGUOUS') return 409;
+  return 200;
+}
+
+async function symbolReadHandler(
+  ctx: ParsedRequest,
+  deps: AppDependencies,
+  operation: 'company' | 'value-chain' | 'fundamentals' | 'research',
+): Promise<RouteResult> {
+  const store = storeFor(deps);
+  if (!store) return unavailable();
+  const input = symbolReadInput(ctx);
+  if ('status' in input) return input;
+
+  try {
+    let result: Record<string, unknown>;
+    if (operation === 'company') result = await store.getCompany(input.symbol, input.exchange);
+    else if (operation === 'value-chain') result = await store.getValueChain(input.symbol, input.exchange);
+    else if (operation === 'fundamentals') result = await store.getFundamentals(input.symbol, input.exchange, input.limit);
+    else result = await store.getResearchEvidence(input.symbol, input.exchange, input.limit);
+    return { status: statusForSymbolResult(result), body: result };
+  } catch {
+    const detail = operation === 'company' ? 'Company record could not be loaded.'
+      : operation === 'value-chain' ? 'Verified value-chain evidence could not be loaded.'
+        : operation === 'fundamentals' ? 'Verified fundamental evidence could not be loaded.'
+          : 'Verified research evidence could not be loaded.';
+    return { status: 503, body: { truthState: 'UNKNOWN', detail } };
+  }
+}
+
+export async function workspaceCompanyHandler(ctx: ParsedRequest, deps: AppDependencies): Promise<RouteResult> {
+  return symbolReadHandler(ctx, deps, 'company');
+}
+
+export async function workspaceValueChainHandler(ctx: ParsedRequest, deps: AppDependencies): Promise<RouteResult> {
+  return symbolReadHandler(ctx, deps, 'value-chain');
+}
+
+export async function workspaceFundamentalsHandler(ctx: ParsedRequest, deps: AppDependencies): Promise<RouteResult> {
+  return symbolReadHandler(ctx, deps, 'fundamentals');
+}
+
+export async function workspaceResearchEvidenceHandler(ctx: ParsedRequest, deps: AppDependencies): Promise<RouteResult> {
+  return symbolReadHandler(ctx, deps, 'research');
+}
+
 }
