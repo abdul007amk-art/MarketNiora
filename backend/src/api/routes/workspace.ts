@@ -131,7 +131,6 @@ export async function workspaceThemesHandler(
   } catch {
     return { status: 503, body: { truthState: 'UNKNOWN', detail: 'Theme mappings could not be loaded.' } };
   }
-
 function symbolReadInput(ctx: ParsedRequest): { symbol: string; exchange?: string; limit: number } | RouteResult {
   const symbol = (ctx.params.symbol ?? '').trim().toUpperCase();
   if (!/^[A-Z0-9&.-]{1,25}$/.test(symbol)) {
@@ -195,4 +194,3 @@ export async function workspaceResearchEvidenceHandler(ctx: ParsedRequest, deps:
   return symbolReadHandler(ctx, deps, 'research');
 }
 
-}
