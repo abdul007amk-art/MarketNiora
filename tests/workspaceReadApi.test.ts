@@ -267,3 +267,23 @@ test('research endpoint returns verified evidence while preserving source and kn
     await stopServer(server);
   }
 });
+
+test('frontend bundle parses and every new explorer screen has matching form / result IDs', () => {
+  const fs = require('node:fs');
+  const vm = require('node:vm');
+  const script = fs.readFileSync('frontend/assets/app.js', 'utf8');
+  const html = fs.readFileSync('frontend/index.html', 'utf8');
+  assert.doesNotThrow(() => new vm.Script(script, { filename: 'frontend/assets/app.js' }));
+
+  for (const id of [
+    'company-search-form', 'company-symbol', 'company-exchange', 'company-status', 'company-results',
+    'value-chain-search-form', 'value-chain-symbol', 'value-chain-exchange', 'value-chain-status', 'value-chain-results',
+    'fundamentals-search-form', 'fundamentals-symbol', 'fundamentals-exchange', 'fundamentals-status', 'fundamentals-results',
+    'research-search-form', 'research-symbol', 'research-exchange', 'research-status', 'research-results',
+  ]) {
+    assert.ok(html.includes('id="' + id + '"'), 'HTML missing element id ' + id);
+  }
+  for (const loader of ['loadCompany', 'loadValueChain', 'loadFundamentals', 'loadResearchEvidence']) {
+    assert.ok(script.includes(loader), 'frontend handler missing: ' + loader);
+  }
+});
