@@ -224,6 +224,104 @@ test('OIDC Owner whose email leaves the allowlist is blocked, not downgraded to 
   }
 });
 
+test('Owner can enrol TOTP with allowlisted Google identity, but receives no session until MFA login', async () => {
+  const previousOwnerEmails = process.env.OWNER_EMAILS;
+  const ownerEmail = 'owner-enrolment-flow@example.com';
+  process.env.OWNER_EMAILS = ownerEmail;
+  const { server, baseUrl, deps } = await startServer();
+  const { generateTotpCode } = require('../backend/src/auth/totp.ts');
+
+  try {
+    const provision = await fetch(`${baseUrl}/auth/owner/totp/provision`, {
+      method: 'POST',
+      body: JSON.stringify({ idToken: ownerEmail }),
+    });
+    assert.equal(provision.status, 200);
+    assert.equal(provision.headers.get('set-cookie'), null, 'provisioning must not issue a login session');
+    assert.equal(provision.headers.get('cache-control'), 'no-store');
+    const setup = await provision.json();
+    assert.equal(setup.setupRequired, true);
+    assert.equal(setup.confirmed, false);
+    assert.equal(setup.sessionIssued, false);
+    assert.ok(setup.secret);
+    assert.match(setup.otpauthUri, /^otpauth:\/\/totp\/MarketNiora/);
+
+    const invalidConfirmation = await fetch(`${baseUrl}/auth/owner/totp/confirm`, {
+      method: 'POST',
+      body: JSON.stringify({ idToken: ownerEmail, code: 'abcdef' }),
+    });
+    assert.equal(invalidConfirmation.status, 401);
+
+    const confirm = await fetch(`${baseUrl}/auth/owner/totp/confirm`, {
+      method: 'POST',
+      body: JSON.stringify({ idToken: ownerEmail, code: generateTotpCode(setup.secret) }),
+    });
+    assert.equal(confirm.status, 200);
+    assert.equal(confirm.headers.get('set-cookie'), null, 'TOTP confirmation must not issue a login session');
+    assert.deepEqual(await confirm.json(), {
+      confirmed: true,
+      sessionIssued: false,
+      nextStep: 'Sign in again using Google OIDC and verify the TOTP code',
+    });
+
+    const repeatConfirmation = await fetch(`${baseUrl}/auth/owner/totp/confirm`, {
+      method: 'POST',
+      body: JSON.stringify({ idToken: ownerEmail, code: generateTotpCode(setup.secret) }),
+    });
+    assert.equal(repeatConfirmation.status, 409);
+
+    const repeatProvision = await fetch(`${baseUrl}/auth/owner/totp/provision`, {
+      method: 'POST',
+      body: JSON.stringify({ idToken: ownerEmail }),
+    });
+    assert.equal(repeatProvision.status, 409, 'confirmed TOTP must not be re-provisioned by this endpoint');
+
+    const login = await fetch(`${baseUrl}/auth/oidc/google`, {
+      method: 'POST',
+      body: JSON.stringify({ idToken: ownerEmail }),
+    });
+    assert.equal(login.status, 202);
+    const challenge = await login.json();
+    assert.equal(challenge.mfaRequired, true);
+    assert.equal(login.headers.get('set-cookie'), null);
+
+    const finishMfa = await fetch(`${baseUrl}/auth/owner/mfa`, {
+      method: 'POST',
+      body: JSON.stringify({ challenge: challenge.challenge, code: generateTotpCode(setup.secret) }),
+    });
+    assert.equal(finishMfa.status, 200);
+    assert.equal((await finishMfa.json()).role, 'OWNER');
+    assert.ok(finishMfa.headers.get('set-cookie'));
+    const storedOwner = await deps.userStore.getByEmail(ownerEmail);
+    assert.equal((await deps.ownerTotpStore.get(storedOwner.userId)).confirmedAt > 0, true);
+  } finally {
+    await stopServer(server);
+    if (previousOwnerEmails === undefined) delete process.env.OWNER_EMAILS;
+    else process.env.OWNER_EMAILS = previousOwnerEmails;
+  }
+});
+
+test('Owner TOTP enrolment rejects non-allowlisted Google identity and does not create a user', async () => {
+  const previousOwnerEmails = process.env.OWNER_EMAILS;
+  process.env.OWNER_EMAILS = 'different-owner@example.com';
+  const { server, baseUrl, deps } = await startServer();
+
+  try {
+    const response = await fetch(`${baseUrl}/auth/owner/totp/provision`, {
+      method: 'POST',
+      body: JSON.stringify({ idToken: 'not-an-owner@example.com' }),
+    });
+    assert.equal(response.status, 403);
+    assert.equal((await response.json()).error, 'owner email is not in the configured allowlist');
+    assert.equal(await deps.userStore.getByEmail('not-an-owner@example.com'), undefined);
+    assert.equal(response.headers.get('set-cookie'), null);
+  } finally {
+    await stopServer(server);
+    if (previousOwnerEmails === undefined) delete process.env.OWNER_EMAILS;
+    else process.env.OWNER_EMAILS = previousOwnerEmails;
+  }
+});
+
 test('OIDC login enforces per-socket-IP rate limits and ignores spoofed X-Forwarded-For', async () => {
   const { server, baseUrl } = await startServer();
   try {
