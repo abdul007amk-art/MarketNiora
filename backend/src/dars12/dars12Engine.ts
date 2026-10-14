@@ -101,6 +101,9 @@ export class Dars12Engine {
     const runId=`DARS12-${input.runKnowledgeTime}`, events:Dars12StageEvent[]=[], errors:string[]=[];
     let seq=0; const mark=(stage:Dars12Stage,status:Dars12StageEvent['status'])=>events.push({sequence:++seq,stage,status});
     const fail=(e:string)=>errors.push(e);
+    const scope = input.scopeSymbols ? new Set(input.scopeSymbols) : null;
+    const inScope = (rows:DarsEvidence[]) => scope ? rows.filter(row=>scope.has(row.symbol)) : rows;
+
 
     mark('PROVIDER_HEALTH','STARTED');
     if(!input.providerHealthy){
