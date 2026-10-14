@@ -23,6 +23,30 @@ export interface WorkspaceReadStore {
   searchStocks(options: StockSearchOptions): Promise<{ total: number; items: Array<Record<string, unknown>> }>;
   getRotation(horizon: string, limit: number): Promise<{ items: Array<Record<string, unknown>> }>;
   getThemes(query: string, limit: number): Promise<{ items: Array<Record<string, unknown>> }>;
+  getCompany(symbol: string, exchange?: string): Promise<Record<string, unknown>>;
+  getValueChain(symbol: string, exchange?: string): Promise<Record<string, unknown>>;
+  getFundamentals(symbol: string, exchange?: string, limit?: number): Promise<Record<string, unknown>>;
+  getResearchEvidence(symbol: string, exchange?: string, limit?: number): Promise<Record<string, unknown>>;
+}
+
+type CanonicalIdentity =
+  | { truthState: 'FOUND'; stock: { stockId: string; name: string; symbol: string; exchange: string } }
+  | { truthState: 'NOT_FOUND' }
+  | { truthState: 'AMBIGUOUS'; candidates: Array<{ name: string; symbol: string; exchange: string }> };
+
+function isApprovedStockScoreFormula(formula: { formulaKey: string; version: string; lockedAt: Date | null; ownerApprovedAt: Date | null }): boolean {
+  const key = formula.formulaKey.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return formula.version === 'SS-1.0-R3' &&
+    (key.includes('STOCKSCORE') || key.includes('SS10R3')) &&
+    formula.lockedAt !== null && formula.ownerApprovedAt !== null;
+}
+
+function isApprovedRotationFormula(formula: { formulaKey: string; version: string; lockedAt: Date | null; ownerApprovedAt: Date | null }): boolean {
+  const key = formula.formulaKey.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  const version = formula.version.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  return key.includes('ROTATION') &&
+    (version === 'V12' || version.endsWith('V12')) &&
+    formula.lockedAt !== null && formula.ownerApprovedAt !== null;
 }
 
 /**
@@ -35,6 +59,44 @@ export class PrismaWorkspaceReadStore implements WorkspaceReadStore {
 
   constructor(prisma: PrismaClient) {
     this.prisma = prisma;
+  }
+
+  private async resolveCanonicalStock(symbol: string, exchange?: string): Promise<CanonicalIdentity> {
+    const normalizedSymbol = symbol.trim().toUpperCase();
+    const where: Prisma.CanonicalStockWhereInput = {
+      symbol: { equals: normalizedSymbol, mode: 'insensitive' },
+    };
+    if (exchange) where.exchange = exchange;
+
+    const rows = await this.prisma.canonicalStock.findMany({
+      where,
+      take: 2,
+      select: { stockId: true, name: true, symbol: true, exchange: true },
+    });
+    if (rows.length === 0) return { truthState: 'NOT_FOUND' };
+    if (rows.length > 1) {
+      return {
+        truthState: 'AMBIGUOUS',
+        candidates: rows.map(({ name, symbol: rowSymbol, exchange: rowExchange }) => ({
+          name, symbol: rowSymbol, exchange: rowExchange,
+        })),
+      };
+    }
+    return { truthState: 'FOUND', stock: rows[0] };
+  }
+
+  private observationSymbolWhere(symbol: string, exchange: string): Prisma.DarsEvidenceWhereInput {
+    const values = new Set([
+      symbol,
+      exchange + ':' + symbol,
+      exchange + '_' + symbol,
+      exchange + '|' + symbol,
+    ]);
+    return {
+      OR: [...values].map((value) => ({
+        symbol: { equals: value, mode: 'insensitive' as const },
+      })),
+    };
   }
 
   async getSummary(): Promise<WorkspaceSummary> {
@@ -123,10 +185,7 @@ export class PrismaWorkspaceReadStore implements WorkspaceReadStore {
 
     const items = rows.map((row) => {
       const officialScore = row.stockScores.find((score) =>
-        score.finalScore !== null &&
-        score.formulaVersion.version === 'SS-1.0-R3' &&
-        score.formulaVersion.lockedAt !== null &&
-        score.formulaVersion.ownerApprovedAt !== null
+        score.finalScore !== null && isApprovedStockScoreFormula(score.formulaVersion)
       );
       const verifiedClassification = row.classification?.verifiedAt != null;
       const sectorName = row.sector ?? row.classification?.subSector.sector.name ?? null;
@@ -181,8 +240,7 @@ export class PrismaWorkspaceReadStore implements WorkspaceReadStore {
     const eligible = candidates.filter((row) =>
       isRotationAggregationLevel(row.level) &&
       row.finalScore !== null &&
-      row.formulaVersion.lockedAt !== null &&
-      row.formulaVersion.ownerApprovedAt !== null &&
+      isApprovedRotationFormula(row.formulaVersion) &&
       meetsRotationConfidenceGate(row.level, Number(row.confidence))
     );
 
@@ -266,4 +324,242 @@ export class PrismaWorkspaceReadStore implements WorkspaceReadStore {
       })),
     };
   }
+
+  async getCompany(symbol: string, exchange?: string): Promise<Record<string, unknown>> {
+    const identity = await this.resolveCanonicalStock(symbol, exchange);
+    if (identity.truthState !== 'FOUND') return identity;
+
+    const row = await this.prisma.canonicalStock.findUnique({
+      where: { stockId: identity.stock.stockId },
+      select: {
+        stockId: true,
+        name: true,
+        symbol: true,
+        exchange: true,
+        sector: true,
+        subSector: true,
+        createdAt: true,
+        updatedAt: true,
+        classification: {
+          select: {
+            verifiedAt: true,
+            source: true,
+            subSector: { select: { name: true, sector: { select: { name: true } } } },
+          },
+        },
+        groupMemberships: {
+          where: { verifiedAt: { not: null } },
+          select: { verifiedAt: true, source: true, group: { select: { name: true } } },
+        },
+        themeMemberships: {
+          where: { verifiedAt: { not: null } },
+          select: {
+            verifiedAt: true,
+            source: true,
+            industry: { select: { name: true, subTheme: { select: { name: true, theme: { select: { name: true } } } } } },
+          },
+        },
+        stockScores: {
+          orderBy: { calculatedAt: 'desc' },
+          take: 10,
+          select: {
+            finalScore: true,
+            confidence: true,
+            calculatedAt: true,
+            formulaVersion: { select: { formulaKey: true, version: true, lockedAt: true, ownerApprovedAt: true } },
+          },
+        },
+        shariahStatus: { select: { status: true } },
+      },
+    });
+    if (!row) return { truthState: 'NOT_FOUND' };
+
+    const officialScore = row.stockScores.find((score) =>
+      score.finalScore !== null && isApprovedStockScoreFormula(score.formulaVersion)
+    );
+    const classificationVerified = row.classification?.verifiedAt != null;
+    return {
+      truthState: 'CANONICAL_RECORD_FOUND',
+      company: {
+        stockId: row.stockId,
+        name: row.name,
+        symbol: row.symbol,
+        exchange: row.exchange,
+        sector: row.sector ?? row.classification?.subSector.sector.name ?? null,
+        subSector: row.subSector ?? row.classification?.subSector.name ?? null,
+        classificationStatus: classificationVerified ? 'VERIFIED' : 'PENDING',
+        classificationSource: classificationVerified ? row.classification?.source ?? null : null,
+        identityCreatedAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+        stockScore: officialScore ? {
+          value: Number(officialScore.finalScore),
+          confidence: Number(officialScore.confidence),
+          calculatedAt: officialScore.calculatedAt.toISOString(),
+          formulaKey: officialScore.formulaVersion.formulaKey,
+          formulaVersion: officialScore.formulaVersion.version,
+        } : null,
+        stockScoreTruthState: officialScore ? 'VERIFIED' : 'NOT_CONFIGURED',
+        verifiedStockGroups: row.groupMemberships.map((entry) => ({
+          name: entry.group.name, verifiedAt: entry.verifiedAt?.toISOString() ?? null,
+        })),
+        verifiedThemes: row.themeMemberships.map((entry) => ({
+          theme: entry.industry.subTheme.theme.name,
+          subTheme: entry.industry.subTheme.name,
+          industry: entry.industry.name,
+          verifiedAt: entry.verifiedAt?.toISOString() ?? null,
+        })),
+        // Only a positive verified mark can be surfaced; other status labels are omitted.
+        ...(row.shariahStatus?.status === 'VERIFIED' ? { shariahVerified: true } : {}),
+      },
+    };
+  }
+
+  async getValueChain(symbol: string, exchange?: string): Promise<Record<string, unknown>> {
+    const identity = await this.resolveCanonicalStock(symbol, exchange);
+    if (identity.truthState !== 'FOUND') return identity;
+
+    const stages = await this.prisma.valueChainStage.findMany({
+      where: { stockId: identity.stock.stockId },
+      orderBy: { updatedAt: 'desc' },
+      take: 100,
+      select: {
+        stageId: true,
+        stageName: true,
+        updatedAt: true,
+        evidence: {
+          where: { verification: 'VERIFIED' },
+          orderBy: { observedAt: 'desc' },
+          take: 50,
+          select: {
+            evidenceType: true,
+            sourceName: true,
+            sourceUrl: true,
+            observedAt: true,
+            claim: true,
+            verification: true,
+            createdAt: true,
+          },
+        },
+      },
+    });
+    const verifiedStages = stages.filter((stage) => stage.evidence.length > 0).map((stage) => ({
+      stageId: stage.stageId,
+      stageName: stage.stageName,
+      evidence: stage.evidence.map((item) => ({
+        evidenceType: item.evidenceType,
+        sourceName: item.sourceName,
+        sourceUrl: item.sourceUrl,
+        observedAt: item.observedAt?.toISOString() ?? null,
+        claim: item.claim,
+        verification: item.verification,
+        recordedAt: item.createdAt.toISOString(),
+      })),
+    }));
+    return {
+      truthState: verifiedStages.length > 0 ? 'VERIFIED_EVIDENCE_AVAILABLE' : 'NO_VERIFIED_EVIDENCE',
+      company: identity.stock,
+      items: verifiedStages,
+      hiddenUnverifiedStageCount: stages.length - verifiedStages.length,
+    };
+  }
+
+  async getFundamentals(symbol: string, exchange?: string, limit = 50): Promise<Record<string, unknown>> {
+    const identity = await this.resolveCanonicalStock(symbol, exchange);
+    if (identity.truthState !== 'FOUND') return identity;
+
+    const evidence = await this.prisma.darsEvidence.findMany({
+      where: {
+        verificationStatus: 'VERIFIED',
+        dataNature: { contains: 'FUNDAMENT', mode: 'insensitive' },
+        ...this.observationSymbolWhere(identity.stock.symbol.toUpperCase(), identity.stock.exchange.toUpperCase()),
+      },
+      orderBy: { sourceTimestamp: 'desc' },
+      take: limit,
+      select: {
+        evidenceId: true,
+        evidenceKey: true,
+        source: true,
+        symbol: true,
+        value: true,
+        sourceTimestamp: true,
+        effectiveTime: true,
+        knowledgeTime: true,
+        verificationStatus: true,
+        dataNature: true,
+        formulaVersion: true,
+        origin: true,
+        refreshedAt: true,
+        truthState: true,
+      },
+    });
+    return {
+      truthState: evidence.length > 0 ? 'VERIFIED_FUNDAMENTAL_EVIDENCE_AVAILABLE' : 'NO_VERIFIED_FUNDAMENTAL_EVIDENCE',
+      company: identity.stock,
+      items: evidence.map((item) => ({
+        evidenceId: item.evidenceId,
+        evidenceKey: item.evidenceKey,
+        source: item.source,
+        symbol: item.symbol,
+        value: item.value,
+        sourceTimestamp: item.sourceTimestamp.toISOString(),
+        effectiveTime: item.effectiveTime.toISOString(),
+        knowledgeTime: item.knowledgeTime.toISOString(),
+        verificationStatus: item.verificationStatus,
+        dataNature: item.dataNature,
+        formulaVersion: item.formulaVersion,
+        origin: item.origin,
+        refreshedAt: item.refreshedAt.toISOString(),
+        truthState: item.truthState,
+      })),
+    };
+  }
+
+  async getResearchEvidence(symbol: string, exchange?: string, limit = 50): Promise<Record<string, unknown>> {
+    const identity = await this.resolveCanonicalStock(symbol, exchange);
+    if (identity.truthState !== 'FOUND') return identity;
+
+    const evidence = await this.prisma.darsEvidence.findMany({
+      where: {
+        verificationStatus: 'VERIFIED',
+        ...this.observationSymbolWhere(identity.stock.symbol.toUpperCase(), identity.stock.exchange.toUpperCase()),
+      },
+      orderBy: [{ sourceTimestamp: 'desc' }, { knowledgeTime: 'desc' }],
+      take: limit,
+      select: {
+        evidenceId: true,
+        evidenceKey: true,
+        source: true,
+        symbol: true,
+        value: true,
+        sourceTimestamp: true,
+        effectiveTime: true,
+        knowledgeTime: true,
+        verificationStatus: true,
+        dataNature: true,
+        formulaVersion: true,
+        origin: true,
+        truthState: true,
+      },
+    });
+    return {
+      truthState: evidence.length > 0 ? 'VERIFIED_EVIDENCE_AVAILABLE' : 'NO_VERIFIED_EVIDENCE',
+      company: identity.stock,
+      items: evidence.map((item) => ({
+        evidenceId: item.evidenceId,
+        evidenceKey: item.evidenceKey,
+        source: item.source,
+        symbol: item.symbol,
+        value: item.value,
+        sourceTimestamp: item.sourceTimestamp.toISOString(),
+        effectiveTime: item.effectiveTime.toISOString(),
+        knowledgeTime: item.knowledgeTime.toISOString(),
+        verificationStatus: item.verificationStatus,
+        dataNature: item.dataNature,
+        formulaVersion: item.formulaVersion,
+        origin: item.origin,
+        truthState: item.truthState,
+      })),
+    };
+  }
+
 }
