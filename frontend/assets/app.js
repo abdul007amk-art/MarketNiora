@@ -220,7 +220,9 @@
     } catch (_error) {
       throw new Error("The workspace API returned an unreadable response.");
     }
-    if (!response.ok) {
+    // Symbol lookup uses 404 for an absent canonical identity and 409 when an
+    // exchange must be selected. Preserve these structured truth states for UI.
+    if (!response.ok && response.status !== 404 && response.status !== 409) {
       throw new Error(body && body.detail ? body.detail : "Canonical workspace data is not available in this runtime.");
     }
     return body;
@@ -301,6 +303,20 @@
           verified.className = "verified-mark";
           verified.textContent = "✓ Verified Shariah";
           last.appendChild(verified);
+        }
+        if (last) {
+          const openButton = document.createElement("button");
+          openButton.type = "button";
+          openButton.className = "row-action";
+          openButton.textContent = "Open Company Detail";
+          openButton.addEventListener("click", () => {
+            setText("company-status", "Loading " + String(item.symbol || "") + " from the canonical registry…");
+            if (byId("company-symbol")) byId("company-symbol").value = String(item.symbol || "");
+            if (byId("company-exchange")) byId("company-exchange").value = String(item.exchange || "");
+            showView("company");
+            history.replaceState(null, "", "#company");
+          });
+          last.appendChild(openButton);
         }
       });
     } catch (error) {
@@ -398,6 +414,284 @@
     }
   }
 
+
+  function symbolEndpoint(path, symbol, exchange, limit) {
+    const params = new URLSearchParams();
+    if (exchange) params.set("exchange", exchange);
+    if (Number.isInteger(limit)) params.set("limit", String(limit));
+    const query = params.toString();
+    return path + "/" + encodeURIComponent(symbol) + (query ? "?" + query : "");
+  }
+
+  function readSymbolForm(prefix) {
+    const symbolNode = byId(prefix + "-symbol");
+    const exchangeNode = byId(prefix + "-exchange");
+    const symbol = symbolNode ? symbolNode.value.trim().toUpperCase() : "";
+    const exchange = exchangeNode ? exchangeNode.value : "";
+    if (!/^[A-Z0-9&.-]{1,25}$/.test(symbol)) {
+      const statusNode = byId(prefix + "-status");
+      if (statusNode) statusNode.textContent = "Enter a valid stock symbol before searching.";
+      return null;
+    }
+    return { symbol, exchange };
+  }
+
+  function renderAmbiguousIdentity(containerId, body, onChoose) {
+    const container = byId(containerId);
+    if (!container) return;
+    container.replaceChildren();
+    const paragraph = document.createElement("p");
+    paragraph.className = "workspace-empty";
+    paragraph.textContent = "More than one canonical instrument uses this symbol. Select the exchange explicitly; no identity has been guessed.";
+    container.appendChild(paragraph);
+    (Array.isArray(body.candidates) ? body.candidates : []).forEach((candidate) => {
+      const row = document.createElement("article");
+      row.className = "data-row";
+      const title = document.createElement("strong");
+      title.textContent = String(candidate.name || candidate.symbol || "Canonical candidate");
+      const detail = document.createElement("p");
+      detail.textContent = String(candidate.exchange || "Exchange unknown") + ":" + String(candidate.symbol || "");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "row-action";
+      button.textContent = "Use " + String(candidate.exchange || "exchange");
+      button.addEventListener("click", () => onChoose(String(candidate.exchange || "")));
+      row.append(title, detail, button);
+      container.appendChild(row);
+    });
+  }
+
+  function renderEvidenceItems(containerId, items, emptyMessage, formatItem) {
+    const container = byId(containerId);
+    if (!container) return;
+    container.replaceChildren();
+    if (!Array.isArray(items) || items.length === 0) {
+      clearAndMessage(containerId, emptyMessage);
+      return;
+    }
+    items.forEach((item) => {
+      const row = document.createElement("article");
+      row.className = "data-row";
+      const title = document.createElement("strong");
+      title.textContent = String(item.stageName || item.evidenceKey || item.name || item.key || "Evidence record");
+      row.appendChild(title);
+      const detail = document.createElement("p");
+      detail.textContent = formatItem(item);
+      row.appendChild(detail);
+      const sourceMeta = [
+        item.source ? "Source: " + item.source : "",
+        item.sourceName ? "Source: " + item.sourceName : "",
+        item.sourceUrl ? "URL: " + item.sourceUrl : "",
+        item.sourceTimestamp ? "Source time: " + readableTime(Date.parse(item.sourceTimestamp)) : "",
+        item.effectiveTime ? "Effective: " + readableTime(Date.parse(item.effectiveTime)) : "",
+        item.knowledgeTime ? "Known at: " + readableTime(Date.parse(item.knowledgeTime)) : "",
+        item.observedAt ? "Observed: " + readableTime(Date.parse(item.observedAt)) : "",
+        item.truthState ? "Truth: " + item.truthState : "",
+        item.verificationStatus ? "Verification: " + item.verificationStatus : ""
+      ].filter(Boolean).join(" · ");
+      if (sourceMeta) {
+        const meta = document.createElement("small");
+        meta.textContent = sourceMeta;
+        row.appendChild(meta);
+      }
+      if (Array.isArray(item.evidence)) {
+        item.evidence.forEach((evidence) => {
+          const nested = document.createElement("div");
+          nested.className = "evidence-claim";
+          const claim = document.createElement("p");
+          claim.textContent = String(evidence.claim || "No claim text supplied");
+          nested.appendChild(claim);
+          const meta = document.createElement("small");
+          meta.textContent = [
+            evidence.evidenceType || "",
+            evidence.sourceName || "",
+            evidence.observedAt ? readableTime(Date.parse(evidence.observedAt)) : "",
+            evidence.verification || ""
+          ].filter(Boolean).join(" · ");
+          nested.appendChild(meta);
+          // Render the source URL as inert text, not as executable or trusted markup.
+          if (evidence.sourceUrl) {
+            const sourceText = document.createElement("small");
+            sourceText.textContent = "Evidence URL: " + String(evidence.sourceUrl);
+            nested.appendChild(sourceText);
+          }
+          row.appendChild(nested);
+        });
+      }
+      container.appendChild(row);
+    });
+  }
+
+  async function loadCompany() {
+    const input = readSymbolForm("company");
+    const status = byId("company-status");
+    const container = byId("company-results");
+    if (!input || !status || !container) return;
+    status.classList.remove("is-warning");
+    status.textContent = "Reading canonical identity and approved company evidence…";
+    container.replaceChildren();
+    try {
+      const body = await getWorkspaceJson(symbolEndpoint("/workspace/company", input.symbol, input.exchange));
+      if (body.truthState === "NOT_FOUND") {
+        status.textContent = "No canonical company record found for " + input.symbol + ". The staged seed is not treated as a canonical stock.";
+        clearAndMessage("company-results", "No canonical record is available. Resolve identity evidence and the import gate before this screen can display a company.");
+        return;
+      }
+      if (body.truthState === "AMBIGUOUS") {
+        status.textContent = "Exchange selection required.";
+        renderAmbiguousIdentity("company-results", body, (exchange) => {
+          byId("company-exchange").value = exchange;
+          loadCompany();
+        });
+        return;
+      }
+      const company = body.company || {};
+      status.textContent = "Canonical company record loaded. Facts and scores are displayed only when the relevant evidence/approval gate is met.";
+      appendDataRow("company-results", String(company.name || input.symbol),
+        String(company.exchange || "Exchange unknown") + ":" + String(company.symbol || input.symbol) + " · " + [company.sector, company.subSector].filter(Boolean).join(" › "),
+        "Classification " + String(company.classificationStatus || "PENDING") + " · Registry updated " + readableTime(Date.parse(company.updatedAt || "")));
+      const score = company.stockScore;
+      appendDataRow("company-results", "Stock Score",
+        score && Number.isFinite(score.value) ? String(score.value) + "/100 · Confidence " + score.confidence + "%" : "XX · No official score snapshot is configured",
+        score ? String(score.formulaKey || "Approved formula") + " " + String(score.formulaVersion || "") + " · Calculated " + readableTime(Date.parse(score.calculatedAt || "")) : String(company.stockScoreTruthState || "NOT_CONFIGURED"));
+      appendDataRow("company-results", "Verified Stock Groups",
+        Array.isArray(company.verifiedStockGroups) && company.verifiedStockGroups.length
+          ? company.verifiedStockGroups.map((group) => String(group.name)).join(", ")
+          : "XX · No verified group memberships",
+        "Memberships require verification evidence.");
+      appendDataRow("company-results", "Verified Theme Path",
+        Array.isArray(company.verifiedThemes) && company.verifiedThemes.length
+          ? company.verifiedThemes.map((theme) => [theme.theme, theme.subTheme, theme.industry].filter(Boolean).join(" › ")).join(" | ")
+          : "XX · No verified theme memberships",
+        "Theme membership does not change Rotation or Stock Score mathematics.");
+      if (company.shariahVerified === true) {
+        const mark = document.createElement("span");
+        mark.className = "verified-mark";
+        mark.textContent = "✓ Verified Shariah";
+        container.appendChild(mark);
+      }
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : "Company record could not be loaded.";
+      status.classList.add("is-warning");
+      clearAndMessage("company-results", "Canonical company data remains unavailable; no values were inferred.");
+    }
+  }
+
+  async function loadValueChain() {
+    const input = readSymbolForm("value-chain");
+    const status = byId("value-chain-status");
+    const container = byId("value-chain-results");
+    if (!input || !status || !container) return;
+    status.classList.remove("is-warning");
+    status.textContent = "Searching only explicitly verified company-specific value-chain evidence…";
+    container.replaceChildren();
+    try {
+      const body = await getWorkspaceJson(symbolEndpoint("/workspace/value-chain", input.symbol, input.exchange));
+      if (body.truthState === "NOT_FOUND") {
+        status.textContent = "No canonical company record found for " + input.symbol + ".";
+        clearAndMessage("value-chain-results", "No canonical company mapping exists for this symbol.");
+        return;
+      }
+      if (body.truthState === "AMBIGUOUS") {
+        status.textContent = "Exchange selection required.";
+        renderAmbiguousIdentity("value-chain-results", body, (exchange) => {
+          byId("value-chain-exchange").value = exchange;
+          loadValueChain();
+        });
+        return;
+      }
+      if (!Array.isArray(body.items) || body.items.length === 0) {
+        status.textContent = "Canonical company found; no VERIFIED value-chain evidence is available.";
+        clearAndMessage("value-chain-results", "Supplier, customer, raw-material, capacity and end-use facts stay unavailable until attributable evidence is verified.");
+        return;
+      }
+      status.textContent = "Verified value-chain evidence loaded for " + String(body.company && body.company.name || input.symbol) + ".";
+      renderEvidenceItems("value-chain-results", body.items, "No verified evidence.", (item) => String(item.stageName || "Value-chain stage"));
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : "Value-chain evidence unavailable.";
+      status.classList.add("is-warning");
+      clearAndMessage("value-chain-results", "Unverified company relationships are not displayed.");
+    }
+  }
+
+  async function loadFundamentals() {
+    const input = readSymbolForm("fundamentals");
+    const status = byId("fundamentals-status");
+    const container = byId("fundamentals-results");
+    if (!input || !status || !container) return;
+    status.classList.remove("is-warning");
+    status.textContent = "Searching verified fundamental evidence…";
+    container.replaceChildren();
+    try {
+      const body = await getWorkspaceJson(symbolEndpoint("/workspace/fundamentals", input.symbol, input.exchange, 50));
+      if (body.truthState === "NOT_FOUND") {
+        status.textContent = "No canonical company record found for " + input.symbol + ".";
+        clearAndMessage("fundamentals-results", "No fundamental values are inferred for an unresolved identity.");
+        return;
+      }
+      if (body.truthState === "AMBIGUOUS") {
+        status.textContent = "Exchange selection required.";
+        renderAmbiguousIdentity("fundamentals-results", body, (exchange) => {
+          byId("fundamentals-exchange").value = exchange;
+          loadFundamentals();
+        });
+        return;
+      }
+      const items = Array.isArray(body.items) ? body.items : [];
+      if (items.length === 0) {
+        status.textContent = "No verified fundamental evidence found. This does not imply that the company has no fundamentals.";
+        clearAndMessage("fundamentals-results", "Values remain XX until a verified fundamental data source is ingested.");
+        return;
+      }
+      status.textContent = "Verified fundamental evidence only. Values are not converted into an unapproved score.";
+      renderEvidenceItems("fundamentals-results", items, "No verified fundamental evidence.", (item) =>
+        String(item.dataNature || "Fundamental") + " · " + String(item.value || "XX"));
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : "Fundamental evidence unavailable.";
+      status.classList.add("is-warning");
+      clearAndMessage("fundamentals-results", "No estimate or missing value has been substituted.");
+    }
+  }
+
+  async function loadResearchEvidence() {
+    const input = readSymbolForm("research");
+    const status = byId("research-status");
+    const container = byId("research-results");
+    if (!input || !status || !container) return;
+    status.classList.remove("is-warning");
+    status.textContent = "Searching verified evidence with source and time provenance…";
+    container.replaceChildren();
+    try {
+      const body = await getWorkspaceJson(symbolEndpoint("/workspace/research", input.symbol, input.exchange, 50));
+      if (body.truthState === "NOT_FOUND") {
+        status.textContent = "No canonical company record found for " + input.symbol + ".";
+        clearAndMessage("research-results", "Evidence search needs a resolved canonical company identity.");
+        return;
+      }
+      if (body.truthState === "AMBIGUOUS") {
+        status.textContent = "Exchange selection required.";
+        renderAmbiguousIdentity("research-results", body, (exchange) => {
+          byId("research-exchange").value = exchange;
+          loadResearchEvidence();
+        });
+        return;
+      }
+      const items = Array.isArray(body.items) ? body.items : [];
+      if (items.length === 0) {
+        status.textContent = "No verified research evidence found for this company.";
+        clearAndMessage("research-results", "Proposed, conflicting or pending evidence is not promoted to verified truth.");
+        return;
+      }
+      status.textContent = "Verified source events only; source time and knowledge time are displayed separately.";
+      renderEvidenceItems("research-results", items, "No verified evidence.", (item) =>
+        String(item.value || "XX") + " · " + String(item.dataNature || "Evidence"));
+    } catch (error) {
+      status.textContent = error instanceof Error ? error.message : "Research evidence unavailable.";
+      status.classList.add("is-warning");
+      clearAndMessage("research-results", "Evidence is unavailable; no claim has been inferred.");
+    }
+  }
+
   function loadViewData(name) {
     if (name === "overview") {
       loadWorkspaceSummary();
@@ -408,6 +702,14 @@
       loadStocks();
     } else if (name === "themes") {
       loadThemes();
+    } else if (name === "company") {
+      loadCompany();
+    } else if (name === "value-chain") {
+      loadValueChain();
+    } else if (name === "fundamentals") {
+      loadFundamentals();
+    } else if (name === "research") {
+      loadResearchEvidence();
     }
   }
 
@@ -428,6 +730,14 @@
     if (rotationRefresh) rotationRefresh.addEventListener("click", loadRotation);
     const rotationHorizon = byId("rotation-horizon");
     if (rotationHorizon) rotationHorizon.addEventListener("change", loadRotation);
+    const companyForm = byId("company-search-form");
+    if (companyForm) companyForm.addEventListener("submit", (event) => { event.preventDefault(); loadCompany(); });
+    const valueChainForm = byId("value-chain-search-form");
+    if (valueChainForm) valueChainForm.addEventListener("submit", (event) => { event.preventDefault(); loadValueChain(); });
+    const fundamentalsForm = byId("fundamentals-search-form");
+    if (fundamentalsForm) fundamentalsForm.addEventListener("submit", (event) => { event.preventDefault(); loadFundamentals(); });
+    const researchForm = byId("research-search-form");
+    if (researchForm) researchForm.addEventListener("submit", (event) => { event.preventDefault(); loadResearchEvidence(); });
   }
 
   function showView(name) {
@@ -444,6 +754,7 @@
       overview: "OVERVIEW",
       rotation: "SECTOR ROTATION",
       stocks: "STOCK EXPLORER",
+      company: "COMPANY DETAIL",
       themes: "THEME EXPLORER",
       "value-chain": "BUSINESS VALUE CHAIN",
       fundamentals: "FUNDAMENTALS",
@@ -478,7 +789,7 @@
       });
     });
     const start = window.location.hash.replace(/^#/, "");
-    const accepted = ["overview", "rotation", "stocks", "themes", "value-chain", "fundamentals", "research", "portfolio"];
+    const accepted = ["overview", "rotation", "stocks", "company", "themes", "value-chain", "fundamentals", "research", "portfolio"];
     showView(accepted.includes(start) ? start : "overview");
   }
 
