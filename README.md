@@ -24,7 +24,7 @@ Do not change locked business rules, hierarchy, scoring formulas or governance c
 | Rotation | Locked Rotation v1.2 engine and calculation endpoint | Engine exists; verified persisted observations and full group → sub-sector → sector orchestration are not verified as running |
 | Stock Score | Locked SS-1.0-R3 engine and calculation endpoint | Engine exists; scores are not populated from a verified canonical live data pipeline |
 | Data pipeline | Provider parsing, normalization, validation, deduplication, conflict checks and quality gate modules | Raw/canonical stores are still in-memory; production PostgreSQL persistence is not wired |
-| Company, theme and value chain | Contracts and validation/resolve endpoints; research workbooks contain evidence-linked records | Full canonical DB load, complete explorer API and runtime coverage remain unverified |
+| Stock, rotation and theme explorers | Read-only `/workspace/*` APIs query canonical stocks, approved rotation snapshots and verified theme memberships from Prisma | Requires the approved NON_PROD database target; no canonical data is fabricated when the database/store is absent; value-chain and fundamental read surfaces remain pending |
 | Authentication | Google OIDC, owner TOTP/MFA, session and authorization modules | DB-backed auth is selectable for NON_PROD; clone CRUD integration script still must pass against the approved clone |
 | Security & CI | RBAC, CSRF, security headers, rate limiting, audit components, Prisma migrations and tests | Main-branch CI is green; CI is not the same as production runtime validation |
 | Broker / notifications | Upstox Full Market Quotes V3 adapter, compressed official instrument-directory resolver and verified-symbol conflict gates now have tests | Not activated: no canonical instrument-mapping table/resolver, approved token provisioning or source-timestamp rule; Telegram delivery is also not configured |
@@ -62,6 +62,10 @@ Weights remain Momentum 22%, Relative Strength 10%, Trend Quality 8%, Volume Con
 | GET | `/health` | HTTP server health only |
 | GET | `/market-data/provider-health` | Configured-provider status |
 | GET | `/market-data/quote/:symbol` | One-symbol quote + provenance/status |
+| GET | `/workspace/summary` | Canonical table counts and verified observation / evidence counts; read-only |
+| GET | `/workspace/stocks?q=&sector=&limit=` | Search canonical stocks and show only Owner-approved locked SS-1.0-R3 snapshots as official scores |
+| GET | `/workspace/rotation?horizon=&limit=` | Read only locked, Owner-approved rotation snapshots that pass their level confidence gate |
+| GET | `/workspace/themes?q=&limit=` | Theme → sub-theme → industry with verified memberships only |
 | POST | `/rotation/calculate` | PREVIEW-only input calculator; requires `mode=PREVIEW` and `aggregationLevel=STOCK_GROUP\|SUB_SECTOR\|SECTOR`; enforces 30% / 60% eligibility gates; `finalScore` is always null and result is exposed as `previewScore` |
 | POST | `/stock-score/calculate` | PREVIEW-only input calculator; requires `mode=PREVIEW`; `finalScore` is always null and result is exposed as `previewScore`; official score remains `NOT_CONFIGURED` |
 | POST | `/auth/oidc/google` | Google OIDC login; Owner path requires confirmed TOTP and issues no session before verification |
@@ -100,6 +104,10 @@ Non-allowlisted identities cannot initialise Owner TOTP. A confirmed secret cann
 ### NON_PROD authentication integration
 
 The documented script is `npx tsx scripts/integrationTest.ts`. It must be run only with the approved non-production Supabase clone and the documented NON_PROD environment variables in `docs/validation/MARKETNIORA_DB_AUTH_RUNTIME_INTEGRATION_PENDING.md`. Do not run it using the production database URL. Mark the item complete only after real CRUD passes and test rows are cleaned up.
+
+## Workspace explorer read path
+
+The current branch adds read-only canonical explorer endpoints for summary counts, stock search, persisted Rotation snapshots and verified Theme memberships. They are wired only when `MARKETNIORA_DB_TARGET=NON_PROD` passes the approved database-target guard. Other runtimes return `NOT_CONFIGURED`; an empty canonical registry remains `NOT_LOADED`. The endpoints never import staged MASTER_4187 rows, calculate official scores from request data, or turn unverified memberships into public mappings. The dashboard calls these endpoints and renders data status from the API instead of pretending a placeholder list is live.
 
 ## Remaining release gates
 
