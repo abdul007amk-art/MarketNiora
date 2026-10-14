@@ -48,12 +48,63 @@ const storeFixture = () => ({
       }],
     }].filter((theme) => !query || theme.name.toLowerCase().includes(query.toLowerCase())).slice(0, limit),
   }),
+  getCompany: async (symbol, exchange) => symbol === 'DUAL'
+    ? { truthState: 'AMBIGUOUS', candidates: [{ name: 'Dual NSE Ltd', symbol: 'DUAL', exchange: 'NSE' }, { name: 'Dual BSE Ltd', symbol: 'DUAL', exchange: 'BSE' }] }
+    : symbol === 'UNKNOWN' ? { truthState: 'NOT_FOUND' } : ({
+      truthState: 'CANONICAL_RECORD_FOUND',
+      company: {
+        stockId: 'stock-id-1', name: 'Infosys Limited', symbol, exchange: exchange || 'NSE',
+        sector: 'Information Technology', subSector: 'IT Services', classificationStatus: 'VERIFIED',
+        stockScore: null, stockScoreTruthState: 'NOT_CONFIGURED', verifiedStockGroups: [],
+        verifiedThemes: [], updatedAt: '2026-10-14T10:00:00.000Z',
+      },
+    }),
+  getValueChain: async (symbol, exchange) => symbol === 'DUAL'
+    ? { truthState: 'AMBIGUOUS', candidates: [{ name: 'Dual NSE Ltd', symbol: 'DUAL', exchange: 'NSE' }] }
+    : symbol === 'UNKNOWN' ? { truthState: 'NOT_FOUND' } : ({
+      truthState: 'VERIFIED_EVIDENCE_AVAILABLE',
+      company: { name: 'Infosys Limited', symbol, exchange: exchange || 'NSE' },
+      items: [{ stageId: 'stage-1', stageName: 'Operations', evidence: [{
+        evidenceType: 'CAPACITY', sourceName: 'Company filing', sourceUrl: 'https://example.com/filing',
+        observedAt: '2026-10-14T10:00:00.000Z', claim: 'Verified capacity disclosure', verification: 'VERIFIED',
+      }] }],
+    }),
+  getFundamentals: async (symbol, exchange, limit) => symbol === 'DUAL'
+    ? { truthState: 'AMBIGUOUS', candidates: [{ name: 'Dual NSE Ltd', symbol: 'DUAL', exchange: 'NSE' }] }
+    : symbol === 'UNKNOWN' ? { truthState: 'NOT_FOUND' } : ({
+      truthState: 'VERIFIED_FUNDAMENTAL_EVIDENCE_AVAILABLE',
+      company: { name: 'Infosys Limited', symbol, exchange: exchange || 'NSE' },
+      items: [{
+        evidenceId: 'evidence-1', evidenceKey: 'REVENUE_FY26', source: 'Annual Report',
+        symbol: 'NSE:INFY', value: '100', sourceTimestamp: '2026-10-14T10:00:00.000Z',
+        effectiveTime: '2026-03-31T00:00:00.000Z', knowledgeTime: '2026-05-01T00:00:00.000Z',
+        verificationStatus: 'VERIFIED', dataNature: 'FUNDAMENTAL_ACTUAL', formulaVersion: null,
+        origin: 'annual-report', refreshedAt: '2026-10-14T10:00:00.000Z', truthState: 'VERIFIED',
+      }].slice(0, limit),
+    }),
+  getResearchEvidence: async (symbol, exchange, limit) => symbol === 'DUAL'
+    ? { truthState: 'AMBIGUOUS', candidates: [{ name: 'Dual NSE Ltd', symbol: 'DUAL', exchange: 'NSE' }] }
+    : symbol === 'UNKNOWN' ? { truthState: 'NOT_FOUND' } : ({
+      truthState: 'VERIFIED_EVIDENCE_AVAILABLE',
+      company: { name: 'Infosys Limited', symbol, exchange: exchange || 'NSE' },
+      items: [{
+        evidenceId: 'evidence-2', evidenceKey: 'ORDER_UPDATE', source: 'Exchange filing',
+        symbol: 'NSE:INFY', value: 'Disclosed update', sourceTimestamp: '2026-10-14T10:00:00.000Z',
+        effectiveTime: '2026-10-14T10:00:00.000Z', knowledgeTime: '2026-10-14T10:05:00.000Z',
+        verificationStatus: 'VERIFIED', dataNature: 'DISCLOSURE', formulaVersion: null,
+        origin: 'exchange-filing', truthState: 'VERIFIED',
+      }].slice(0, limit),
+    }),
 });
 
 test('workspace read APIs fail closed when a canonical database store is not configured', async () => {
   const { server, baseUrl } = await startServer(undefined);
   try {
-    for (const path of ['/workspace/summary', '/workspace/stocks', '/workspace/rotation', '/workspace/themes']) {
+    for (const path of [
+      '/workspace/summary', '/workspace/stocks', '/workspace/rotation', '/workspace/themes',
+      '/workspace/company/INFY', '/workspace/value-chain/INFY',
+      '/workspace/fundamentals/INFY', '/workspace/research/INFY',
+    ]) {
       const response = await fetch(baseUrl + path);
       assert.equal(response.status, 503, path);
       const body = await response.json();
@@ -141,6 +192,77 @@ test('theme explorer returns only the verified result shape from its read store'
 
     const invalid = await fetch(baseUrl + '/workspace/themes?q=' + 'x'.repeat(101));
     assert.equal(invalid.status, 400);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+
+test('company detail distinguishes missing and ambiguous identities', async () => {
+  const { server, baseUrl } = await startServer(storeFixture());
+  try {
+    const found = await fetch(baseUrl + '/workspace/company/INFY?exchange=NSE');
+    assert.equal(found.status, 200);
+    assert.equal((await found.json()).company.symbol, 'INFY');
+
+    const missing = await fetch(baseUrl + '/workspace/company/UNKNOWN?exchange=NSE');
+    assert.equal(missing.status, 404);
+    assert.equal((await missing.json()).truthState, 'NOT_FOUND');
+
+    const ambiguous = await fetch(baseUrl + '/workspace/company/DUAL');
+    assert.equal(ambiguous.status, 409);
+    assert.equal((await ambiguous.json()).truthState, 'AMBIGUOUS');
+
+    const invalidExchange = await fetch(baseUrl + '/workspace/company/INFY?exchange=OTC');
+    assert.equal(invalidExchange.status, 400);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('value-chain endpoint exposes company-specific verified evidence result shape', async () => {
+  const { server, baseUrl } = await startServer(storeFixture());
+  try {
+    const response = await fetch(baseUrl + '/workspace/value-chain/INFY?exchange=NSE');
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.truthState, 'VERIFIED_EVIDENCE_AVAILABLE');
+    assert.equal(body.items[0].evidence[0].verification, 'VERIFIED');
+    assert.equal(body.items[0].evidence[0].claim, 'Verified capacity disclosure');
+
+    const ambiguous = await fetch(baseUrl + '/workspace/value-chain/DUAL');
+    assert.equal(ambiguous.status, 409);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('fundamental endpoint returns source- and time-attributed records only', async () => {
+  const { server, baseUrl } = await startServer(storeFixture());
+  try {
+    const response = await fetch(baseUrl + '/workspace/fundamentals/INFY?exchange=NSE&limit=10');
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.truthState, 'VERIFIED_FUNDAMENTAL_EVIDENCE_AVAILABLE');
+    assert.equal(body.items[0].verificationStatus, 'VERIFIED');
+    assert.equal(body.items[0].source, 'Annual Report');
+
+    const invalidLimit = await fetch(baseUrl + '/workspace/fundamentals/INFY?limit=0');
+    assert.equal(invalidLimit.status, 400);
+  } finally {
+    await stopServer(server);
+  }
+});
+
+test('research endpoint returns verified evidence while preserving source and knowledge time', async () => {
+  const { server, baseUrl } = await startServer(storeFixture());
+  try {
+    const response = await fetch(baseUrl + '/workspace/research/INFY?exchange=NSE');
+    assert.equal(response.status, 200);
+    const body = await response.json();
+    assert.equal(body.truthState, 'VERIFIED_EVIDENCE_AVAILABLE');
+    assert.equal(body.items[0].source, 'Exchange filing');
+    assert.equal(body.items[0].knowledgeTime, '2026-10-14T10:05:00.000Z');
   } finally {
     await stopServer(server);
   }
